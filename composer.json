@@ -1,0 +1,22 @@
+{
+	"name": "twister/sql",
+	"description": "Raw SQL fluent style string wrapper class",
+	"keywords": ["SQL", "fluent style", "SQL Wrapper", "Raw SQL"],
+	"type": "library",
+	"homepage": "https://github.com/twister-php/sql",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Trevor Herselman",
+			"email": "therselman@gmail.com"
+		}
+	],
+	"require": {
+		"php": ">=5.4"
+	},
+	"autoload": {
+		 "psr-4": {
+			"": "src/"
+		}
+	}
+}
