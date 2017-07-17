@@ -1,7 +1,7 @@
 {
 	"name": "twister/sql",
-	"description": "Raw SQL fluent style string wrapper class",
-	"keywords": ["SQL", "fluent style", "SQL Wrapper", "Raw SQL"],
+	"description": "Fluent-style SQL String Builder",
+	"keywords": ["SQL", "SQL Wrapper", "Raw SQL", "fluent style"],
 	"type": "library",
 	"homepage": "https://github.com/twister-php/sql",
 	"license": "MIT",
