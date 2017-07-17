@@ -70,42 +70,42 @@ Features:
 
 ### What it does:
 
-* - builds an internal `$sql` string value with concatenations
-* - supports declaring a 'raw' string, which is NOT parsed/escaped with '@' as first character in the column name
-  * Example: `->VALUES(['@ my id' => '@id', '@ created' => 'NOW()', '@' => '"Not escaped 1"', '@2' => "'Not escaped 2'", 'No column name', ' @ ' => '@ not first', '@ 4', '@ first, another value, no escape error' ])`
-  * Output: `VALUES(@id, NOW(), "Not escaped 1", 'Not escaped 2', "No column name", "@ not first", @ first, another value, no escape error )`
-  * Note that in `->VALUES()` statements, the array keys are NOT used for output, only to check for `@`; so anything unique starting with `@` is acceptable to prevent the string from being escaped, you can even have one of the keys be only the `@` value!
-  * Will strip the '@' sign from column names in all `->INSERT`, `->INSERT_INTO` and `->INTO()` statements
-* - uses a [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) to provide an ORM-like syntax
-* - will 'escape' your data with the following statements:
-  * `$sql = SQL()->e("Trevor's");` -> `$sql = '"Trevor\'s"'`;
-  * `$sql = SQL()->VALUES("Trevor's");` -> `$sql = 'VALUES("Trevor\'s")'`;
-* - executing statements is optional
-* - Minimal SQL abstraction
-* - Adds minimal whitespacing, for readability purposes when you dump/print/echo/display/log the statement
+* builds an internal `$sql` string value with concatenations
+* supports declaring a 'raw' string, which is NOT parsed/escaped with '@' as first character in the column name
+  - Example: `->VALUES(['@ my id' => '@id', '@ created' => 'NOW()', '@' => '"Not escaped 1"', '@2' => "'Not escaped 2'", 'No column name', ' @ ' => '@ not first', '@ 4', '@ first, another value, no escape error' ])`
+  - Output: `VALUES(@id, NOW(), "Not escaped 1", 'Not escaped 2', "No column name", "@ not first", @ first, another value, no escape error )`
+  - Note that in `->VALUES()` statements, the array keys are NOT used for output, only to check for `@`; so anything unique starting with `@` is acceptable to prevent the string from being escaped, you can even have one of the keys be only the `@` value!
+  - Will strip the '@' sign from column names in all `->INSERT`, `->INSERT_INTO` and `->INTO()` statements
+* uses a [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) to provide an ORM-like syntax
+* will 'escape' your data with the following statements:
+  - `$sql = SQL()->e("Trevor's");` -> `$sql = '"Trevor\'s"'`;
+  - `$sql = SQL()->VALUES("Trevor's");` -> `$sql = 'VALUES("Trevor\'s")'`;
+* executing statements is optional
+* Minimal SQL abstraction
+* Adds minimal whitespacing, for readability purposes when you dump/print/echo/display/log the statement
 
 
 
 ### What is doesn't do:
 
-* - does NOT parse your string
-* - does NOT validate your string
-* - does NOT verify your string
-* - does NOT guarantee your string/query is safe from SQL injections
-* - does NOT protect you from the big bad wolf called SQL injections
-* - does NOT expect you to parse/escape EVERY STRING in the world! (eg. `->VALUES(['@my_enum'=>'""'])` == '@'string is NOT escaped
-* - does NOT hold your hand or make coffee
-* - does NOT treat SQL like an abomination
-* - does NOT re-order or change the natural order of SQL statements (except for some Laravel/Eloquent/Doctrine compatible statements)
-* - does NOT change the name or meaning of statements (eg. `->LIMIT(10)` in Eloquent is `->take(10)`, except when implementing these)
-* - does NOT use reflection or annotations
-* - does NOT re-structure or re-format (tidy) your query statement (except when adding some PHP_EOL for display/echo purposes)
-* - does NOT build valid SQL statements, the power is in YOUR hands to build the statements, the class just appends what you want
-* - does NOT do input/parameter validation/verification, other than simple string escaping
-* - does NOT check that column types match the database schema
-* - does NOT use any schema/model/entity/mapping/config/YAML/XML/temporary/cache files
-* - does NOT store an abstract SQL statement interface internally, everything it builds is visible
-* - does NOT have any outside dependencies, only ONE single file and PHP 5.6+
+* does NOT parse your string
+* does NOT validate your string
+* does NOT verify your string
+* does NOT guarantee your string/query is safe from SQL injections
+* does NOT protect you from the big bad wolf called SQL injections
+* does NOT expect you to parse/escape EVERY STRING in the world! (eg. `->VALUES(['@my_enum'=>'""'])` == '@'string is NOT escaped
+* does NOT hold your hand or make coffee
+* does NOT treat SQL like an abomination
+* does NOT re-order or change the natural order of SQL statements (except for some Laravel/Eloquent/Doctrine compatible statements)
+* does NOT change the name or meaning of statements (eg. `->LIMIT(10)` in Eloquent is `->take(10)`, except when implementing these)
+* does NOT use reflection or annotations
+* does NOT re-structure or re-format (tidy) your query statement (except when adding some PHP_EOL for display/echo purposes)
+* does NOT build valid SQL statements, the power is in YOUR hands to build the statements, the class just appends what you want
+* does NOT do input/parameter validation/verification, other than simple string escaping
+* does NOT check that column types match the database schema
+* does NOT use any schema/model/entity/mapping/config/YAML/XML/temporary/cache files
+* does NOT store an abstract SQL statement interface internally, everything it builds is visible
+* does NOT have any outside dependencies, only ONE single file and PHP 5.6+
 
 
 
