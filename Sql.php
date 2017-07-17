@@ -83,6 +83,30 @@ class SQL
 		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
 		return $this;
 	}
+	public function call($sp, ...$args)
+	{
+		$final = null;
+		$comma = null;
+		foreach($args as $arg)
+		{
+			$final .= $comma . $this->escape($arg);
+			$comma = ', ';
+		}
+		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
+		return $this;
+	}
+	public function C($sp, ...$args)
+	{
+		$final = null;
+		$comma = null;
+		foreach($args as $arg)
+		{
+			$final .= $comma . $this->escape($arg);
+			$comma = ', ';
+		}
+		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
+		return $this;
+	}
 
 
 	public function SELECT(...$args)
@@ -90,16 +114,53 @@ class SQL
 		$this->sql .= 'SELECT ' . implode(', ', $args);
 		return $this;
 	}
+	public function select(...$args)
+	{
+		$this->sql .= 'SELECT ' . implode(', ', $args);
+		return $this;
+	}
+	public function S(...$args)
+	{
+		$this->sql .= 'SELECT ' . implode(', ', $args);
+		return $this;
+	}
+
+
 	public function SELECT_CACHE(...$args)
 	{
 		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
 		return $this;
 	}
+	public function selectCache(...$args)
+	{
+		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
+		return $this;
+	}
+	public function SC(...$args)
+	{
+		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
+		return $this;
+	}
+
+
 	public function SELECT_NO_CACHE(...$args)
 	{
 		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
 		return $this;
 	}
+	public function selectNoCache(...$args)
+	{
+		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
+		return $this;
+	}
+	public function SNC(...$args)
+	{
+		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
+		return $this;
+	}
+
+
+
 	/**
 	 *	
 	 *	
@@ -115,21 +176,61 @@ class SQL
 		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
 		return $this;
 	}
+	public function selectDistinct(...$args)
+	{
+		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+	public function SD(...$args)
+	{
+		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+
 	public function DISTINCT(...$args)
 	{
 		$this->sql .= ' DISTINCT ' . implode(', ', $args);
 		return $this;
 	}
-	public function SELECT_DISTINCT_CACHE(...$args)
+	public function distinct(...$args)
+	{
+		$this->sql .= ' DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+
+	public function SELECT_CACHE_DISTINCT(...$args)
 	{
 		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
 		return $this;
 	}
-	public function SELECT_DISTINCT_NO_CACHE(...$args)
+	public function selectCacheDistinct(...$args)
+	{
+		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+	public function SCD(...$args)
+	{
+		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+
+	public function SELECT_NO_CACHE_DISTINCT(...$args)
 	{
 		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
 		return $this;
 	}
+	public function selectNoCacheDistinct(...$args)
+	{
+		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+	public function SNCD(...$args)
+	{
+		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
+		return $this;
+	}
+
+
 
 	/**
 	 *	Samples:
@@ -139,6 +240,16 @@ class SQL
 	 *	PROBLEM: If we use `comma` with `UPDATE sequence SET c1 = 123, id = LAST_INSERT_ID(id+1);`  ... c1 will set the comma, but `LAST_INSERT_ID() does NOT require it!
 	 */
 	public function LAST_INSERT_ID($id = null)
+	{
+		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
+		return $this;
+	}
+	public function lastInsertId($id = null)
+	{
+		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
+		return $this;
+	}
+	public function ID($id = null)
 	{
 		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
 		return $this;
@@ -157,6 +268,16 @@ class SQL
 		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
 		return $this;
 	}
+	public function insert(...$args)
+	{
+		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
+		return $this;
+	}
+	public function I(...$args)
+	{
+		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
+		return $this;
+	}
 
 	/**
 	 *	Samples:
@@ -166,6 +287,16 @@ class SQL
 	 *
 	 */
 	public function INSERT_INTO($tbl_name, ...$args)
+	{
+		$this->sql .= 'INSERT ';
+		return $this->INTO($tbl_name, ...$args);
+	}
+	public function insertInto($tbl_name, ...$args)
+	{
+		$this->sql .= 'INSERT ';
+		return $this->INTO($tbl_name, ...$args);
+	}
+	public function II($tbl_name, ...$args)
 	{
 		$this->sql .= 'INSERT ';
 		return $this->INTO($tbl_name, ...$args);
@@ -274,6 +405,10 @@ class SQL
 						( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
 		return $this;
 	}
+	public function into($tbl_name, ...$args)
+	{
+		return $this->INTO($tbl_name, ...$args);
+	}
 
 	/**
 	 *	detect first character of column title ... if the title has '@' sign, then DO NOT ESCAPE! ... can be useful for 'DEFAULT', 'UNIX_TIMESTAMP()', or '@id' or 'MD5(...)' etc. (a connection variable) etc.
@@ -379,6 +514,10 @@ class SQL
 						( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
 		return $this;
 	}
+	public function intoPartition(string $tbl_name, $partitions, ...$args)
+	{
+		return $this->INTO_PARTITION($tbl_name, $partitions, ...$args);
+	}
 
 	/**
 	 *	Samples:
@@ -432,6 +571,14 @@ class SQL
 		}
 		$this->sql .= ' VALUES (' . $values . ')';
 		return $this;
+	}
+	public function V(...$args)
+	{
+		return $this->VALUES(...$args);
+	}
+	public function values(...$args)
+	{
+		return $this->VALUES(...$args);
 	}
 
 	/**
@@ -522,6 +669,10 @@ class SQL
 		$this->sql .= ' SET ' . $values;
 		return $this;
 	}
+	public function set(...$args)
+	{
+		return $this->SET(...$args);
+	}
 
 
 	//	FROM thetable t, (SELECT @a:=NULL) as init;
@@ -530,8 +681,28 @@ class SQL
 		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
 		return $this;
 	}
+	public function from(...$args)
+	{
+		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
+		return $this;
+	}
+	public function F(...$args)
+	{
+		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
+		return $this;
+	}
 
 	public function JOIN(...$args)
+	{
+		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
+		return $this;
+	}
+	public function join(...$args)
+	{
+		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
+		return $this;
+	}
+	public function J(...$args)
 	{
 		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
 		return $this;
@@ -1044,10 +1215,13 @@ class SQL
 		static $lower_under	=	['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',	//	array used to 'replace' the $name, if the replacement == empty string then ALL the characters are in this range
 								'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '_'];
 
-		static $translations	=	[	'SELECT'		=>	'SELECT ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html
+		static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
+										'SELECT'		=>	'SELECT ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html
 										'DELETE'		=>	'DELETE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html
 										'INSERT'		=>	'INSERT ',
 										'CALL'			=>	'CALL ',
+
+										'SELECT_ALL'	=>	'SELECT COUNT(*) ',
 
 										'CREATE'		=>	'CREATE ',
 										'DROP'			=>	'DROP ',
