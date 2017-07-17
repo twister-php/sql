@@ -9,15 +9,17 @@ In short, this is just a wrapper around an internal empty `$sql` string variable
 
 The ultimate goal of this class is to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements; bringing even more power and flexibility than you thought possible!
 
-SQL:
+```php
+// SQL:
 `$sql = 'SELECT COUNT(*) FROM hello_world';`
 
+// short syntax
 `$sql = SQL()->SA->F->hello_world;`
-or
+// or
 `$sql = SQL()->SELECT_ALL->FROM->hello_world;`
-or
+// or
 `$sql = SQL()->SELECT('COUNT(*)')->FROM('hello_world');`
-
+```
 
 
 What you do with that string, how you construct it, is up to you; it helps you as much or as little as you want. You can build a whole statement, or just a query fragment, or you can use it to escape only the key-value/column-value pairs of INSERT/UPDATE statements.
@@ -34,7 +36,7 @@ So what happens when you find yourself working with 400+ tables, 6000+ columns, 
 ```txt
 composer require twister/sql
 ```
-OR
+or
 ```
 https://github.com/twister-php/sql
 ```
@@ -62,8 +64,6 @@ $id = 1;
 $name = "Trevor's Home"
 
 $sql = SQL()->INSERT_INTO('users', ['id' => $id, 'name' => $name]);
-
-
 $sql = 'SELECT COUNT(*) FROM users';
 
 ```
