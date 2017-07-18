@@ -166,3 +166,10 @@ A:
 * Mainly because the biggest pain in the ass is value escaping for large INSERT/UPDATE statements, concatenating them all to this long INSERT/UPDATE statement with `PDO::quote` or `mysqli::real_escape_string` is a nightmare. The largest table I have, has 156 columns/fields, I have 10x tables with over 100 fields, and 24 tables with over 50 columns.
 
 * Because when you find yourself dealing with a database of 400+ tables and 6000+ columns, there will come a time when an ORM Eloquent or Doctrine just doesn't provide you with the required functionality and you are forced to write raw queries  the problem/pain in raw query string building is 'value escaping'! This is also one of the biggest arguments I've heard against raw/native SQL, is that it's 'not secure', or '
+
+
+## prepare()
+
+### Validation and Formatting Rules
+
+Prepare combines ideas from 'prepared' statements, form validation rules, sprintf(), .NET and python. The replacement is done with the mb_ereg_replace_callback() from the multibyte (`mb_`) extention
