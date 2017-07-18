@@ -11,14 +11,23 @@ The ultimate goal of this class is to bridge the gap between the '[fluent interf
 
 ```php
 // SQL:
-`$sql = 'SELECT COUNT(*) FROM hello_world';`
+$sql = 'SELECT COUNT(*) FROM users';
 
 // short syntax
-`$sql = SQL()->SA->F->hello_world;`
-// or
-`$sql = SQL()->SELECT_ALL->FROM->hello_world;`
-// or
-`$sql = SQL()->SELECT('COUNT(*)')->FROM('hello_world');`
+$sql = SQL()->SAF->users;
+
+$sql = SQL()->SELECT_ALL_FROM->users;
+
+$sql = SQL()['SELECT COUNT(*) FROM users'];
+
+$sql = SQL()->SELECT('COUNT(*)')->FROM('users');
+
+
+// initialize
+$sql = 'SELECT';
+$sql = SQL($sql);
+$sql .= 'here';
+
 ```
 
 
@@ -33,10 +42,19 @@ So what happens when you find yourself working with 400+ tables, 6000+ columns, 
 
 ## Install
 
-```txt
+Composer
+```
 composer require twister/sql
 ```
-or
+Composer manually
+```json
+/* composer.json */
+	"require": {
+		"php": ">=5.4",
+		"twister/sql": "*"
+	}
+```
+GIT
 ```
 https://github.com/twister-php/sql
 ```
