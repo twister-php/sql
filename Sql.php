@@ -1,13 +1,330 @@
 <?php
 
-class SQL
+class SQL implements \ArrayAccess
 {
 	private	static $queries		=	null;
 	private	static $conn		=	null;
 
-	public	$sql				=	'';
-	private	$context			=	null;	//	'SELECT', 'FROM', 'JOIN', 'WHERE'
-	private	$comma				=	null;	//	reset when the `contexts` change
+	public	$sql				=	null;
+
+	public static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
+										'SELECT'		=>	'SELECT ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html
+										'DELETE'		=>	'DELETE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html
+										'INSERT'		=>	'INSERT ',
+										'UPDATE'		=>	'UPDATE ',
+										'CALL'			=>	'CALL ',
+
+										'SELECT_ALL'	=>	'SELECT *',
+										'SA'			=>	'SELECT *',				//	SA = (S)ELECT (A)LL
+										'SALL'			=>	'SELECT *',				//	SA = (S)ELECT (ALL)
+										'S_ALL'			=>	'SELECT *',				//	SA = (S)ELECT (ALL)
+
+										'S_CACHE'		=>	'SELECT SQL_CACHE ',
+										'S_NCACHE'		=>	'SELECT SQL_NO_CACHE ',
+										'S_NO_CACHE'	=>	'SELECT SQL_NO_CACHE ',
+
+										//	compound statements
+										'SAF'			=>	'SELECT *' . PHP_EOL . 'FROM ',
+										'SELECT_ALL_FROM'=>	'SELECT *' . PHP_EOL . 'FROM ',
+										'SCAF'			=>	'SELECT COUNT(*)' . PHP_EOL . 'FROM ',
+
+										//	synonyms
+										'SC'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (ALL) is implied here
+										'SC_AS'			=>	'SELECT COUNT(*) AS ',	//	SA = (S)ELECT (C)OUNT (ALL) is implied here
+										'SCA'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (A)LL
+										'SCAA'			=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL (A)S
+										'SCA_AS'		=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL
+										'S_COUNT_ALL'	=>	'SELECT COUNT(*)',
+										'S_COUNT_ALL_AS'=>	'SELECT COUNT(*) AS ',
+										'SELECT_CA'		=>	'SELECT COUNT(*)',		//	CA = (C)OUNT (A)LL = COUNT(*)
+										'SELECT_CA_AS'	=>	'SELECT COUNT(*) AS ',
+										'SELECT_CALL'	=>	'SELECT COUNT(*)',
+										'SELECT_CALL_AS'=>	'SELECT COUNT(*) AS ',
+										'SELECT_COUNT_ALL'=>'SELECT COUNT(*)',
+										'SELECT_COUNT_ALL_AS'=>'SELECT COUNT(*) AS ',
+
+										'CREATE'		=>	'CREATE ',
+										'DROP'			=>	'DROP ',
+										'CREATE_TABLE'	=>	'CREATE TABLE ',
+										'ALTER'			=>	'ALTER ',
+										'ALTER_TABLE'	=>	'ALTER TABLE ',
+										'ALTER_DATABASE'=>	'ALTER DATABASE ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
+										'ALTER_SCHEMA'	=>	'ALTER SCHEMA ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
+										'ALTER_EVENT'	=>	'ALTER EVENT ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-event.html
+										'ALTER_FUNCTION'=>	'ALTER FUNCTION ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-function.html
+										'DATABASE'		=>	'DATABASE ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
+										'SCHEMA'		=>	'SCHEMA ',				//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
+										'EVENT'			=>	'EVENT ',				//	https://dev.mysql.com/doc/refman/5.7/en/alter-event.html
+										'FUNCTION'		=>	'FUNCTION ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-function.html
+										'TABLE'			=>	'TABLE ',				//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name || CREATE TABLE || ALTER TABLE
+
+										'ALL'			=>	'*',					//	https://dev.mysql.com/doc/refman/5.7/en/select.html		`The ALL and DISTINCT modifiers specify whether duplicate rows should be returned. ALL (the default) specifies that all matching rows should be returned, including duplicates. DISTINCT specifies removal of duplicate rows from the result set. It is an error to specify both modifiers. DISTINCTROW is a synonym for DISTINCT.`
+										'DISTINCT'		=>	'DISTINCT ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SELECT DISTINCT || MIN(DISTINCT price)
+										'DISTINCTROW'	=>	'DISTINCTROW ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SELECT DISTINCT || MIN(DISTINCT price)
+										'HIGH_PRIORITY'	=>	'HIGH_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		HIGH_PRIORITY gives the SELECT higher priority than a statement that updates a table.
+										'HIGH'			=>	'HIGH_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		HIGH_PRIORITY gives the SELECT higher priority than a statement that updates a table.
+										'STRAIGHT_JOIN'	=>	'STRAIGHT_JOIN ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		`STRAIGHT_JOIN forces the optimizer to join the tables in the order in which they are listed in the FROM clause. You can use this to speed up a query if the optimizer joins the tables in nonoptimal order. STRAIGHT_JOIN also can be used in the table_references list. See Section 13.2.9.2, “JOIN Syntax”.`
+										'SQL_SMALL_RESULT'=>'SQL_SMALL_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
+										'SMALL'			=>	'SQL_SMALL_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
+										'SQL_BIG_RESULT'=>	'SQL_BIG_RESULT ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
+										'BIG'			=>	'SQL_BIG_RESULT ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
+										'SQL_BUFFER_RESULT'=>'SQL_BUFFER_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BUFFER_RESULT forces the result to be put into a temporary table. This helps MySQL free the table locks early and helps in cases where it takes a long time to send the result set to the client. This modifier can be used only for top-level SELECT statements, not for subqueries or following UNION.
+										'BUFFER'		=>	'SQL_BUFFER_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BUFFER_RESULT forces the result to be put into a temporary table. This helps MySQL free the table locks early and helps in cases where it takes a long time to send the result set to the client. This modifier can be used only for top-level SELECT statements, not for subqueries or following UNION.
+										'SQL_CACHE'		=>	'SQL_CACHE ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
+										'CACHE'			=>	'SQL_CACHE ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
+										'SQL_NO_CACHE'	=>	'SQL_NO_CACHE ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
+										'NO_CACHE'		=>	'SQL_NO_CACHE ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
+										'SQL_CALC_FOUND_ROWS'=>	'SQL_CALC_FOUND_ROWS ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html	SQL_CALC_FOUND_ROWS tells MySQL to calculate how many rows there would be in the result set, disregarding any LIMIT clause. The number of rows can then be retrieved with SELECT FOUND_ROWS(). See Section 12.14, “Information Functions”.
+										'CALC'			=>	'SQL_CALC_FOUND_ROWS ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_CALC_FOUND_ROWS tells MySQL to calculate how many rows there would be in the result set, disregarding any LIMIT clause. The number of rows can then be retrieved with SELECT FOUND_ROWS(). See Section 12.14, “Information Functions”.
+
+										'DELAYED'		=>	'DELAYED ',				//	https://dev.mysql.com/doc/refman/5.7/en/insert.html		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
+
+										'LOW_PRIORITY'	=>	'LOW_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]
+										'LOW'			=>	'LOW_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
+										'QUICK'			=>	'QUICK ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
+										'IGNORE'		=>	'IGNORE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
+
+										'TRUNCATE'		=>	'TRUNCATE ',			//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
+										'TRUNCATE_TABLE'=>	'TRUNCATE TABLE ',		//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
+
+										'CA'			=>	'COUNT(*)',
+										'CAA'			=>	'COUNT(*) AS ',			//	(C)OUNT (A)LL (A)S
+										'CA_AS'			=>	'COUNT(*) AS ',			//	(C)OUNT (A)LL (AS)
+										'COUNT_ALL'		=>	'COUNT(*)',
+										'COUNT_ALL_AS'	=>	'COUNT(*) AS ',			//	->SELECT->COUNT_ALL_AS->count_of_all->FROM->users
+										'COUNT'			=>	'COUNT',
+										'LAST_INSERT_ID'=>	'LAST_INSERT_ID()',		//	SELECT LAST_INSERT_ID();	UPDATE sequence SET id=LAST_INSERT_ID(id+1);
+										'ROW_COUNT'		=>	'ROW_COUNT()',			//	https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_row-count		SELECT ROW_COUNT();
+										'A'				=>	'*',					//	`ALL` is a SELECT modifier ... gonna change its meaning!
+										'STAR'			=>	'*',
+
+										'FROM'			=>	PHP_EOL . 'FROM ',
+										'JOIN'			=>	PHP_EOL . "\tJOIN ",
+										'LEFT_JOIN'		=>	PHP_EOL . "\tLEFT JOIN ",
+										'LEFT_OUTER_JOIN'=>	PHP_EOL . "\tLEFT OUTER JOIN ",
+										'INNER_JOIN'	=>	PHP_EOL . "\tINNER JOIN ",
+										'RIGHT_JOIN'	=>	PHP_EOL . "\tRIGHT JOIN ",
+										'RIGHT_OUTER_JOIN'=>PHP_EOL . "\tRIGHT OUTER JOIN ",
+										'OUTER_JOIN'	=>	PHP_EOL . "\tOUTER JOIN ",
+										'CROSS_JOIN'	=>	PHP_EOL . "\tCROSS JOIN ",
+										'STRAIGHT_JOIN'	=>	PHP_EOL . "\tSTRAIGHT_JOIN ",			//	Why the hell do they use _ in this name?
+										'NATURAL_JOIN'	=>	PHP_EOL . "\tNATURAL JOIN ",
+										'WHERE'			=>	PHP_EOL . 'WHERE ',
+										'GROUP_BY'		=>	PHP_EOL . 'GROUP BY ',
+										'HAVING'		=>	PHP_EOL . 'HAVING ',
+										'ORDER_BY'		=>	PHP_EOL . 'ORDER BY ',
+										'LIMIT'			=>	PHP_EOL . 'LIMIT ',
+										'PROCEDURE'		=>	PHP_EOL . 'PROCEDURE ',
+										'INTO_OUTFILE'	=>	PHP_EOL . 'INTO OUTFILE ',
+										'UNION'			=>	PHP_EOL . 'UNION' . PHP_EOL,
+
+										'S'				=>	'SELECT ',
+										'D'				=>	'DELETE ',
+										'I'				=>	'INSERT ',
+										'U'				=>	'UPDATE ',
+										'F'				=>	PHP_EOL . 'FROM ',
+										'J'				=>	PHP_EOL . "\tJOIN ",				//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'LJ'			=>	PHP_EOL . "\tLEFT JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'LOJ'			=>	PHP_EOL . "\tLEFT OUTER JOIN ",		//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'IJ'			=>	PHP_EOL . "\tINNER JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'RJ'			=>	PHP_EOL . "\tRIGHT JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'ROJ'			=>	PHP_EOL . "\tRIGHT OUTER JOIN ",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'OJ'			=>	PHP_EOL . "\tOUTER JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'CJ'			=>	PHP_EOL . "\tCROSS JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'SJ'			=>	PHP_EOL . "\tSTRAIGHT_JOIN ",		//	Why the hell do they use _ in this name?
+										'NJ'			=>	PHP_EOL . "\tNATURAL JOIN ",		//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'W'				=>	PHP_EOL . 'WHERE ',
+										'G'				=>	PHP_EOL . 'GROUP BY ',
+										'H'				=>	PHP_EOL . 'HAVING ',
+										'O'				=>	PHP_EOL . 'ORDER BY ',
+										'OB'			=>	PHP_EOL . 'ORDER BY ',
+										'L'				=>	PHP_EOL . 'LIMIT ',
+
+										'USING'			=>	' USING ',							//	Not sure about the spacing on this statement! Just adding on both sides! The statement actually needs brackets so ... USING (id)
+										'USE'			=>	' USE ',							//	USE an index ... spacing ??? ...	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'IGNORE'		=>	' IGNORE ',							//	IGNORE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'FORCE'			=>	' FORCE ',							//	FORCE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'NATURAL'		=>	' NATURAL ',							//	FORCE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
+
+										'DESC'			=>	' DESC',
+										'ASC'			=>	' ASC',
+										'IN'			=>	' IN ',
+										'NOT_IN'		=>	' NOT IN ',
+										'NOT'			=>	' NOT',
+										'NULL'			=>	' NULL',
+										'CHARACTER_SET'	=>	' CHARACTER SET ',					//	[INTO OUTFFILE 'file_name' [CHARACTER SET charset_name]
+										'CHARACTER'		=>	' CHARACTER ',						//	[INTO OUTFFILE 'file_name' [CHARACTER SET charset_name] ... where else is CHARACTER used? Table definitions and?
+										'INTO_DUMPFILE'	=>	' INTO DUMPFILE ',					//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name'
+										'DUMPFILE'		=>	'DUMPFILE ',						//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name'
+										'OUTFILE'		=>	'OUTFILE ',
+																								//	INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
+										'INTO'			=>	'INTO ',							//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name' | INTO var_name [, var_name]]
+										'OFFSET'		=>	' OFFSET ',							//	[LIMIT {[offset,] row_count | row_count OFFSET offset}]
+
+										//	These can only come at the end of a SELECT, not sure if they can be used in other statements?
+										'FOR_UPDATE'					=>	PHP_EOL . 'FOR UPDATE',							//	[FOR UPDATE | LOCK IN SHARE MODE]]
+										'LOCK_IN_SHARE_MODE'			=>	' LOCK IN SHARE MODE',							//	[FOR UPDATE | LOCK IN SHARE MODE]]
+										'FOR_UPDATE_LOCK_IN_SHARE_MODE'	=>	PHP_EOL . 'FOR UPDATE LOCK IN SHARE MODE',		//	[FOR UPDATE | LOCK IN SHARE MODE]]
+
+										'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE ',				//	https://dev.mysql.com/doc/refman/5.7/en/insert.html
+
+										'AUTO_INCREMENT'=>	' AUTO_INCREMENT',					//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
+										'INT'			=>	' INT',								//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
+										'PK'			=>	'PRIMARY KEY ',						//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
+										'PRIMARY_KEY'	=>	'PRIMARY KEY ',						//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
+										'UNIQUE_KEY'	=>	'UNIQUE KEY ',						//	CREATE TABLE `t` `id` INT(11) NOT NULL AUTO_INCREMENT, `val` INT(11) DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `i1` (`val`)
+									//	'PRIMARY'		=>	'PRIMARY ',							//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))	//	needs work ...
+									//	'KEY'			=>	'KEY ',								//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
+										'ENGINE'		=>	PHP_EOL . 'ENGINE',					//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b)) ENGINE=MyISAM SELECT b,c FROM test2;
+
+										'IF'			=>	' IF ',
+										'SET'			=>	' SET ',							//	There is also `CHARACTER SET charset_name` ... so double spaces if you use CHARACTER->SET->...
+
+										'COMMA'			=>	', ',
+										'C'				=>	', ',								//	COMMA (or COUNT or CLOSE)  ??? ... O is for ORDER BY ... so we can't really use C for CLOSE, and `COUNT` is usually used with COUNT(*)
+									//	'C'				=>	', ',
+									//	'C'				=>	')',
+										'c_'			=>	', ',	//	currently the only lower case, case ... how else do we get a comma???
+
+										'_'				=>	' ',	//	SPACE
+										'__'			=>	', ',	//	COMMA
+									//	'___'			=>	'(' / ')',	// more than 2 underscores has special meaning
+										'Q'				=>	'"',
+										'SPACE'			=>	' ',
+										'SP'			=>	' ',	//	SPACE (also Stored Procedure)
+										'_O'			=>	'(',	//	OP	? || O
+										'C_'			=>	')',	//	CL	? || C
+										'OPEN'			=>	'(',
+										'CLOSE'			=>	')',
+										'TAB'			=>	"\t",
+										'NL'			=>	"\n",
+										'CR'			=>	"\r",
+										'EOL'			=>	PHP_EOL,
+										'BR'			=>	PHP_EOL,
+										'EQ'			=>	'=',
+										'EQ_'			=>	'= ',
+										'_EQ'			=>	' =',
+										'_EQ_'			=>	' = ',
+										'NEQ'			=>	'!=',
+										'NEQ_'			=>	'!= ',
+										'_NEQ'			=>	' !=',
+										'_NEQ_'			=>	' != ',
+										'NOTEQ'			=>	'!=',
+										'NOTEQ_'		=>	'!= ',
+										'_NOTEQ'		=>	' !=',
+										'_NOTEQ_'		=>	' != ',
+										'NOT_EQ'		=>	'!=',
+										'NOT_EQ_'		=>	'!= ',
+										'_NOT_EQ'		=>	' !=',
+										'_NOT_EQ_'		=>	' != ',
+										'GT'			=>	'>',
+										'GT_'			=>	'> ',
+										'_GT'			=>	' >',
+										'_GT_'			=>	' > ',
+										'GE'			=>	'>=',
+										'GE_'			=>	'>= ',
+										'_GE'			=>	' >=',
+										'_GE_'			=>	' >= ',
+										'GTEQ'			=>	'>=',
+										'GTEQ_'			=>	'>= ',
+										'_GTEQ'			=>	' >=',
+										'_GTEQ_'		=>	' >= ',
+										'LT'			=>	'<',
+										'LT_'			=>	'< ',
+										'_LT'			=>	' <',
+										'_LT_'			=>	' < ',
+										'LE'			=>	'<=',
+										'LE_'			=>	'<= ',
+										'_LE'			=>	' <=',
+										'_LE_'			=>	' <= ',
+										'LTEQ'			=>	'<=',
+										'LTEQ_'			=>	'<= ',
+										'_LTEQ'			=>	' <=',
+										'_LTEQ_'		=>	' <= ',
+										'AS'			=>	'AS',
+										'AS_'			=>	'AS_',
+										'_AS'			=>	' AS',
+										'_AS_'			=>	' AS ',
+										'ON'			=>	'ON',
+										'ON_'			=>	'ON ',
+										'_ON'			=>	' ON',
+										'_ON_'			=>	' ON ',
+										'AND'			=>	'AND',
+										'AND_'			=>	'AND ',
+										'_AND'			=>	' AND',
+										'_AND_'			=>	' AND ',
+										'OR'			=>	'OR',
+										'OR_'			=>	'OR ',
+										'_OR'			=>	' OR',
+										'_OR_'			=>	' OR ',
+
+										'_0_'			=>	'0',
+										'_1_'			=>	'1',
+										'_2_'			=>	'2',
+										'_3_'			=>	'3',
+										'_4_'			=>	'4',
+										'_5_'			=>	'5',
+										'_6_'			=>	'6',
+										'_7_'			=>	'7',
+										'_8_'			=>	'8',
+										'_9_'			=>	'9',
+										'_10_'			=>	'10',
+										'_11_'			=>	'11',
+										'_12_'			=>	'12',
+										'_13_'			=>	'13',
+										'_14_'			=>	'14',
+										'_15_'			=>	'15',
+										'_16_'			=>	'16',
+										'_17_'			=>	'17',
+										'_18_'			=>	'18',
+										'_19_'			=>	'19',
+										'_20_'			=>	'20',
+										'_21_'			=>	'21',
+										'_22_'			=>	'22',
+										'_23_'			=>	'23',
+										'_24_'			=>	'24',
+										'_25_'			=>	'25',
+										'_26_'			=>	'26',
+										'_27_'			=>	'27',
+										'_28_'			=>	'28',
+										'_29_'			=>	'29',
+										'_30_'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
+										'_55_'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
+										'_80_'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
+
+										'BETWEEN'		=>	' BETWEEN ',
+
+										'OUT'			=>	'OUT ',								//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
+										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
+										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
+
+																								//	INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)]
+										'PARTITION'		=>	PHP_EOL . 'PARTITION ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[FROM table_references [PARTITION partition_list]
+										'WITH_ROLLUP'	=>	' WITH ROLLUP ',					//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[GROUP BY {col_name | expr | position} [ASC | DESC], ... [WITH ROLLUP]]
+										'DEFAULT'		=>	' DEFAULT ',
+
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+										''			=>	'',
+									];
+
+
+	/**
+	 *	->SELECT_ALL->FROM
+	 *
+	 *
+	 *
+	 */
+
 
 	/**
 	 *	->SELECT('*')
@@ -41,7 +358,7 @@ class SQL
 
 	public function __construct(...$args)
 	{
-		// WARNING: we need to loop and parse the values!
+		// WARNING: we need to loop and parse the values! why?
 		$this->sql = implode(null, $args);
 
 		if (self::$conn === null) {
@@ -83,7 +400,7 @@ class SQL
 		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
 		return $this;
 	}
-	public function call($sp, ...$args)
+	public function C($sp, ...$args)
 	{
 		$final = null;
 		$comma = null;
@@ -95,7 +412,7 @@ class SQL
 		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
 		return $this;
 	}
-	public function C($sp, ...$args)
+	public function SP($sp, ...$args)
 	{
 		$final = null;
 		$comma = null;
@@ -110,11 +427,6 @@ class SQL
 
 
 	public function SELECT(...$args)
-	{
-		$this->sql .= 'SELECT ' . implode(', ', $args);
-		return $this;
-	}
-	public function select(...$args)
 	{
 		$this->sql .= 'SELECT ' . implode(', ', $args);
 		return $this;
@@ -192,11 +504,6 @@ class SQL
 		$this->sql .= ' DISTINCT ' . implode(', ', $args);
 		return $this;
 	}
-	public function distinct(...$args)
-	{
-		$this->sql .= ' DISTINCT ' . implode(', ', $args);
-		return $this;
-	}
 
 	public function SELECT_CACHE_DISTINCT(...$args)
 	{
@@ -249,11 +556,7 @@ class SQL
 		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
 		return $this;
 	}
-	public function ID($id = null)
-	{
-		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
-		return $this;
-	}
+
 
 	/**
 	 *	Samples:
@@ -265,17 +568,12 @@ class SQL
 	 */
 	public function INSERT(...$args)
 	{
-		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
-		return $this;
-	}
-	public function insert(...$args)
-	{
-		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
+		$this->sql .= 'INSERT ' . (empty($args) ? null : implode(' ', $args) . ' ');
 		return $this;
 	}
 	public function I(...$args)
 	{
-		$this->sql .= 'INSERT ' . empty($args) ? null : implode(' ', $args) . ' ';
+		$this->sql .= 'INSERT ' . (empty($args) ? null : implode(' ', $args) . ' ');
 		return $this;
 	}
 
@@ -404,10 +702,6 @@ class SQL
 						( ! empty($args)	?	' (' . implode(', ', $args) . ')' : null) .
 						( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
 		return $this;
-	}
-	public function into($tbl_name, ...$args)
-	{
-		return $this->INTO($tbl_name, ...$args);
 	}
 
 	/**
@@ -576,10 +870,6 @@ class SQL
 	{
 		return $this->VALUES(...$args);
 	}
-	public function values(...$args)
-	{
-		return $this->VALUES(...$args);
-	}
 
 	/**
 	 *	Samples:
@@ -594,7 +884,7 @@ class SQL
 	 */
 	public function SET(...$args)
 	{
-		$values = '';
+		$values = null;
 		$comma = null;
 		if (count($args) === 1 && is_array($args[0]))
 		{
@@ -669,24 +959,15 @@ class SQL
 		$this->sql .= ' SET ' . $values;
 		return $this;
 	}
-	public function set(...$args)
-	{
-		return $this->SET(...$args);
-	}
 
 
 	//	FROM thetable t, (SELECT @a:=NULL) as init;
-	public function FROM(...$args)
+	public function FROM(string ...$args)
 	{
 		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
 		return $this;
 	}
-	public function from(...$args)
-	{
-		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
-		return $this;
-	}
-	public function F(...$args)
+	public function F(string ...$args)
 	{
 		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
 		return $this;
@@ -697,14 +978,19 @@ class SQL
 		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
 		return $this;
 	}
-	public function join(...$args)
+	public function J(...$args)
 	{
 		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
 		return $this;
 	}
-	public function J(...$args)
+	public function JOIN_ON(string $table, ...$args)
 	{
-		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
+		$this->sql .= PHP_EOL . "\tJOIN {$table} ON (" . implode(', ', $args) . ')';
+		return $this;
+	}
+	public function J_ON(string $table, ...$args)
+	{
+		$this->sql .= PHP_EOL . "\tJOIN {$table} ON (" . implode(', ', $args) . ')';
 		return $this;
 	}
 
@@ -731,6 +1017,22 @@ class SQL
 		$this->sql .= PHP_EOL . "\tLEFT JOIN " . implode(', ', $args);
 		return $this;
 	}
+	public function LJ(...$args)
+	{
+		$this->sql .= PHP_EOL . "\tLEFT JOIN " . implode(', ', $args);
+		return $this;
+	}
+
+	public function LEFT_JOIN_ON(string $table, ...$args)
+	{
+		$this->sql .= PHP_EOL . "\tLEFT JOIN {$table} ON (" . implode(', ', $args) . ')';
+		return $this;
+	}
+	public function LJ_ON(string $table, ...$args)
+	{
+		$this->sql .= PHP_EOL . "\tLEFT JOIN {$table} ON (" . implode(', ', $args) . ')';
+		return $this;
+	}
 
 	/**
 	 *	Example:
@@ -740,7 +1042,7 @@ class SQL
 	 *	Sample:
 	 *		t1 LEFT JOIN t2 USING (id) LEFT JOIN t3 USING (id)
 	 */
-	public function USING(...$args)
+	public function USING(string ...$args)
 	{
 		$this->sql .= ' USING (' . implode(', ', $args) . ')';
 		return $this;
@@ -770,40 +1072,134 @@ class SQL
 		return $this;
 	}
 
-	public function WHERE(...$args)
+	/**
+	 *
+	 *
+	 *
+	 *	Examples:
+	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
+	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
+	 */
+	public function OR(...$args)
 	{
-		$this->sql .= PHP_EOL . 'WHERE ' . implode(' AND ', $args);
+		$this->sql .= ' OR ' . implode(' OR ', $args);
 		return $this;
 	}
 
 	/**
-	 *	Example:
-	 *		.IS_NULL() ==> $sql .= ' IS NULL'
-	 *		.IS_NULL($field) ==> $sql .= $field . ' IS NULL'
 	 *
-	 *	Sample:
-	 *		WHERE key_col IS NULL
+	 *		->WHERE('name = ?', $name)
+	 *		->WHERE(['fname = ?', $fname, 'lname = ?', $lname], 'name = ?', $name)	=> WHERE (fname = $fname) OR (lname = $lname)
+	 *
+	 *	Examples:
 	 */
-	public function IS_NULL($field = null)
-	{	//	TODO, we could detect if a value was input ... if is_null($input) ... then do something else !?!?
-		$this->sql .= $field . ' IS NULL';
+	public function WHERE(...$args)
+	{
+		$this->sql .= PHP_EOL . 'WHERE ';
+		for(; key($args) !== null; next($args))
+		{
+			$arg = current($args);
+			if (mb_strpos($arg, '?') !== false) {
+				for ($offset = 0; ($pos = mb_strpos($arg, '?', $offset)) !== false; $offset = $pos + 1 ) {
+					$next = next($args);
+					$this->sql .= mb_substr($arg, $offset, $pos - $offset) . $this->sanitize($next);
+					$final = null;
+				}
+				$this->sql .= mb_substr($arg, $offset);
+			}
+			else {
+				// lookahead
+				$next = next($args);
+				if (is_array($next)) {
+					// $next member is an array of (hopefully) replacement values eg. ['id' => 5] for ':id'
+					$this->sql .= mb_ereg_replace_callback(':([a-z]+)',
+										function ($matches) use ($next)
+										{
+											if (isset($next[$matches[1]])) {
+												return $this->sanitize($next[$matches[1]]);
+											}
+											else if (isset($next['@' . $matches[1]])) {
+												return $next['@' . $matches[1]];
+											}
+											throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
+										}, $arg);
+				}
+				else {
+					$this->sql .= $arg;
+					prev($args);
+				}
+			}
+		}
+		$this->sql .= $final;
 		return $this;
 	}
-
+	public function W(...$args)
+	{
+		return $this->WHERE(...$args);
+	}
 
 	/**
 	 *	Escapes the input value, and replaces the '?'
 	 *	
 	 *	Example:
-	 *		.LIKE('?%', $id)
+	 *		->WHERE_LIKE('', $id)
 	 *
 	 *
 	 *	Samples:
 	 *		WHERE key_col LIKE 'ab%'
 	 */
-	public function LIKE($sequence, $value)
+	public function WHERE_LIKE(string $col, string $like)
 	{
-		//$sql .= ' LIKE "' . str_replace(...) . '"';
+		$this->sql .= PHP_EOL . 'WHERE ' . $col . ' LIKE ' . $this->sanitize($like);
+		return $this;
+	}
+
+	/**
+	 *	
+	 *	
+	 *	WARNING: What about cases LIKE('users.fname') ???
+	 *	
+	 *	Example:
+	 *		->LIKE('abc%')		->$sql .= "abc%"
+	 *
+	 *
+	 *	Samples:
+	 *		WHERE key_col LIKE 'ab%'
+	 */
+	public function LIKE(string $like)
+	{
+		$this->sql .= 'LIKE ' . $this->sanitize($like);
+		return $this;
+	}
+
+	/**
+	 *	`Tests whether a value is NULL.`
+	 *
+	 *	https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#operator_is-null
+	 *
+	 *	Example:
+	 *		->IS_NULL()			==> $sql .= ' IS NULL'
+	 *		->IS_NULL($field)	==> $sql .= $field . ' IS NULL'
+	 *
+	 *	Sample:
+	 *		WHERE key_col IS NULL
+	 *		SELECT 1 IS NULL, 0 IS NULL, NULL IS NULL;
+	 *			-> 0, 0, 1
+	 */
+	public function IS_NULL(string $field = null)
+	{
+		$this->sql .= $field . ' IS NULL';
+		return $this;
+	}
+	public function isNull(string $field = null)
+	{
+		$this->sql .= $field . ' IS NULL';
+		return $this;
+	}
+
+	public function WHERE_IS_NULL(string $field)
+	{	//	TODO, we could detect if a value was input ... if is_null($input) ... then do something else !?!?
+		$this->sql .= PHP_EOL . 'WHERE ' . $field . ' IS NULL';
 		return $this;
 	}
 
@@ -821,9 +1217,9 @@ class SQL
 	 *	Samples:
 	 *		SELECT COUNT(*) FROM student
 	 */
-	public function COUNT($col = '*', $as = null)
+	public function COUNT(string $col = '*', string $as = null)
 	{
-		$this->sql .= ' COUNT(' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'COUNT(' . $col . ($as !== null ? ') AS ' . $as : ')');
 		return $this;
 	}
 	/**
@@ -841,13 +1237,13 @@ class SQL
 	 *	Samples:
 	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
 	 */
-	public function COUNT_AS($col, $as = null)
+	public function COUNT_AS(string $col, string $as = null)
 	{
 		if ($as === null) {
 			//	TODO: check $col for invalid characters if $as === null! because we need to append a col name and not some agregate function!
 			
 		}
-		$this->sql .= ' COUNT(' . $col . ') AS ' . $as ?: ('count_of_' . $col);		///	WARNING: ... need to only get the first part of `work.artist_id`
+		$this->sql .= 'COUNT(' . $col . ') AS ' . $as ?: ('count_of_' . $col);		///	WARNING: ... need to only get the first part of `work.artist_id`
 		return $this;
 	}
 
@@ -860,9 +1256,44 @@ class SQL
 	 *	Samples:
 	 *		
 	 */
-	public function AS($as = null)
+	public function AS(string $as = null)
 	{
 		$this->sql .= ' AS ' . $as;
+		return $this;
+	}
+
+
+	/**
+	 *	`Returns the first non-NULL value in the list, or NULL if there are no non-NULL values.`
+	 *	`The return type of COALESCE() is the aggregated type of the argument types.`
+	 *
+	 *	WARNING: This function does NOT do string output escaping!
+	 *		Because string values can be literals, numbers, NULL, table/column names etc.
+	 *		But most commonly it's used with table.columns
+	 *
+	 *	https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
+	 *
+	 *	Example:
+	 *		->COALESCE('product.special_price', product.price')
+	 *
+	 *	Samples:
+	 *		COALESCE(x, y)
+	 */
+	public function COALESCE(...$args)
+	{
+		$this->sql .= 'COALESCE(';
+		$comma = null;
+		foreach ($args as $arg)
+		{
+			if ($arg === null) {
+				$this->sql .= $comma . 'NULL';
+			}
+			else if (is_scalar($arg)) {
+				$this->sql .= $comma . $arg;
+			}
+			$comma = ', ';
+		}
+		$this->sql .= ')';
 		return $this;
 	}
 
@@ -880,9 +1311,9 @@ class SQL
 	 *	Samples:
 	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
 	 */
-	public function MIN($col, $as = null)
+	public function MIN(string $col, string $as = null)
 	{
-		$this->sql .= ' MIN(' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'MIN(' . $col . ($as !== null ? ') AS ' . $as : ')');
 		return $this;
 	}
 	/**
@@ -900,12 +1331,12 @@ class SQL
 	 *	Samples:
 	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
 	 */
-	public function MIN_AS($col, $as = null)
+	public function MIN_AS(string $col, string $as = null)
 	{
 		if ($as === null) {
 			//	TODO: check $col for invalid characters if $as === null! because we need to append a col name and not some agregate function!
 		}
-		$this->sql .= ' MIN(' . $col . ') AS ' . $as ?: ('min_' . $col);
+		$this->sql .= 'MIN(' . $col . ') AS ' . $as ?: ('min_' . $col);
 		return $this;
 	}
 	/**
@@ -921,9 +1352,9 @@ class SQL
 	 *	Samples:
 	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
 	 */
-	public function MIN_DISTINCT($col, $as = null)
+	public function MIN_DISTINCT(string $col, string $as = null)
 	{
-		$this->sql .= ' MIN(DISTINCT ' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'MIN(DISTINCT ' . $col . ($as !== null ? ') AS ' . $as : ')');
 		return $this;
 	}
 	/**
@@ -941,9 +1372,9 @@ class SQL
 	 *	Samples:
 	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
 	 */
-	public function MIN_DISTINCT_AS($col, $as = null)
+	public function MIN_DISTINCT_AS(string $col, string $as = null)
 	{
-		$this->sql .= ' MIN(DISTINCT ' . $col . ') AS ' . $as ?: ('min_' . $col);
+		$this->sql .= 'MIN(DISTINCT ' . $col . ') AS ' . $as ?: ('min_' . $col);
 		return $this;
 	}
 
@@ -957,10 +1388,10 @@ class SQL
 	 *	Samples:
 	 *		
 	 */
-	public function MAX($max)
+	public function MAX(string $max)
 	{
 		throw new \Exception('Need to copy the MIN() handlers to MAX() when I am done!');
-		$this->sql .= ' MAX(' . $max . ')';
+		$this->sql .= 'MAX(' . $max . ')';
 		return $this;
 	}
 
@@ -973,9 +1404,9 @@ class SQL
 	 *	Samples:
 	 *		
 	 */
-	public function SUM($col)
+	public function SUM(string $col)
 	{
-		$this->sql .= ' SUM(' . $col . ')';
+		$this->sql .= 'SUM(' . $col . ')';
 		return $this;
 	}
 
@@ -992,7 +1423,14 @@ class SQL
 	 */
 	public function IN(...$args)
 	{
-		$this->sql .= ' IN (' . implode(null, $args) . ')';
+		$comma = null;
+		$this->sql .= ' IN (';
+		foreach ($args as $arg)
+		{
+			$this->sql .= $comma . $this->sanitize($arg);
+			$comma = ', ';
+		}
+		$this->sql .= ')';
 		return $this;
 	}
 
@@ -1049,7 +1487,7 @@ class SQL
 	 */
 	public function UNION(...$args)
 	{
-		$this->sql .= ' UNION ' . implode(null, $args);
+		$this->sql .= PHP_EOL . ' UNION ' . PHP_EOL . implode(null, $args);
 		return $this;
 	}
 
@@ -1074,9 +1512,32 @@ class SQL
 	 *		ORDER BY NULL
 	 *		ORDER BY a, b
 	 */
-	public function ORDER_BY(...$args)
+	public function ORDER_BY(string ...$args)
 	{
-		$this->sql .= PHP_EOL . 'ORDER BY ' . implode(', ', $args);
+		$this->sql .= PHP_EOL . 'ORDER BY ';
+		$comma = null;
+		foreach ($args as $arg)
+		{
+			if ($comma === null)
+			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
+				$this->sql .= $arg;
+				$comma = ', ';
+			}
+			else
+			{
+				switch (trim(strtoupper($arg)))
+				{
+					case 'DESC':
+					case 'ASC':
+						//	skip adding commas for `DESC` and `ASC`
+						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
+						$this->sql .= ' ' . trim($arg);
+						break;
+					default:
+						$this->sql .= $comma . $arg;
+				}
+			}
+		}
 		return $this;
 	}
 
@@ -1089,25 +1550,14 @@ class SQL
 	 *	
 	 *	Example:
 	 *		.LIMIT(5)
-	 *		.LIMIT(5, 10)
+	 *		.LIMIT(10, 5)
+	 *		.LIMIT(5)->OFFSET(10)
 	 *
 	 *	Samples:
-	 *		ORDER BY key_part1, key_part2
-	 *		ORDER BY key_part2
-	 *		ORDER BY key_part1 DESC, key_part2 DESC
-	 *		ORDER BY key_part1 DESC, key_part2 DESC
-	 *		ORDER BY key_part1 ASC
-	 *		ORDER BY key_part1 DESC
-	 *		ORDER BY key_part2
-	 *		ORDER BY key1, key2
-	 *		ORDER BY ABS(key)
-	 *		ORDER BY -key
-	 *		ORDER BY NULL
-	 *		ORDER BY a, b
 	 */
-	public function LIMIT($v1, $v2 = null)
+	public function LIMIT(int $v1, int $v2 = null)
 	{
-		$this->sql .= PHP_EOL . 'LIMIT ' . $v1 . ($v2 === null ? null : '');
+		$this->sql .= PHP_EOL . 'LIMIT ' . $v1 . ($v2 === null ? null : ', ' . $v2);
 		return $this;
 	}
 
@@ -1115,17 +1565,18 @@ class SQL
 	 *	LIMIT syntax has 2 variations:
 	 *		[LIMIT {[offset,] row_count | row_count OFFSET offset}]
 	 *		LIMIT 5
-	 *		LIMIT 5, 10
-	 *		LIMIT 10 OFFSET 5
+	 *		LIMIT 10, 5
+	 *		LIMIT 5 OFFSET 10
 	 *
 	 *	Example:
-	 *		.LIMIT(5)
-	 *		.LIMIT(5, 10)
+	 *		->LIMIT(5)
+	 *		->LIMIT(10, 5)
+	 *		->LIMIT(5)->OFFSET(10)
 	 *
 	 *	Samples:
 	 *		
 	 */
-	public function OFFSET($offset)
+	public function OFFSET(int $offset)
 	{
 		$this->sql .= ' OFFSET ' . $offset;
 		return $this;
@@ -1212,238 +1663,42 @@ class SQL
 	 */
 	public function __get($name)
 	{
-		static $lower_under	=	['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',	//	array used to 'replace' the $name, if the replacement == empty string then ALL the characters are in this range
-								'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '_'];
-
-		static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
-										'SELECT'		=>	'SELECT ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html
-										'DELETE'		=>	'DELETE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html
-										'INSERT'		=>	'INSERT ',
-										'CALL'			=>	'CALL ',
-
-										'SELECT_ALL'	=>	'SELECT COUNT(*) ',
-
-										'CREATE'		=>	'CREATE ',
-										'DROP'			=>	'DROP ',
-										'CREATE_TABLE'	=>	'CREATE TABLE ',
-										'ALTER'			=>	'ALTER ',
-										'ALTER_DATABASE'=>	'ALTER DATABASE ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
-										'ALTER_SCHEMA'	=>	'ALTER SCHEMA ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
-										'ALTER_EVENT'	=>	'ALTER EVENT ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-event.html
-										'ALTER_FUNCTION'=>	'ALTER FUNCTION ',		//	https://dev.mysql.com/doc/refman/5.7/en/alter-function.html
-										'DATABASE'		=>	'DATABASE ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
-										'SCHEMA'		=>	'SCHEMA ',				//	https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
-										'EVENT'			=>	'EVENT ',				//	https://dev.mysql.com/doc/refman/5.7/en/alter-event.html
-										'FUNCTION'		=>	'FUNCTION ',			//	https://dev.mysql.com/doc/refman/5.7/en/alter-function.html
-
-										'TABLE'			=>	'TABLE ',				//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name || CREATE TABLE || ALTER TABLE
-
-										'ALL'			=>	'*',					//	https://dev.mysql.com/doc/refman/5.7/en/select.html		`The ALL and DISTINCT modifiers specify whether duplicate rows should be returned. ALL (the default) specifies that all matching rows should be returned, including duplicates. DISTINCT specifies removal of duplicate rows from the result set. It is an error to specify both modifiers. DISTINCTROW is a synonym for DISTINCT.`
-										'DISTINCT'		=>	'DISTINCT ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SELECT DISTINCT || MIN(DISTINCT price)
-										'DISTINCTROW'	=>	'DISTINCTROW ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SELECT DISTINCT || MIN(DISTINCT price)
-										'HIGH_PRIORITY'	=>	'HIGH_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		HIGH_PRIORITY gives the SELECT higher priority than a statement that updates a table.
-										'HIGH'			=>	'HIGH_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		HIGH_PRIORITY gives the SELECT higher priority than a statement that updates a table.
-										'STRAIGHT_JOIN'	=>	'STRAIGHT_JOIN ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		`STRAIGHT_JOIN forces the optimizer to join the tables in the order in which they are listed in the FROM clause. You can use this to speed up a query if the optimizer joins the tables in nonoptimal order. STRAIGHT_JOIN also can be used in the table_references list. See Section 13.2.9.2, “JOIN Syntax”.`
-										'SMALL'			=>	'SQL_SMALL_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
-										'BIG'			=>	'SQL_BIG_RESULT ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BIG_RESULT or SQL_SMALL_RESULT can be used with GROUP BY or DISTINCT to tell the optimizer that the result set has many rows or is small, respectively.
-										'BUFFER'		=>	'SQL_BUFFER_RESULT ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_BUFFER_RESULT forces the result to be put into a temporary table. This helps MySQL free the table locks early and helps in cases where it takes a long time to send the result set to the client. This modifier can be used only for top-level SELECT statements, not for subqueries or following UNION.
-										'CACHE'			=>	'SQL_CACHE ',			//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
-										'NO_CACHE'		=>	'SQL_NO_CACHE ',		//	https://dev.mysql.com/doc/refman/5.7/en/select.html		The SQL_CACHE and SQL_NO_CACHE modifiers affect caching of query results in the query cache (see Section 8.10.3, “The MySQL Query Cache”). SQL_CACHE tells MySQL to store the result in the query cache if it is cacheable and the value of the query_cache_type system variable is 2 or DEMAND. With SQL_NO_CACHE, the server does not use the query cache. It neither checks the query cache to see whether the result is already cached, nor does it cache the query result.
-										'CALC'			=>	'SQL_CALC_FOUND_ROWS ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html		SQL_CALC_FOUND_ROWS tells MySQL to calculate how many rows there would be in the result set, disregarding any LIMIT clause. The number of rows can then be retrieved with SELECT FOUND_ROWS(). See Section 12.14, “Information Functions”.
-										'SQL_CALC_FOUND_ROWS'=>	'SQL_CALC_FOUND_ROWS ',	//	https://dev.mysql.com/doc/refman/5.7/en/select.html	SQL_CALC_FOUND_ROWS tells MySQL to calculate how many rows there would be in the result set, disregarding any LIMIT clause. The number of rows can then be retrieved with SELECT FOUND_ROWS(). See Section 12.14, “Information Functions”.
-
-										'DELAYED'		=>	'DELAYED ',				//	https://dev.mysql.com/doc/refman/5.7/en/insert.html		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
-
-										'LOW_PRIORITY'	=>	'LOW_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]
-										'LOW'			=>	'LOW_PRIORITY ',		//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
-										'QUICK'			=>	'QUICK ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
-										'IGNORE'		=>	'IGNORE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html		DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
-
-										'TRUNCATE'		=>	'TRUNCATE ',			//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
-										'TRUNCATE_TABLE'=>	'TRUNCATE TABLE ',		//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
-
-										'COUNT_ALL'		=>	'COUNT(*)',
-										'COUNT'			=>	'COUNT',
-										'LAST_INSERT_ID'=>	'LAST_INSERT_ID()',		//	SELECT LAST_INSERT_ID();	UPDATE sequence SET id=LAST_INSERT_ID(id+1);
-										'ROW_COUNT'		=>	'ROW_COUNT()',			//	https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_row-count		SELECT ROW_COUNT();
-										'A'				=>	'*',					//	`ALL` is a SELECT modifier ... gonna change its meaning!
-										'STAR'			=>	'*',
-										'CA'			=>	'COUNT(*)',
-										'C'				=>	'COUNT',				//	COUNT or COMMA or CLOSE  ???
-									//	'C'				=>	', ',
-									//	'C'				=>	')',
-
-										'FROM'			=>	PHP_EOL . 'FROM ',
-										'JOIN'			=>	PHP_EOL . 'JOIN ',
-										'LEFT_JOIN'		=>	PHP_EOL . 'LEFT JOIN ',
-										'INNER_JOIN'	=>	PHP_EOL . 'INNER JOIN ',
-										'WHERE'			=>	PHP_EOL . 'WHERE ',
-										'GROUP_BY'		=>	PHP_EOL . 'GROUP BY ',
-										'HAVING'		=>	PHP_EOL . 'HAVING ',
-										'ORDER_BY'		=>	PHP_EOL . 'ORDER BY ',
-										'LIMIT'			=>	PHP_EOL . 'LIMIT ',
-										'PROCEDURE'		=>	PHP_EOL . 'PROCEDURE ',
-										'INTO_OUTFILE'	=>	PHP_EOL . 'INTO OUTFILE ',
-										'UNION'			=>	PHP_EOL . 'UNION' . PHP_EOL,
-
-										'S'				=>	'SELECT ',
-										'SA'			=>	'SELECT COUNT(*) ',
-										'SALL'			=>	'SELECT COUNT(*) ',
-										'D'				=>	'DELETE ',
-										'I'				=>	'INSERT ',
-										'F'				=>	PHP_EOL . 'FROM ',
-										'J'				=>	PHP_EOL . 'JOIN ',
-										'LJ'			=>	PHP_EOL . 'LEFT JOIN ',
-										'IJ'			=>	PHP_EOL . 'INNER JOIN ',
-										'W'				=>	PHP_EOL . 'WHERE ',
-										'O'				=>	PHP_EOL . 'ORDER BY ',
-										'OB'			=>	PHP_EOL . 'ORDER BY ',
-										'L'				=>	PHP_EOL . 'LIMIT ',
-										'U'				=>	PHP_EOL . 'UNION' . PHP_EOL,
-
-										'DESC'			=>	' DESC',
-										'ASC'			=>	' ASC',
-										'IN'			=>	' IN ',
-										'NOT_IN'		=>	' NOT IN ',
-										'NOT'			=>	' NOT',
-										'NULL'			=>	' NULL',
-										'CHARACTER_SET'	=>	' CHARACTER SET ',					//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name]
-										'INTO_DUMPFILE'	=>	' INTO DUMPFILE ',					//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name'
-										'DUMPFILE'		=>	'DUMPFILE ',						//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name'
-																								//	INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
-										'INTO'			=>	'INTO ',							//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name' | INTO var_name [, var_name]]
-										'OFFSET'		=>	' OFFSET ',							//	[LIMIT {[offset,] row_count | row_count OFFSET offset}]
-
-										//	These can only come at the end of a SELECT, not sure if they can be used in other statements?
-										'FOR_UPDATE'					=>	PHP_EOL . 'FOR UPDATE',							//	[FOR UPDATE | LOCK IN SHARE MODE]]
-										'LOCK_IN_SHARE_MODE'			=>	' LOCK IN SHARE MODE',							//	[FOR UPDATE | LOCK IN SHARE MODE]]
-										'FOR_UPDATE_LOCK_IN_SHARE_MODE'	=>	PHP_EOL . 'FOR UPDATE LOCK IN SHARE MODE',		//	[FOR UPDATE | LOCK IN SHARE MODE]]
-
-										'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE ',				//	https://dev.mysql.com/doc/refman/5.7/en/insert.html
-
-										'AUTO_INCREMENT'=>	' AUTO_INCREMENT',					//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
-										'INT'			=>	' INT',								//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
-										'PK'			=>	'PRIMARY KEY ',						//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
-										'PRIMARY_KEY'	=>	'PRIMARY KEY ',						//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
-										'UNIQUE_KEY'	=>	'UNIQUE KEY ',						//	CREATE TABLE `t` `id` INT(11) NOT NULL AUTO_INCREMENT, `val` INT(11) DEFAULT NULL, PRIMARY KEY (`id`), UNIQUE KEY `i1` (`val`)
-									//	'PRIMARY'		=>	'PRIMARY ',							//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))	//	needs work ...
-									//	'KEY'			=>	'KEY ',								//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
-										'ENGINE'		=>	PHP_EOL . 'ENGINE',					//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b)) ENGINE=MyISAM SELECT b,c FROM test2;
-
-										'IF'			=>	' IF ',
-										'SET'			=>	' SET ',
-										'COMMA'			=>	', ',
-										'c_'			=>	', ',	//	currently the only lower case, case ... how else do we get a comma???
-										'_'				=>	', ',	//	space or comma?
-										'__'			=>	', ',	//	space or comma?
-										'Q'				=>	'"',
-										'SPACE'			=>	' ',
-										'_O'			=>	'(',	//	OP	? || O
-										'C_'			=>	')',	//	CL	? || C
-										'OPEN'			=>	'(',
-										'CLOSE'			=>	')',
-										'TAB'			=>	"\t",
-										'NL'			=>	"\n",
-										'CR'			=>	"\r",
-										'EOL'			=>	PHP_EOL,
-										'BR'			=>	PHP_EOL,
-										'EQ'			=>	' = ',
-										'NEQ'			=>	' != ',
-										'NOTEQ'			=>	' != ',
-										'NOT_EQ'		=>	' != ',
-										'GT'			=>	' > ',
-										'LT'			=>	' < ',
-										'AS'			=>	' AS ',
-										'ON'			=>	' ON ',
-										'AND'			=>	' AND ',
-										'OR'			=>	' OR ',
-										'BETWEEN'		=>	' BETWEEN ',
-
-										'OUT'			=>	'OUT ',								//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
-										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
-										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
-
-																								//	INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)]
-										'PARTITION'		=>	PHP_EOL . 'PARTITION ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[FROM table_references [PARTITION partition_list]
-										'WITH_ROLLUP'	=>	' WITH ROLLUP ',					//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[GROUP BY {col_name | expr | position} [ASC | DESC], ... [WITH ROLLUP]]
-										'DEFAULT'		=>	' DEFAULT ',
-
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-									];
-
-		switch ($name)
+		if (isset(self::$translations[$name])) {
+			$this->sql .= self::$translations[$name];
+		}
+		else if (strlen($name) === strspn($name, '_etaoinshrdlcumwfgypbvkjxqz')) 	//	lowercase letters orderd by letter frequency in the English language:	https://en.wikipedia.org/wiki/Letter_frequency
 		{
-			//	common
-			case 'SELECT':			$this->sql .= 'SELECT ';					$this->comma = null;	$this->context = 'SELECT';	break;
-			case 'COUNT_ALL':		$this->sql .= $this->comma . 'COUNT(*)'; 	$this->comma = ', ';	break;
-			case 'ALL':				$this->sql .= $this->comma . '*';		 	$this->comma = ', ';	break;		// `ALL` is a SELECT keyword NOT the same as COUNT(*) ... gonna change it's meaning, because `STAR` looks weird!
-			case 'STAR':			$this->sql .= $this->comma . '*';		 	$this->comma = ', ';	break;
-			case 'FROM':			$this->sql .= PHP_EOL . 'FROM ';			$this->comma = null;	$this->context = 'FROM';	break;
-			case 'JOIN':			$this->sql .= PHP_EOL . 'JOIN ';			$this->comma = null;	$this->context = 'JOIN';	break;
-			case 'LEFT_JOIN':		$this->sql .= PHP_EOL . 'LEFT JOIN ';		$this->comma = null;	$this->context = 'JOIN';	break;
-			case 'WHERE':			$this->sql .= PHP_EOL . 'WHERE ';			$this->comma = null;	$this->context = 'WHERE';	break;
-			case 'GROUP_BY':		$this->sql .= PHP_EOL . 'GROUP BY ';		$this->comma = null;	$this->context = 'GROUP';	break;
-			case 'HAVING':			$this->sql .= PHP_EOL . 'HAVING ';			$this->comma = null;	$this->context = 'HAVING';	break;
-			case 'ORDER_BY':		$this->sql .= PHP_EOL . 'ORDER BY ';		$this->comma = null;	$this->context = 'ORDER';	break;
-			case 'LIMIT':			$this->sql .= PHP_EOL . 'LIMIT ';			$this->comma = null;	$this->context = 'LIMIT';	break;
-			case 'PROCEDURE':		$this->sql .= PHP_EOL . 'PROCEDURE ';		$this->comma = null;	$this->context = null;		break;
-			case 'INTO_OUTFILE':	$this->sql .= PHP_EOL . 'INTO OUTFILE ';	$this->comma = null;	$this->context = null;		break;
-			case 'UNION':			$this->sql .= PHP_EOL . 'UNION' . PHP_EOL;	$this->comma = null;	$this->context = null;		break;
-
-			case 'CALL':			$this->sql .= 'CALL ';	$this->comma = null;	$this->context = 'CALL';	break;	//	https://dev.mysql.com/doc/refman/5.7/en/call.html
-
-			//	uncommon
-		//	case 'DESC':		$this->sql .= ' DESC'; break;
-		//	case 'DISTINCT':	$this->sql .= 'DISTINCT '; break;
-		//	case 'ASC':			$this->sql .= ' ASC'; break;
-
-		//	case 'IN':			$this->sql .= ' IN '; break;						//	default case
-		//	case 'NOT_IN':		$this->sql .= ' NOT IN '; break;					//	default case
-		//	case 'NOT':			$this->sql .= ' NOT '; break;						//	default case
-		//	case 'EQ':			$this->sql .= ' = '; break;							//	default case
-		//	case 'GT':			$this->sql .= ' > '; break;							//	default case
-		//	case 'LT':			$this->sql .= ' < '; break;							//	default case
-		//	case 'AS':			$this->sql .= ' AS '; break;						//	default case
-		//	case 'ON':			$this->sql .= ' ON '; break;						//	default case
-		//	case 'AND':			$this->sql .= ' AND '; break;						//	default case
-		//	case 'BETWEEN':		$this->sql .= ' BETWEEN '; break;					//	default case
-
-			default:
-
-				if (isset($translations[$name])) {
-					$this->sql .= $translations[$name];
-				}
-				else if (str_replace($lower_under, null, $name) === '') {
-					//	string contains ALL lowercase values and underscores ... ie. probably a table/field/column name! Leave unchanged!
-					$this->sql .= $name;
-				}
-				else {
-					$this->sql .= ' ' . $name . ' '; // `unknown`
-				}
+			if ($name === '__') { // special open-close operator
+				//	TODO:
+			}
+			else {
+				//	string contains ALL lowercase values and underscores ... ie. probably a table/field/column name! Leave unchanged!
+				$this->sql .= $name;
+			}
+		}
+		else if (is_numeric(str_replace('_', '', $name))) //   strlen($name) === strspn($name, '_0123456789'))
+		{
+			$this->sql .= str_replace('_', '', trim($name));	//	->_5 || ->_4_5_6 -> 4, 5, 6
+		}
+		else {
+			$this->sql .= $name;
 		}
 		return $this;
 	}
 
 	/**
+	 *
 	 *	$sql = SQL()->();
 	 *	$sql = SQL()->SELECT->STAR->FROM->users->();	//	'SELECT * FROM users'
 	 *	$sql = SQL()->ORDER_BY->price->DESC->();		//	'ORDER BY price DESC'
 	 */
 	public function __invoke(...$args)
 	{
-die('__invoke');
-		return $this->sql;
+	//	if (count($args) === 0) {	// not sure about this !?!?
+	//		return $this->sql;
+	//	}
+		$this->sql .= implode(null, $args);
+		return $this;
 	}
 
 	/**
@@ -1563,10 +1818,13 @@ die('__invoke');
 	{
 		return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
 	}
-
 	public function returnEscaped(string $value)
 	{
 		return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
+	}
+	public function real_escape_string(string $value)
+	{
+		return self::$conn->real_escape_string(self::utf8($value));
 	}
 
 	/**
@@ -1591,6 +1849,35 @@ die('__invoke');
 	{
 		$this->sql .= '"' . ($escape ? self::$conn->real_escape_string(self::utf8($value)) : $value) . '"';
 		return $this;
+	}
+
+
+
+	/**
+	 *	ArrayAccess interface
+	 */
+	public function offsetGet($sql)
+	{
+echo 'GET';
+dump($sql);
+		$this->sql .= is_null($sql) ? 'NULL' : $sql;
+		return $this;
+	}
+	public function offsetSet($idx, $sql)
+	{
+echo 'SET';
+//		if (is_numeric($idx))
+//			$this->sql[$idx] .= $sql;
+//		else
+			$this->sql = $sql;
+	}
+	public function offsetExists($idx)
+	{
+		return isset($this->sql[$idx]);
+	}
+	public function offsetUnset($idx)
+	{
+		unset($this->sql[$idx]);
 	}
 
 }
