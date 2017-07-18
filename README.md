@@ -1,5 +1,5 @@
 # SQL
-Raw SQL Query String Builder ~ because abstraction is for the weak!
+Raw SQL Query String Builder ~ because SQL abstraction is for the weak!
 
 Welcome to the Ultimate raw/native SQL Builder Class ever developed for PHP.
 
