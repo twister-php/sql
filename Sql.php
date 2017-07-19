@@ -383,45 +383,91 @@ class SQL implements \ArrayAccess
 	}
 
 	/**
-	 *	TODO: First argument should be the function
-	 *	https://dev.mysql.com/doc/refman/5.7/en/call.html
-	 *	CALL sp_name([parameter[,...]])
-	 *	CALL sp_name[()]
+	 *	CALL MySQL/PDO Stored Procudure
+	 *
+	 *	TODO: Detect the connection type; and use the appropriate syntax; because PostgreSQL uses `SELECT sp_name(...)`
+	 *
+	 *	To disable value escaping, use one of the following techniques:
+	 *			->CALL('sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000)', 'u.name', '@sql_variable', $name)
+	 *			->CALL('sp_name', ['@' => 'LAST_INSERT_ID()'])
+	 *			->CALL('sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
+	 *			->CALL('SELECT sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
+	 *			->CALL('SELECT sp_name(LAST_INSERT_ID(), ?)', $name)
+	 *
+	 *	Examples:
+	 *		INTO('users', 'col1', 'col2', 'col3')
+	 *		INTO('users', ['col1', 'col2', 'col3'])
+	 *		INTO('users', ['col1' => 'value1', 'col2' => 'value2', 'col3' => 'value3'])
+	 *		INTO('users', ['col1', 'col2', 'col3'], ['value1', 'value2', 'value3'])
+	 *
+	 *	Docs:
+	 *		MySQL:
+	 *			https://dev.mysql.com/doc/refman/5.7/en/call.html
+	 *		PostgreSQL:
+	 *			https://www.postgresql.org/docs/9.1/static/sql-syntax-calling-funcs.html
+	 *		PDO:
+	 *			http://php.net/manual/en/pdo.prepared-statements.php
+	 *
+	 *	SQL Syntax:
+	 *		MySQL:
+	 *			CALL sp_name([parameter[,...]])
+	 *			CALL sp_name[()]
+	 *		PostgreSQL:
+	 *			SELECT insert_user_ax_register(...);
+	 *		PDO:
+	 *			$stmt = $pdo->prepare("CALL sp_returns_string(?)");
+	 *			$stmt->bindParam(1, $return_value, PDO::PARAM_STR, 4000); 
+	 *			$stmt->execute();
+	 *
+	 *	@param string $tbl_name Table name to `INSERT INTO`
+	 *	@param array|string $partitions can be array or string
+	 *	@param mixed ... $args Parameters to use, either columns only or column-value pairs
+	 *	@return $this
 	 */
-	public function CALL($sp, ...$args)
+	public function CALL(string $sp_name, ...$params)
 	{
-		$final = null;
-		$comma = null;
-		foreach($args as $arg)
-		{
-			$final .= $comma . $this->escape($arg);
-			$comma = ', ';
+		if (strpos($sp_name, '(')) {	//	detect if user prepared the format/pattern eg. CALL('sp_name(?, ?, @)', ...)
+			$this->prepare($sp_name, ...$params);
 		}
-		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
+		else {
+			$this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
+		}
 		return $this;
 	}
-	public function C($sp, ...$args)
+	public function C(string $sp_name, ...$params)
 	{
 		$final = null;
 		$comma = null;
-		foreach($args as $arg)
+		foreach($params as $param)
 		{
-			$final .= $comma . $this->escape($arg);
+			$final .= $comma . $this->sanitize($param);
 			$comma = ', ';
 		}
-		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
+		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
 		return $this;
 	}
-	public function SP($sp, ...$args)
+	public function SP(string $sp_name, ...$params)
 	{
 		$final = null;
 		$comma = null;
-		foreach($args as $arg)
+		foreach($params as $param)
 		{
-			$final .= $comma . $this->escape($arg);
+			$final .= $comma . $this->sanitize($param);
 			$comma = ', ';
 		}
-		$this->sql .= 'CALL ' . $sp . '(' . $final . ')';
+		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
+		return $this;
+	}
+	public function storedProc(string $sp_name, ...$params)
+	{
+		$final = null;
+		$comma = null;
+		foreach($params as $param)
+		{
+			$final .= $comma . $this->sanitize($param);
+			$comma = ', ';
+		}
+		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
 		return $this;
 	}
 
@@ -1613,6 +1659,442 @@ class SQL implements \ArrayAccess
 		return $this;
 	}
 
+
+	/**
+	 *	Prepare a given input string with given parameters
+	 *
+	 *	WARNING: This function doesn't replace the PDO::prepare() statement for security, only convenience!
+	 *
+	 *	To disable value escaping, use one of the following techniques:
+	 *			->prepare('sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000, %s:40, %d)', 'u.name', '@sql_variable', $name)
+	 *			->prepare('sp_name', ['@' => 'LAST_INSERT_ID()'])
+	 *			->prepare('sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
+	 *			->prepare('SELECT sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
+	 *			->prepare('SELECT sp_name(LAST_INSERT_ID(), ?)', $name)
+	 *
+	 *			SQL()->prepare('#date{nullable:call:msg:onerror:msg}', $date, function(){...});
+	 *			SQL()->prepare('#date', $date, function(){...});
+	 *
+	 *	Examples:
+	 *		INTO('users', 'col1', 'col2', 'col3')
+	 *		INTO('users', ['col1', 'col2', 'col3'])
+	 *		INTO('users', ['col1' => 'value1', 'col2' => 'value2', 'col3' => 'value3'])
+	 *		INTO('users', ['col1', 'col2', 'col3'], ['value1', 'value2', 'value3'])
+	 *
+	 *	SQL Syntax:
+	 *		PDO:
+	 *			$stmt = $pdo->prepare("CALL sp_returns_string(?)");
+	 *			$stmt->bindParam(1, $return_value, PDO::PARAM_STR, 4000);
+	 *			$stmt->execute();
+
+		Syntax WISHLIST
+
+			%e{##-##-##}
+			%{format}date(time)
+			{{%timestamp}}
+			%q					%quot			test for string	 or 	%q:n	allows null as well!
+			{{%datetimez}}
+			{{%money}}
+			{{%currency}}
+			%{min,max}int		%int{min:max}		%int{:max} %int{min:}		%int:100,
+			%clamp{n:100}		%clamp{null:100}	default is MAX value ... allows null values
+			%clamp{100}			%clamp{100}			default is MAX value
+			%clamp{:100}		%clamp{,100}		same as default
+			%clamp{0:}			%clamp{0,}
+			%clamp{0:100}		%clamp{0,100}		%clamp:1:100
+			%float{0..1}		range check															:default:1.0   (when null!)		:def:1.0
+			%range{0..1}		range test, call callback on failure or throw exception!
+			%clamp{0:100}		%clamp{0,100}
+			%varchar{4000}		{max}	default
+			%varchar{:4000}		same as default				:enull		:raw  :ufirst :lower(case) :uwords :upper(case)			:noquot ??? 	:noescape ???	(can be used with crop and pack/trim)
+			%varchar{8:4000}	{min:max}
+			%varchar{8:}		specify min
+			%match{\d\d}		%match:n:call{\d{3}}	%match:n:call{~\d{3}~}
+			%onerror			-	next value is an error handler callback
+			%after{DATE}		after{tomorrow} after{2017-01-01}								https://laravel.com/docs/5.4/validation#rule-after
+			%after_or_equal{DATE}																https://laravel.com/docs/5.4/validation#rule-after-or-equal
+			%alpha																				https://laravel.com/docs/5.4/validation#rule-alpha
+			%alpha_dash																			https://laravel.com/docs/5.4/validation#rule-alpha-dash
+			%alpha_num																			https://laravel.com/docs/5.4/validation#rule-alpha-num
+			%array																				https://laravel.com/docs/5.4/validation#rule-array
+			%before:date																		https://laravel.com/docs/5.4/validation#rule-before
+			%before_or_equal:date																https://laravel.com/docs/5.4/validation#rule-before-or-equal
+			%between{min,max}				AKA `clamp`											https://laravel.com/docs/5.4/validation#rule-between
+			%boolean																			https://laravel.com/docs/5.4/validation#rule-boolean	The field under validation must be able to be cast as a boolean. Accepted input are true, false,  1, 0, "1", and "0".
+			%confirmed																			https://laravel.com/docs/5.4/validation#rule-confirmed	... can provide a way to check if the value matches another value ... with {1} or whatever, provide an index number to the params ???
+			%isip				#is_ip
+			%isint				#is_int
+			%isjson				#is_json
+			%tojson				#to_json
+			%fromjson			#from_json
+			%json_encode		#json_encode
+			%serialize			#serialize
+			%string{trim:ltrim:rpad: :5:json_encode}
+			%escape				Escape only, doesn't add quotes "..."				:enull === empty equals null
+			%quot{nullable}		Escape AND quote "..."
+			%raw
+			%email{call}
+			%call{message}
+			%char
+			%hex
+			%lower
+			%upper
+			%{male , female}enum	or 	%{male : female}enum	#enumi = insensitive | #ienum
+			%{male , female}set		or 	%{male : female}set
+			%{value1, value2, value3, value4}index
+			%bit{Y:N}					problem: how to define 'nullable' if we normalize the strings ??? because if we have %bit{:n:y:n} ... it's ambiguous!
+			%bool(ean){YES:NO}
+	 *
+	 *	@param string $pattern eg. 'CALL sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000)'
+	 *	@param string|numeric|null $params Input values to replace and/or escape
+	 *	@return $this
+	 */
+	public function prepare(string $pattern, ...$params)	//	\%('.+|[0 ]|)([1-9][0-9]*|)s		somebody else's sprintf('%s') multi-byte conversion ... %s includes the ability to add padding etc.
+	{
+		$count = 0;
+		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
+							function ($matches) use (&$count, $pattern, &$params)
+							{
+//dump($matches);
+								$match = $matches[0];
+								switch($match[0])
+								{
+									case '?':
+										if ($match === '??' || $match === '\\?')
+											return '?';
+
+										$value = current($params);
+										if ($value === false && key($params) === null) {
+											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+												') supplied to SQL->prepare(`' . $pattern .
+												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
+												(	substr_count($pattern, '?') + substr_count($pattern, '@') -
+													substr_count($pattern, '??') - substr_count($pattern, '@@') -
+													substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+												count($params)) . ' more value(s)');
+										}
+										next($params);
+										$count++;
+
+										if (is_numeric($value))	return $value;
+										if (is_string($value))	return '"' . $this->real_escape_string(self::utf8($value)) . '"';
+										if (is_null($value))	return 'NULL';
+										if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';
+
+										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
+										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+														'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
+
+									case '@':	//	similar to ?, but doesn't include "" around strings, ie. literal/raw string
+										if ($match === '@@' || $match === '\\@')
+											return '@';
+
+										$value = current($params);
+										if ($value === false && key($params) === null) {
+											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+												') supplied to SQL->prepare(`' . $pattern .
+												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
+												(	substr_count($pattern, '?') + substr_count($pattern, '@') -
+													substr_count($pattern, '??') - substr_count($pattern, '@@') -
+													substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+												count($params)) . ' more value(s)');
+										}
+										next($params);
+										$count++;
+
+										if (is_scalar($value))	return $value;
+									//	if (is_numeric($value))	return $value;
+									//	if (is_string($value))	return $value;
+										if (is_null($value))	return 'NULL';
+									//	if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';	//	covered by scalar!	... will be sent as `true` and `false`
+
+										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
+										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+														'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `@` (raw output) statements!');
+
+								//	case '%':
+									default:
+										$command = $matches[1];
+										if ($command === '')	//	for '%%' && '\%', $match === $matches[0] === "%%" && $command === $matches[1] === ""
+											return '%';
+
+										$value = current($params);
+										$index = key($params);			//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
+										if ($value === false && $index === null) {
+											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+												') supplied to SQL->prepare(`' . $pattern .
+												'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern!');
+										}
+										$next = next($params);
+										//	detect `call(able)` method in $next and skip!
+										//	because some commands might accept a `callable` for error handling
+										if (is_callable($next))
+											next($params);	// skip the callable by moving to next parameter!
+										$count++;
+
+										if ( ! empty($matches[3]))
+											$matches[3] = rtrim(ltrim($matches[3], '{'), '}');
+										$normalized = $matches[2] . (empty($matches[3]) ? null : ':' . $matches[3]);
+
+										if (is_null($value)) {
+											//	working, but (future) support for regular expressions might create false positives
+											if (preg_match('~[\{:]n(ull(able)?)?([:\{\}]|$)~', $normalized)) {
+												return 'NULL';
+											}
+											throw new \InvalidArgumentException('NULL value detected for a non-nullable field at index ' . $index . ' for command: `' . $matches[0] . '`');
+										}
+
+										switch ($command)
+										{
+											case 'string':
+											case 'varchar':				//	varchar:trim:crop:8:100 etc. ... to enable `cropping` to the given sizes, without crop, we throw an exception when the size isn't right! and trim to trim it!
+											case 'char':				//	:normalize:pack:tidy:minify:compact ... pack the spaces !?!? and trim ...  `minify` could be used for JavaScript/CSS etc.
+											case 'text':				//	I think we should use `text` only to check for all the modifiers ... so we don't do so many tests for common %s values ... this is `text` transformations ...
+											case 's':
+
+												if ( ! is_string($value)) {
+													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																	'`) pattern, only string values are allowed for %s statements!');
+												}
+
+											//	$modifiers = array_flip(explode(':', $normalized));	//	strpos() is probably still faster!
+
+												if (strpos($normalized, ':pack') !== false) {
+													$value = trim(mb_ereg_replace('\s+', ' ', $value));
+												} else if (strpos($normalized, ':trim') !== false) {
+													$value = trim($value);
+												}
+
+												//	empty string = NULL
+												if (strpos($normalized, ':enull') !== false && empty($value)) {
+													return 'NULL';
+												}
+
+												if ($command === 'text') {	//	`text` only modifiers ... not necessarily the `text` data types, just extra `text` modifiers
+													if (strpos($normalized, ':tolower') !== false || strpos($normalized, ':lower') !== false || strpos($normalized, ':lcase') !== false) {
+														$value = mb_strtolower($value);
+													}
+
+													if (strpos($normalized, ':toupper') !== false || strpos($normalized, ':upper') !== false || strpos($normalized, ':ucase') !== false) {
+														$value = mb_strtoupper($value);
+													}
+
+													if (strpos($normalized, ':ucfirst') !== false) {
+														$value = mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
+													}
+
+													if (strpos($normalized, ':ucwords') !== false) {
+														$value = mb_convert_case($value, MB_CASE_TITLE);
+													}
+
+													if (strpos($normalized, ':md5') !== false) {	//	don't :pack if you are hashing passwords!
+														$value = md5($value);
+													}
+
+													if (strpos($normalized, ':sha') !== false) {
+														if (strpos($normalized, ':sha1') !== false) {
+															$value = hash('sha1', $value);
+														} else if (strpos($normalized, ':sha256') !== false) {
+															$value = hash('sha256', $value);
+														} else if (strpos($normalized, ':sha384') !== false) {
+															$value = hash('sha384', $value);
+														} else if (strpos($normalized, ':sha512') !== false) {
+															$value = hash('sha512', $value);
+														}
+													}
+												}
+
+												preg_match('~(?:(?::\d*)?:\d+)~', $normalized, $range);
+												/**
+												 *	"%varchar:1.9:-10."
+												 *		":1.9:-10"
+												 *
+												 *	"%varchar:-9.9:-1:n"
+												 *		":-9.9:-1"
+												 *
+												 *	"%varchar:.0:n"
+												 *		":.0"
+												 *
+												 *	"%varchar:1.0:0"
+												 *		":1.0:0"
+												 *
+												 *	"%varchar:n::10"
+												 *		"::10"
+												 */
+												if ( ! empty($range)) {
+													$range = ltrim($range[0], ':');
+													if (is_numeric($range)) {
+														$min = 0;
+														$max = $range;
+													} else {
+														$range = explode(':', $range);
+														if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1])) {
+															throw new \InvalidArgumentException("Invalid syntax detected for `%{$command}` statement in `{$matches[0]}`
+																			given at index {$index} for SQL->prepare(`{$pattern}`) pattern;
+																			`%{$command}` requires valid numeric values. eg. %{$command}:10 or %{$command}:8:50");
+														}
+														$min = $range[0];
+														$max = $range[1];
+													}
+
+													$strlen = mb_strlen($value);
+													if ($min && $strlen < $min) {
+															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in
+																			`{$matches[0]}` given at index {$index} for SQL->prepare(`{$pattern}`) pattern;
+																			`{$matches[0]}` requires a string to be a minimum {$min} characters in length; input string has only {$strlen} of {$min} characters");
+													}
+													if ( $max && $strlen > $max) {
+//dump($normalized);
+														if (strpos($normalized, ':crop') !== false) {
+															$value = mb_substr($value, 0, $max);
+														}
+														else {
+															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in `{$matches[0]}`
+																			given at index {$index} for SQL->prepare(`{$pattern}`) pattern; `{$matches[0]}` requires a string to be maximum `{$max}`
+																			size, and cropping is not enabled! To enable auto-cropping specify: `{$command}:{$min}:{$max}:crop`");
+														}
+													}
+												}
+
+												//	:raw = :noquot + :noescape
+												if (strpos($normalized, ':raw') !== false) {
+													return $value;
+												}
+
+												$noquot		= strpos($normalized, ':noquot')	!== false;
+												$noescape	= strpos($normalized, ':noescape')	!== false;
+												$utf8mb4	= strpos($normalized, ':utf8mb4')	!== false || strpos($normalized, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
+
+												return ($noquot ? null : '"') . ($noescape ? $value : $this->real_escape_string($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : '"');
+
+
+											case 'd':
+											case 'f';
+											case 'e';
+											case 'float';
+											case 'id':
+											case 'int':
+											case 'byte':
+											case 'bit':
+											case 'integer':
+											case 'unisigned';
+
+												if (is_numeric($value))
+													return $value;
+
+												throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+																'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																'`) pattern, only numeric data types (integer and float) are allowed for %d and %f statements!');
+
+											case 'clamp';
+
+												if ( ! is_numeric($value)) {
+													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																	'`) pattern, only numeric data types (integer and float) are allowed for %clamp statements!');
+												}
+
+												preg_match('~(?:(?::[-+]?[0-9]*\.?[0-9]*)?:[-+]?[0-9]*\.?[0-9]+)~', $normalized, $range);
+												/**
+												 *	"%clamp:1.9:-10."
+												 *		":1.9:-10"
+												 *
+												 *	"%clamp:-9.9:-1:n"
+												 *		":-9.9:-1"
+												 *
+												 *	"%clamp:.0:n"
+												 *		":.0"
+												 *
+												 *	"%clamp:1.0:0"
+												 *		":1.0:0"
+												 *
+												 *	"%clamp:n::10"
+												 *		"::10"
+												 */
+
+												if (empty($range)) {
+													throw new \InvalidArgumentException('Invalid %clamp syntax `' . $matches[0] .
+																'` detected for call to SQL->prepare(`' . $pattern .
+																'`) at index ' . $index . '; %clamp requires a numeric range: eg. %clamp:1:10');
+												}
+												$range = ltrim($range[0], ':');
+												if (is_numeric($range)) {
+													$value = min(max($value, 0), $range);
+												} else {
+													$range = explode(':', $range);
+													if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1])) {
+														throw new \InvalidArgumentException('Invalid syntax detected for %clamp statement in `' . $matches[0] .
+																		'` given at index ' . $index . ' for SQL->prepare(`' . $pattern .
+																		'`) pattern; %clamp requires valid numeric values. eg. %clamp:0.0:1.0 or %clamp:1:100 or %clamp::100 or %clamp:-10:10');
+													}
+													$value = min(max($value, $range[0]), $range[1]);
+												}
+
+												return $value;
+
+											case 'bool':
+											case 'boolean':
+
+											case 'date':
+											case 'datetime';
+											case 'timestamp';
+										}
+										return $value;
+								}
+
+//								throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
+							}, $pattern);
+		if ($count !== count($params)) {
+			throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+				') supplied to SQL->prepare(`' . $pattern .
+				'`) pattern! Explecting ' . $count . ' for this pattern!');
+		}
+	}
+/*
+		$this->sql .= PHP_EOL . 'WHERE ';
+		for(; key($args) !== null; next($args))
+		{
+			$arg = current($args);
+			if (mb_strpos($arg, '?') !== false) {
+				for ($offset = 0; ($pos = mb_strpos($arg, '?', $offset)) !== false; $offset = $pos + 1 ) {
+					$next = next($args);
+					$this->sql .= mb_substr($arg, $offset, $pos - $offset) . $this->sanitize($next);
+					$final = null;
+				}
+				$this->sql .= mb_substr($arg, $offset);
+			}
+			else {
+				// lookahead
+				$next = next($args);
+				if (is_array($next)) {
+					// $next member is an array of (hopefully) replacement values eg. ['id' => 5] for ':id'
+					$this->sql .= mb_ereg_replace_callback(':([a-z]+)',
+										function ($matches) use ($next)
+										{
+											if (isset($next[$matches[1]])) {
+												return $this->sanitize($next[$matches[1]]);
+											}
+											else if (isset($next['@' . $matches[1]])) {
+												return $next['@' . $matches[1]];
+											}
+											throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
+										}, $arg);
+				}
+				else {
+					$this->sql .= $arg;
+					prev($args);
+				}
+			}
+		}
+		$this->sql .= $final;
+		return $this;
+*/
+
+
+
 	/**
 	 *	
 	 *		http://php.net/manual/en/function.explode.php
@@ -1668,8 +2150,8 @@ class SQL implements \ArrayAccess
 		}
 		else if (strlen($name) === strspn($name, '_etaoinshrdlcumwfgypbvkjxqz')) 	//	lowercase letters orderd by letter frequency in the English language:	https://en.wikipedia.org/wiki/Letter_frequency
 		{
-			if ($name === '__') { // special open-close operator
-				//	TODO:
+			if ($name === '___') { // special open-close operator
+				//	TODO: considering letting ___ (3x underscores) represent open and close brackets, but not very interesting feature!
 			}
 			else {
 				//	string contains ALL lowercase values and underscores ... ie. probably a table/field/column name! Leave unchanged!
@@ -1828,7 +2310,7 @@ class SQL implements \ArrayAccess
 	}
 
 	/**
-	 *	Used when we detect ? ...
+	 *	Used when we detect ? ... actually, we can't do array processing!
 	 *
 	 */
 	public function sanitize($value)
@@ -1836,6 +2318,7 @@ class SQL implements \ArrayAccess
 		if (is_numeric($value)) return $value;
 		if (is_string($value)) return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
 		if (is_null($value)) return 'NULL';
+		if (is_bool($value)) return $value ? 'TRUE' : 'FALSE';
 		foreach ($value as $key => &$v)
 			$v = $this->sanitize($v);
 		return '(' . implode(', ', $value) . ')';
@@ -1858,14 +2341,11 @@ class SQL implements \ArrayAccess
 	 */
 	public function offsetGet($sql)
 	{
-echo 'GET';
-dump($sql);
 		$this->sql .= is_null($sql) ? 'NULL' : $sql;
 		return $this;
 	}
 	public function offsetSet($idx, $sql)
 	{
-echo 'SET';
 //		if (is_numeric($idx))
 //			$this->sql[$idx] .= $sql;
 //		else
