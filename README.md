@@ -1,4 +1,5 @@
 WORK in active progress! As of 19 July 2017, probably for the next week or so!
+This is the unfinished README! Many things have changed and improved since I wrote this a few days ago!
 
 # SQL
 Raw SQL Query String Builder ~ because SQL abstraction is for the weak!
