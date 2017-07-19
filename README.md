@@ -1,3 +1,5 @@
+WORK in active progress! As of 19 July 2017, probably for the next week or so!
+
 # SQL
 Raw SQL Query String Builder ~ because SQL abstraction is for the weak!
 
