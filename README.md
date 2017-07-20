@@ -1,14 +1,21 @@
-WORK in active progress! As of 19 July 2017, probably for the next week or so!
+WORK in active progress! As of 20 July 2017, probably for the next week or so!
 This is the unfinished README! Many things have changed and improved since I wrote this a few days ago!
 
 # SQL
-Raw SQL Query String Builder ~ because SQL abstraction is for the weak!
+SQL Query String Wrapper ~ because SQL abstraction is for the weak!
+
+SQL String Wrapper (or SQL Query Builder) is a **stateless**, natural/native SQL language (zero learning curve, no new syntax to learn) query string builder or wrapper. It doesn't store anything internally about the state/section/part of the query string it's building, except the string itself, just like you might store an `$sql` variable and concatenate to it (only one `$sql` variable is used internally). In fact you can build partial SQL fragments or even non-SQL strings, as it doesn't parse the string for correctness; it's basically just a glorified string concatenator, designed with functionality to assist you in building, designing and prototyping SQL query strings faster, leveraging your existing SQL knowledge so there is no learning curve; and it's glorious!
+
+In short, this is just a wrapper around an internal empty `$sql` string variable. You can do as much or as little as you want with it.
+
+https://packagist.org/packages/willoucom/php-sql-query
+https://packagist.org/packages/atk4/dsql
 
 Welcome to the Ultimate raw/native SQL Builder Class ever developed for PHP.
 
-This class was inspired by the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html), and is dedicated to the few; but proud developers that love the power and flexibility of writing raw/native SQL queries! But with great power ...
+# History
 
-In short, this is just a wrapper around an internal empty `$sql` string variable.
+This class was inspired by the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html), and is dedicated to the few; but proud developers that love the power and flexibility of writing raw/native SQL queries! But with great power ...
 
 The ultimate goal of this class is to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements; bringing even more power and flexibility than you thought possible!
 
@@ -97,11 +104,15 @@ Because when you find yourself dealing with a database of 400+ tables and 6000+ 
 
 ### Features:
 
-* This is IT! The ULTIMATE raw/native SQL Query Builder for PHP
+* This is IT! The ULTIMATE raw/native/natural language SQL Query Builder for PHP
 * ORM style '[Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
 * Intends to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements
+* Natural SQL language - queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable. No new keywords to learn, leverage your existing SQL knowledge
+* Any driver: execute queries against any driver that accepts natural SQL commands: PDO, MySQLi, pg\_\*, SQLLite etc.
 * Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
-* No external dependencies, No other Classes (only the SQL class), No Interfaces, No Traits, No custom Exception classes
+* Any Query - any query with any complexity can be expressed through SQLQB.
+* One single file: no other classes, interfaces, traits or custom exceptions
+* No dependencies except PHP 5.6 and (mb\_\*) extention. Use SQLQB in any PHP application or framework.
 * Multiple function call / code styles suported, SELECT() or select()
 * Global wrapper function for the truly lazy: `$sql = SQL()` instead of `$sql = new SQL()`
 * No namespace! Yes, this is a feature! Because I don't want to write `new \Twister\SQL();` (I'm lazy); and because it has NO equal!
