@@ -37,7 +37,7 @@ $sql = SQL('SELECT COUNT(*) FROM users')->WHERE('id = ? OR name = ?', $id, $name
 // or
 $sql = SQL()->SAF('users WHERE id = ? OR name = ?', $id, $name);		// short form: (S)ELECT (A)LL (F)ROM
 // or
-$sql = SQL()->SAF->users->where('id = ? OR name = ?', $id, $name);		// SAF is a dynamic property, uppercase only
+$sql = SQL()->SAF->users->where('id = ? OR name = ?', $id, $name);		// SAF = dynamic property, (UC only)
 // or
 $sql = SQL()->SELECT_ALL_FROM('users WHERE id = ? OR name = ?', $id, $name);	// long form
 // or
