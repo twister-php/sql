@@ -1,5 +1,38 @@
 <?php
 
+/**
+ *	SQL Query Builder
+ *
+ *	@package    SQL Query Builder
+ *	@author     Trevor Herselman <therselman@gmail.com>
+ *	@copyright  Copyright (c) 2017 Trevor Herselman
+ *	@license    http://opensource.org/licenses/MIT
+ *	@link       https://github.com/twister-php/sql
+ *	@version    0.0.1
+ *
+ *	MIT License
+ *
+ *	Copyright (c) 2017 Trevor Herselman <therselman@gmail.com>
+ *
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
+ *
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
+ *
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
+ */
+
 class SQL implements \ArrayAccess
 {
     /**
@@ -51,16 +84,18 @@ class SQL implements \ArrayAccess
 	public	static $quot		=	'"';
 
 	/**
-	 *	These are NOT used by the function calls, like ->SELECT(),
-	 *		they are used as a fast lookup for the `dynamic` property names in `__get()`;
-	 *		eg. SQL()->SELECT_ALL_FROM->users		<<== note that `SELECT_ALL_FROM` is a property!
+	 *	These are used as a fast lookup for the `dynamic` property names in `__get()`;
+	 *		they are (currently) NOT used in the function calls, like ->SELECT(),
+	 *	eg. SQL()->SELECT_ALL_FROM->users		<<== note that `SELECT_ALL_FROM` is a property!
 	 *		__get() uses this list for a fast lookup of replacement values,
 	 *			instead of a long (and inefficient for this task) `switch()` statement.
 	 *	So basically, this is a list of all the `properties` you can access with replacement text.
 	 *	As such, these ARE case-sensitive (because `isset($translations['SELECT'])` is case sensitive!)
 	 *		ie. you cannot do `SQL()->select_all_from->users` and expect to get the same results!
+	 *	This list is `hard-coded` once and initialized when PHP loads the file, not during script execution.
 	 *
-	 *	This technique is purely optional! You can write your statements in about 10 different ways with this class!
+	 *	Using the dynamic property technique is purely optional!
+	 *	You can write your statements in about 10 different ways with this class!
 	 *
      * 	@var static translations
 	 */
@@ -71,21 +106,35 @@ class SQL implements \ArrayAccess
 										'UPDATE'		=>	'UPDATE ',
 										'CALL'			=>	'CALL ',
 
+										'INSERT_INTO'	=>	'INSERT INTO ',			//	or II
+										'DELETE_FROM'	=>	'DELETE FROM ',			//	or DF
+
+										//	Note: `ALL` is a reserved SQL keyword, which is the default state of SELECT statements (alternative being DISTINCT)
+										//	But I've hijacked the term `ALL` here, because it's more natural for me to say `select all the columns from ...`
+										//	If you don't like it, then don't use it!
 										'SELECT_ALL'	=>	'SELECT *',
-										'SA'			=>	'SELECT *',				//	SA = (S)ELECT (A)LL
-										'SALL'			=>	'SELECT *',				//	SA = (S)ELECT (ALL)
-										'S_ALL'			=>	'SELECT *',				//	SA = (S)ELECT (ALL)
+										'SA'			=>	'SELECT *',				//	(S)ELECT (A)LL
+										'SALL'			=>	'SELECT *',				//	(S)ELECT (ALL)
+										'S_ALL'			=>	'SELECT *',				//	(S)ELECT (ALL)
 
 										'S_CACHE'		=>	'SELECT SQL_CACHE ',
 										'S_NCACHE'		=>	'SELECT SQL_NO_CACHE ',
 										'S_NO_CACHE'	=>	'SELECT SQL_NO_CACHE ',
 
-										//	compound statements
-										'SAF'			=>	'SELECT *' . PHP_EOL . 'FROM ',
-										'SELECT_ALL_FROM'=>	'SELECT *' . PHP_EOL . 'FROM ',
-										'SCAF'			=>	'SELECT COUNT(*)' . PHP_EOL . 'FROM ',
+										'SELECT_DISTINCT'=>	'SELECT DISTINCT ',
+										'SD'			=>	'SELECT DISTINCT ',				//	(S)ELECT (D)ISTINCT
+										'SDA'			=>	'SELECT DISTINCT * ',			//	(S)ELECT (D)ISTINCT (A)LL
+										'SDCA'			=>	'SELECT DISTINCT COUNT(*) ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL
+										'SDCAS'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)S
+										'SDCAA'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
+										'SDCAAS'		=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
+										'SDAF'			=>	'SELECT DISTINCT COUNT(*) FROM ',//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (F)ROM
 
-										//	synonyms
+										//	compound statements
+										'SAF'			=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+										'SELECT_ALL_FROM'=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+										'SCAF'			=>	'SELECT COUNT(*)' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+
 										'SC'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (ALL) is implied here
 										'SC_AS'			=>	'SELECT COUNT(*) AS ',	//	SA = (S)ELECT (C)OUNT (ALL) is implied here
 										'SCA'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (A)LL
@@ -143,6 +192,7 @@ class SQL implements \ArrayAccess
 
 										'TRUNCATE'		=>	'TRUNCATE ',			//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
 										'TRUNCATE_TABLE'=>	'TRUNCATE TABLE ',		//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
+										'TT'			=>	'TRUNCATE TABLE ',		//	https://dev.mysql.com/doc/refman/5.7/en/truncate-table.html		TRUNCATE [TABLE] tbl_name
 
 										'CA'			=>	'COUNT(*)',
 										'CAA'			=>	'COUNT(*) AS ',			//	(C)OUNT (A)LL (A)S
@@ -155,42 +205,49 @@ class SQL implements \ArrayAccess
 										'A'				=>	'*',					//	`ALL` is a SELECT modifier ... gonna change its meaning!
 										'STAR'			=>	'*',
 
-										'FROM'			=>	PHP_EOL . 'FROM ',
-										'JOIN'			=>	PHP_EOL . "\tJOIN ",
-										'LEFT_JOIN'		=>	PHP_EOL . "\tLEFT JOIN ",
-										'LEFT_OUTER_JOIN'=>	PHP_EOL . "\tLEFT OUTER JOIN ",
-										'INNER_JOIN'	=>	PHP_EOL . "\tINNER JOIN ",
-										'RIGHT_JOIN'	=>	PHP_EOL . "\tRIGHT JOIN ",
-										'RIGHT_OUTER_JOIN'=>PHP_EOL . "\tRIGHT OUTER JOIN ",
-										'OUTER_JOIN'	=>	PHP_EOL . "\tOUTER JOIN ",
-										'CROSS_JOIN'	=>	PHP_EOL . "\tCROSS JOIN ",
-										'STRAIGHT_JOIN'	=>	PHP_EOL . "\tSTRAIGHT_JOIN ",			//	Why the hell do they use _ in this name?
-										'NATURAL_JOIN'	=>	PHP_EOL . "\tNATURAL JOIN ",
-										'WHERE'			=>	PHP_EOL . 'WHERE ',
-										'GROUP_BY'		=>	PHP_EOL . 'GROUP BY ',
+										'FROM'			=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
+										'JOIN'			=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",
+										'LEFT_JOIN'		=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",
+										'LEFT_OUTER_JOIN'=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",
+										'RIGHT_JOIN'	=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",
+										'RIGHT_OUTER_JOIN'=>PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",
+										'INNER_JOIN'	=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",
+										'OUTER_JOIN'	=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",
+										'CROSS_JOIN'	=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",
+										'STRAIGHT_JOIN'	=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",
+										'NATURAL_JOIN'	=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",
+										'WHERE'			=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
+										'GROUP_BY'		=>	PHP_EOL . 'GROUP BY',
 										'HAVING'		=>	PHP_EOL . 'HAVING ',
 										'ORDER_BY'		=>	PHP_EOL . 'ORDER BY ',
 										'LIMIT'			=>	PHP_EOL . 'LIMIT ',
 										'PROCEDURE'		=>	PHP_EOL . 'PROCEDURE ',
 										'INTO_OUTFILE'	=>	PHP_EOL . 'INTO OUTFILE ',
-										'UNION'			=>	PHP_EOL . 'UNION' . PHP_EOL,
+										'UNION'			=>	PHP_EOL . 'UNION'          . PHP_EOL,
+										'UNION_ALL'		=>	PHP_EOL . 'UNION ALL'      . PHP_EOL,
+										'UNION_DISTINCT'=>	PHP_EOL . 'UNION DISTINCT' . PHP_EOL,
+										'EXCEPT'		=>	PHP_EOL . 'EXCEPT'         . PHP_EOL,
+										'VALUES'		=>	PHP_EOL . 'VALUES'         . PHP_EOL . "\t",
+										'ADD'			=>	PHP_EOL . 'ADD ',
 
 										'S'				=>	'SELECT ',
 										'D'				=>	'DELETE ',
+										'DF'			=>	'DELETE FROM ',
 										'I'				=>	'INSERT ',
+										'II'			=>	'INSERT INTO ',
 										'U'				=>	'UPDATE ',
-										'F'				=>	PHP_EOL . 'FROM ',
-										'J'				=>	PHP_EOL . "\tJOIN ",				//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'LJ'			=>	PHP_EOL . "\tLEFT JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'LOJ'			=>	PHP_EOL . "\tLEFT OUTER JOIN ",		//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'IJ'			=>	PHP_EOL . "\tINNER JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'RJ'			=>	PHP_EOL . "\tRIGHT JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'ROJ'			=>	PHP_EOL . "\tRIGHT OUTER JOIN ",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'OJ'			=>	PHP_EOL . "\tOUTER JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'CJ'			=>	PHP_EOL . "\tCROSS JOIN ",			//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'SJ'			=>	PHP_EOL . "\tSTRAIGHT_JOIN ",		//	Why the hell do they use _ in this name?
-										'NJ'			=>	PHP_EOL . "\tNATURAL JOIN ",		//	https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'W'				=>	PHP_EOL . 'WHERE ',
+										'F'				=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
+										'J'				=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'IJ'			=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'LJ'			=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'LOJ'			=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'RJ'			=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'ROJ'			=>	PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'OJ'			=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'CJ'			=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'SJ'			=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",	//	Why the hell do they use _ in this name?
+										'NJ'			=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",	//	https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'W'				=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
 										'G'				=>	PHP_EOL . 'GROUP BY ',
 										'H'				=>	PHP_EOL . 'HAVING ',
 										'O'				=>	PHP_EOL . 'ORDER BY ',
@@ -223,7 +280,7 @@ class SQL implements \ArrayAccess
 										'LOCK_IN_SHARE_MODE'			=>	' LOCK IN SHARE MODE',							//	[FOR UPDATE | LOCK IN SHARE MODE]]
 										'FOR_UPDATE_LOCK_IN_SHARE_MODE'	=>	PHP_EOL . 'FOR UPDATE LOCK IN SHARE MODE',		//	[FOR UPDATE | LOCK IN SHARE MODE]]
 
-										'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE ',				//	https://dev.mysql.com/doc/refman/5.7/en/insert.html
+										'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE' . PHP_EOL . "\t",	//	https://dev.mysql.com/doc/refman/5.7/en/insert.html
 
 										'AUTO_INCREMENT'=>	' AUTO_INCREMENT',					//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
 										'INT'			=>	' INT',								//	CREATE TABLE test (a INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (a), KEY(b))
@@ -314,6 +371,15 @@ class SQL implements \ArrayAccess
 										'OR_'			=>	'OR ',
 										'_OR'			=>	' OR',
 										'_OR_'			=>	' OR ',
+										'XOR'			=>	'XOR',
+										'XOR_'			=>	'XOR ',
+										'_XOR'			=>	' XOR',
+										'_XOR_'			=>	' XOR ',
+
+										'AFTER'			=>	'AFTER',
+										'AFTER_'		=>	'AFTER ',
+										'_AFTER'		=>	' AFTER',
+										'_AFTER_'		=>	' AFTER ',
 
 										/**
 										 *	Numeric replacements, they currently exclude spacing,
@@ -375,19 +441,6 @@ class SQL implements \ArrayAccess
 										'PARTITION'		=>	PHP_EOL . 'PARTITION ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[FROM table_references [PARTITION partition_list]
 										'WITH_ROLLUP'	=>	' WITH ROLLUP ',					//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[GROUP BY {col_name | expr | position} [ASC | DESC], ... [WITH ROLLUP]]
 										'DEFAULT'		=>	' DEFAULT ',
-
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
-										''			=>	'',
 									];
 
 
@@ -401,10 +454,10 @@ class SQL implements \ArrayAccess
 
 	/**
 	 *	->SELECT('*')
-	 *	OR
+	 *	or
 	 *	->SELECT() 				<<== reset $comma because nothing was supplied!
 	 *		->('*')				<<== now set $comma to ', '
-	 *		OR
+	 *		or
 	 *		->COUNT()			<<== now set $comma to ', '
 	 *		->MIN('price')		<<== now set $comma to ', '
 	 *		->('prices')		<<== $sql .= ', prices'; ... how to handle this ??? ... maybe I can just detect if a comma is first used when we are in SELECT context ... otherwise we should just join without modification!
@@ -559,6 +612,24 @@ class SQL implements \ArrayAccess
 			return $this;
 		}
 		return $this->prepare('SELECT ' . $stmt, ...$params);
+	}
+
+
+	public function SELECT_ALL_FROM(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['SELECT_ALL_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['SELECT_ALL_FROM'] . $stmt, ...$params);
+	}
+	public function SAF(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['SELECT_ALL_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['SELECT_ALL_FROM'] . $stmt, ...$params);
 	}
 
 
@@ -1174,6 +1245,10 @@ class SQL implements \ArrayAccess
 		return $this->prepare(' VALUES (' . $stmt . ')', ...$params);
 	}
 
+
+
+
+
 	/**
 	 *	Samples:
 	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
@@ -1181,10 +1256,125 @@ class SQL implements \ArrayAccess
 	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name SET col_name={expr | DEFAULT}, ... [ ON DUPLICATE KEY UPDATE col_name=expr [, col_name=expr] ... ]
 	 *		UPDATE [LOW_PRIORITY] [IGNORE] table_reference SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}]
 	 *
-	 *		NOTE: Alternative 1: (['col1' => $value1, 'col2' => $value2]) ...
-	 *		NOTE: Alternative 2: ('col1', $value1, 'col2', $value2) ...
-	 *		NOTE: Alternative 3: ('col1 = ?', $value1, 'col2 = ?', $value2) ... too much work ... NOT SUPPORTED YET!
+	 *		NOTE: Alternative 1: (['col1' => $value1, 'col2' => $value2, '@dated' => 'CURDATE()']) 		single array:	[columns => values]
+	 *		NOTE: Alternative 2: (['col1', 'col2', '@dated'], [$value1, $value2, 'CURDATE()'])			two arrays:		[columns], [values]
+	 *		NOTE: Alternative 3: ('col1 = ?, col2 = ?, dated = @', $value1, $value2, 'CURDATE()')
 	 */
+	public function SET($stmt = null, ...$params)
+	{
+		if (is_array($stmt))
+		{
+			$result = null;
+			$comma = null;
+			if (empty($params))
+			{
+				if (is_numeric(key($stmt))) {
+					throw new \BadMethodCallException('Invalid array type given to ->SET([...]). ' . 
+						'The single array variant requires the array to includes both column names (in the keys) and values. ' .
+						'eg. ->SET([\'col1\' => 123, \'col2\' => \'value2\', \'@col3\' => \'CURDATE()\'])');
+				}
+				foreach ($stmt as $col => $value)
+				{
+					if ($col[0] === '@') {
+						$result .= $comma . substr($col, 1) . ' = ' . $value;	//	strips '@' from beginning of column names
+					}
+					else
+					{
+						if (is_numeric($value)) {
+							$result .= $comma . $col . ' = ' . $value;
+						}
+						else if (is_string($value)) {
+							$result .= $comma . $col . ' = ' . self::quote($value);
+						}
+						else if ($value === null) {
+							$result .= $comma . $col . ' = NULL';
+						}
+						else {
+							throw new \Exception('Invalid type `' . gettype($value) .
+								'` sent to SET(); only numeric, string and null values are supported!');
+							throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+											'` given to column ' . $col . ' passed in SQL->prepare(`' . $pattern .
+											'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
+
+
+
+											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+												') supplied to SQL->prepare(`' . $pattern .
+												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
+												(	substr_count($pattern, '?') + substr_count($pattern, '@') -
+													substr_count($pattern, '??') - substr_count($pattern, '@@') -
+													substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+												count($params)) . ' more value(s)');
+										}
+										next($params);
+										$count++;
+
+										if (is_numeric($value))	return $value;
+										if (is_string($value))	return self::quote($value);
+										if (is_null($value))	return 'NULL';
+										if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';
+
+										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
+										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+														'` given at index ' . $count . ' passed in SQL->prepare(`' . $pattern .
+														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
+
+
+
+
+						}
+					}
+
+					$comma = ', ';
+				}
+			}
+
+
+			if (count($params) === 1 && is_array($params[0]))
+			{
+			}
+			else
+			{
+				$col = null;
+				foreach ($args as $arg)
+				{
+					if ($col === null) {
+						$col = $arg;
+						if (empty($col) || is_numeric($col))	//	basic validation ... something is wrong ... can't have a column title be empty or numeric!
+							throw new \Exception('Invalid column name detected in SET(), column names must be strings! Type: `' . gettype($col) . '`, value: ' . (string) $col);
+						continue;
+					}
+
+					if ($col[0] === '@') {					//	detect first character of column title ... if the title has '@' sign, then DO NOT ESCAPE! ... can be useful for 'DEFAULT', or '@id' (a connection variable) or 'MD5(...)' etc.
+						$result .= $comma . substr($col, 1) . ' = ' . $value;		//	strip '@' from beginning
+					}
+					else {
+						if (is_numeric($arg)) {
+							$result .= $comma . $col . ' = ' . $arg;
+						}
+						else if ($arg === null) {
+							$result .= $comma . $col . ' = NULL';
+						}
+						else if (is_string($arg)) {
+							$result .= $comma . $col . ' = ' . $this->escape($arg);
+						}
+						else {
+							throw new \Exception('Invalid type `' . gettype($arg) . '` sent to SET(); only numeric, string and null are supported!');
+						}
+					}
+					$comma = ', ';
+					$col = null;
+				}
+			}
+			$this->sql .= ' SET ' . $result;
+			return $this;
+		}
+		if (empty($params)) {
+			$this->sql .= ' SET ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' SET ' . $stmt, ...$params);
+	}
 	public function SET(...$args)
 	{
 		$values = null;
@@ -1265,27 +1455,44 @@ class SQL implements \ArrayAccess
 
 
 	//	FROM thetable t, (SELECT @a:=NULL) as init;
-	public function FROM(string ...$args)
+	public function FROM(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['FROM'] . $stmt, ...$params);
 	}
-	public function F(string ...$args)
+	public function F(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['FROM'] . $stmt, ...$params);
 	}
 
-	public function JOIN(...$args)
+
+	public function JOIN(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
-	public function J(...$args)
+	public function J(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tJOIN " . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
+
+	//	WARNING: I don't think I should support this syntax!?!?
+	//	better to support it in the ON() method !?!?
+	//	JOIN_ON('users', 'u.id = ') ... ???
 	public function JOIN_ON(string $table, ...$args)
 	{
 		$this->sql .= PHP_EOL . "\tJOIN {$table} ON (" . implode(', ', $args) . ')';
@@ -1315,27 +1522,232 @@ class SQL implements \ArrayAccess
 	 *
 	 *
 	 */
-	public function LEFT_JOIN(...$args)
+	public function LEFT_JOIN(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tLEFT JOIN " . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
-	public function LJ(...$args)
+	public function leftJoin(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tLEFT JOIN " . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
+	}
+	public function LJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
 
-	public function LEFT_JOIN_ON(string $table, ...$args)
+	public function LEFT_OUTER_JOIN(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tLEFT JOIN {$table} ON (" . implode(', ', $args) . ')';
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
-	public function LJ_ON(string $table, ...$args)
+	public function leftOuterJoin(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . "\tLEFT JOIN {$table} ON (" . implode(', ', $args) . ')';
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+	public function LOJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['LEFT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
+	}
+
+	public function RIGHT_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
+	}
+	public function rightJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
+	}
+	public function RJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
+	}
+
+	public function RIGHT_OUTER_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
+	}
+	public function rightOuterJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
+	}
+	public function ROJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['RIGHT_OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
+	}
+
+	public function INNER_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INNER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
+	}
+	public function innerJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INNER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
+	}
+	public function IJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INNER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
+	}
+
+	public function OUTER_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
+	}
+	public function outerJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
+	}
+	public function OJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['OUTER_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
+	}
+
+	public function CROSS_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['CROSS_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
+	}
+	public function crossJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['CROSS_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
+	}
+	public function CJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['CROSS_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
+	}
+
+	public function STRAIGHT_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['STRAIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
+	}
+	public function straightJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['STRAIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
+	}
+	public function SJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['STRAIGHT_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
+	}
+
+	public function NATURAL_JOIN(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['NATURAL_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
+	}
+	public function naturalJoin(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['NATURAL_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
+	}
+	public function NJ(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['NATURAL_JOIN'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
+	}
+
+
 
 	/**
 	 *	Example:
@@ -1357,10 +1769,13 @@ class SQL implements \ArrayAccess
 	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
 	 *		t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL) ON t1.a=t2.a
 	 */
-	public function ON(...$args)
+	public function ON(string $stmt = null, ...$params)
 	{
-		$this->sql .= ' ON (' . implode(' AND ', $args) . ')';
-		return $this;
+		if (empty($params)) {
+			$this->sql .= ' ON ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' ON ' . $stmt, ...$params);
 	}
 
 	/**
@@ -1368,11 +1783,13 @@ class SQL implements \ArrayAccess
 	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
 	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
 	 */
-	public function AND(...$args)
+	public function AND(string $stmt = null, ...$params)
 	{
-	//	$this->sql .= ' AND (' . $and . ')';
-		$this->sql .= ' AND ' . implode(' AND ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= ' AND ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' AND ' . $stmt, ...$params);
 	}
 
 	/**
@@ -1383,11 +1800,16 @@ class SQL implements \ArrayAccess
 	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
 	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
 	 */
-	public function OR(...$args)
+	public function OR(string $stmt = null, ...$params)
 	{
-		$this->sql .= ' OR ' . implode(' OR ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= ' OR ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' OR ' . $stmt, ...$params);
 	}
+
+
 
 	/**
 	 *
@@ -1396,9 +1818,17 @@ class SQL implements \ArrayAccess
 	 *
 	 *	Examples:
 	 */
-	public function WHERE(string $statement, ...$params)
+	public function WHERE(string $stmt, ...$params)
 	{
-		$this->sql .= PHP_EOL . 'WHERE ';
+		if (empty($params)) {
+			$this->sql .= self::$translations['WHERE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['WHERE'] . $stmt, ...$params);
+
+
+	//	original code ...
+		$this->sql .= self::$translations['WHERE'];
 		for(; key($args) !== null; next($args))
 		{
 			$arg = current($args);
@@ -1436,10 +1866,15 @@ class SQL implements \ArrayAccess
 		$this->sql .= $final;
 		return $this;
 	}
-	public function W(...$args)
+	public function W(string $stmt = null, ...$params)
 	{
-		return $this->WHERE(...$args);
+		if (empty($params)) {
+			$this->sql .= self::$translations['WHERE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['WHERE'] . $stmt, ...$params);
 	}
+
 
 	/**
 	 *	Escapes the input value, and replaces the '?'
@@ -1453,9 +1888,10 @@ class SQL implements \ArrayAccess
 	 */
 	public function WHERE_LIKE(string $col, string $like)
 	{
-		$this->sql .= PHP_EOL . 'WHERE ' . $col . ' LIKE ' . $this->sanitize($like);
+		$this->sql .= self::$translations['WHERE'] . $col . ' LIKE ' . $this->sanitize($like);
 		return $this;
 	}
+
 
 	/**
 	 *	
@@ -1512,7 +1948,7 @@ class SQL implements \ArrayAccess
 
 	public function WHERE_IS_NULL(string $field)
 	{	//	TODO, we could detect if a value was input ... if is_null($input) ... then do something else !?!?
-		$this->sql .= PHP_EOL . 'WHERE ' . $field . ' IS NULL';
+		$this->sql .= self::$translations['WHERE'] . $field . ' IS NULL';
 		return $this;
 	}
 
@@ -1532,7 +1968,7 @@ class SQL implements \ArrayAccess
 	 */
 	public function COUNT(string $col = '*', string $as = null)
 	{
-		$this->sql .= 'COUNT(' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'COUNT(' . $col . ($as === null ? ')' : ') AS ' . $as);
 		return $this;
 	}
 	/**
@@ -1569,10 +2005,13 @@ class SQL implements \ArrayAccess
 	 *	Samples:
 	 *		
 	 */
-	public function AS(string $as = null)
+	public function AS(string $stmt = null, ...$params)
 	{
-		$this->sql .= ' AS ' . $as;
-		return $this;
+		if (empty($params)) {
+			$this->sql .= ' AS ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' AS ' . $stmt, ...$params);
 	}
 
 
@@ -1587,7 +2026,7 @@ class SQL implements \ArrayAccess
 	 *	https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
 	 *
 	 *	Example:
-	 *		->COALESCE('product.special_price', product.price')
+	 *		->COALESCE('product.special_price', 'product.price')
 	 *
 	 *	Samples:
 	 *		COALESCE(x, y)
@@ -1598,11 +2037,11 @@ class SQL implements \ArrayAccess
 		$comma = null;
 		foreach ($args as $arg)
 		{
-			if ($arg === null) {
-				$this->sql .= $comma . 'NULL';
-			}
-			else if (is_scalar($arg)) {
+			if (is_scalar($arg)) {
 				$this->sql .= $comma . $arg;
+			}
+			else if ($arg === null) {
+				$this->sql .= $comma . 'NULL';
 			}
 			$comma = ', ';
 		}
@@ -1626,7 +2065,7 @@ class SQL implements \ArrayAccess
 	 */
 	public function MIN(string $col, string $as = null)
 	{
-		$this->sql .= 'MIN(' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'MIN(' . $col . ($as === null ? ')' : ') AS ' . $as);
 		return $this;
 	}
 	/**
@@ -1667,7 +2106,7 @@ class SQL implements \ArrayAccess
 	 */
 	public function MIN_DISTINCT(string $col, string $as = null)
 	{
-		$this->sql .= 'MIN(DISTINCT ' . $col . ($as !== null ? ') AS ' . $as : ')');
+		$this->sql .= 'MIN(DISTINCT ' . $col . ($as === null ? ')' : ') AS ' . $as);
 		return $this;
 	}
 	/**
@@ -1690,6 +2129,7 @@ class SQL implements \ArrayAccess
 		$this->sql .= 'MIN(DISTINCT ' . $col . ') AS ' . $as ?: ('min_' . $col);
 		return $this;
 	}
+
 
 	/**
 	 *	
@@ -1717,9 +2157,24 @@ class SQL implements \ArrayAccess
 	 *	Samples:
 	 *		
 	 */
-	public function SUM(string $col)
+	public function SUM(string $col, string $as = null)
 	{
-		$this->sql .= 'SUM(' . $col . ')';
+		$this->sql .= 'SUM(' . $col . ')' . ($as === null ? null : ' AS ' . $as);
+		return $this;
+	}
+
+	/**
+	 *	
+	 *	
+	 *	Example:
+	 *		.SUM('price')
+	 *
+	 *	Samples:
+	 *		
+	 */
+	public function SUM_AS(string $col, string $as)
+	{
+		$this->sql .= 'SUM(' . $col . ') AS ' . $as;
 		return $this;
 	}
 
@@ -1734,8 +2189,16 @@ class SQL implements \ArrayAccess
 	 *		
 	 *		
 	 */
-	public function IN(...$args)
+	public function IN(...$args)			//	WARNING: Not sure how to best handle this yet! prepare() or like this ?
 	{
+/*
+		if (empty($params)) {
+			$this->sql .= ' AS ' . $stmt;
+			return $this;
+		}
+		return $this->prepare(' AS ' . $stmt, ...$params);
+*/
+
 		$comma = null;
 		$this->sql .= ' IN (';
 		foreach ($args as $arg)
@@ -1747,6 +2210,7 @@ class SQL implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**
 	 *	2 Styles! If only 2x parameters are specified, then we skip adding the field before!
 	 *		$arg1 . ' BETWEEN ' . $arg2 . ' AND ' . $arg3
@@ -1755,9 +2219,9 @@ class SQL implements \ArrayAccess
 	 *	WARNING: I think I've had an issue once where I used some kind of sum/agregate and the values needed to be in (...)
 	 *	
 	 *	Example:
-	 *		.BETWEEN('age', $min, $max)
-	 *		.('age').BETWEEN($min, $max)
-	 *		.WHERE('age').BETWEEN($min, $max)
+	 *		->BETWEEN('age', $min, $max)
+	 *		->WHERE->age->BETWEEN($min, $max)
+	 *		->WHERE('age')->BETWEEN($min, $max)
 	 *
 	 *	Samples:
 	 *		WHERE UnitPrice BETWEEN 15.00 AND 20.00
@@ -1769,19 +2233,35 @@ class SQL implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**
 	 *	
 	 *	
 	 *	Example:
-	 *		.SUM(5)
+	 *		->CLAMP('price', $min, $max)
 	 *
 	 *	Samples:
 	 *		max($min, min($max, $current));
 	 */
-	public function CLAMP($value, $min, $max)
+	public function CLAMP(string $value, $min, $max, string $as = null)
 	{
-		throw new \Exception('CLAMP not implemented yet');
-		$this->sql .= ' (IF ' . $max . ', )';
+		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ')' . ($as === null ? null : ' AS ' . $as);
+		return $this;
+	}
+
+
+	/**
+	 *
+	 *
+	 *	Example:
+	 *		->CLAMP_AS('price', $min, $max, 'price_range')
+	 *
+	 *	Samples:
+	 *		max($min, min($max, $current));
+	 */
+	public function CLAMP_AS(string $value, $min, $max, string $as)
+	{
+		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ') AS ' . $as;
 		return $this;
 	}
 
@@ -1798,11 +2278,15 @@ class SQL implements \ArrayAccess
 	 *	Samples:
 	 *		WHERE key_col LIKE 'ab%'
 	 */
-	public function UNION(...$args)
+	public function UNION(string $stmt = null, ...$params)
 	{
-		$this->sql .= PHP_EOL . ' UNION ' . PHP_EOL . implode(null, $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= self::$translations['UNION'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['UNION'] . $stmt, ...$params);
 	}
+
 
 	/**
 	 *	
@@ -1827,7 +2311,35 @@ class SQL implements \ArrayAccess
 	 */
 	public function ORDER_BY(string ...$args)
 	{
-		$this->sql .= PHP_EOL . 'ORDER BY ';
+		$this->sql .= self::$translations['ORDER_BY'];
+		$comma = null;
+		foreach ($args as $arg)
+		{
+			if ($comma === null)
+			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
+				$this->sql .= $arg;
+				$comma = ', ';
+			}
+			else
+			{
+				switch (trim(strtoupper($arg)))
+				{
+					case 'DESC':
+					case 'ASC':
+						//	skip adding commas for `DESC` and `ASC`
+						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
+						$this->sql .= ' ' . trim($arg);
+						break;
+					default:
+						$this->sql .= $comma . $arg;
+				}
+			}
+		}
+		return $this;
+	}
+	public function orderBy(string ...$args)
+	{
+		$this->sql .= self::$translations['ORDER_BY'];
 		$comma = null;
 		foreach ($args as $arg)
 		{
@@ -1870,7 +2382,7 @@ class SQL implements \ArrayAccess
 	 */
 	public function LIMIT(int $v1, int $v2 = null)
 	{
-		$this->sql .= PHP_EOL . 'LIMIT ' . $v1 . ($v2 === null ? null : ', ' . $v2);
+		$this->sql .= self::$translations['LIMIT'] . $v1 . ($v2 === null ? null : ', ' . $v2);
 		return $this;
 	}
 
