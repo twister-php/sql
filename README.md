@@ -16,6 +16,36 @@ https://packagist.org/packages/atk4/dsql
 
 Welcome to the Ultimate raw/native SQL Builder Class ever developed for PHP.
 
+# How to start
+
+This should be easier than learning Regular Expressions!
+Like starting with `|\d+|` ... then expand your knowledge.
+Very powerful but don't be overwhelmed, it's just like writing SQL.
+It's basically just adding the function names to your string; eg. `SELECT('users')` => `$this->sql .= 'SELECT ' . $str;`
+The function names are purely optional! You can just write everything in a string!
+Start just by wrapping some existing queries in the constructor. Actually, you can wrap ALL your queries in it.
+
+```php
+$sql = SQL($sql);
+```
+or
+```php
+$sql = SQL('SELECT * FROM users');
+```
+
+Most of the core functionality is exactly like writing a normal statement, it's just string concatenations
+
+```php
+$sql = SQL()
+       ->SELECT('u.id, u.name')
+       ->FROM('users u')
+         ->JOIN('accounts a ON a.user_id = u.id')
+       ->WHERE('id = ?', $id);
+```
+
+Then see what features it offers for what you want to do.
+
+
 # History
 
 This class was inspired by the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html), and is dedicated to the few; but proud developers that love the power and flexibility of writing raw/native SQL queries! But with great power ...
@@ -35,27 +65,34 @@ $sql = SQL('SELECT COUNT(*) FROM users WHERE id = ? OR name = ?', $id, $name);
 ```php
 $sql = SQL('SELECT COUNT(*) FROM users')->WHERE('id = ? OR name = ?', $id, $name);
 // or
-$sql = SQL()->SAF('users WHERE id = ? OR name = ?', $id, $name);		// short form: (S)ELECT (A)LL (F)ROM
+$sql = SQL()->SAF('users WHERE id = ? OR name = ?', $id, $name);	// short form: (S)ELECT (A)LL (F)ROM
 // or
-$sql = SQL()->SAF->users->where('id = ? OR name = ?', $id, $name);		// SAF = dynamic property, (UC only)
+$sql = SQL()->SAF->users
+	    ->where('id = ? OR name = ?', $id, $name);		// SAF = dynamic property, (UC only)
 // or
 $sql = SQL()->SELECT_ALL_FROM('users WHERE id = ? OR name = ?', $id, $name);	// long form
-// or
-$sql = SQL()->Select('COUNT(*)')->From('users')->Where('id = ? OR name = ?', $id, $name);
-// or
-$sql = SQL()->select('COUNT(*)')->from('users')->where('id = ? OR name = ?', $id, $name);
 ```
-### [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)
+### Multiple ways to write the same statements
 ```php
-$sql = SQL()
-         ->SELECT_ALL_FROM('users')
-         ->WHERE('age > ?', $age)
-         ->ORDER_BY('age DESC');
 // or
-$sql = SQL()->SELECT_ALL_FROM('users'SELECT COUNT(*) FROM users');
-         ->WHERE('name = ?', $id, $name)
-         ->ORDER
-
+$sql = SQL()->seLEct('COUNT(*)')		//	function names are NOT case sensitive!
+            ->fRoM('users u')
+            ->JOIN('accounts a ON user.id = a.user_id')
+            ->JOIN['accounts a ON user.id = a.user_id'] // array syntax allows you to add raw strings anywhere
+            ->rightJoin('...')[' -- bla bla comment ']
+            ->jOIn('accounts a ON user.id = %d', 123)	//	sprintf-like syntax
+            ->LEFT_JOIN('...')
+            ->leftJoin('...')			//	both left_join and leftJoin style syntax supported!
+            ->leFt_JOin('...')
+            ->JOIN->users			//	JOIN is a dynamic property, must be uppercase!
+            ->_ON_['user.id = a.user_id']	//	special `array` syntax supported anywhere for raw text
+	    ->_OR_['user.id = 123']		//	dynamic properties return $this, allowing the chain
+            ->wHeRe('id = ? OR name = ?', $id, $name)
+            ->OR('name = %s:trim:pack', $name)	//	text transformations
+            ->oRderBy('id')			//	ORDER_BY / OrDeR_By / orderBy / oRdErBy / OrderBy
+	    ->O('id')				//	S, F, J, LJ, W, O, L are all short for SELECT, FROM, WHERE, LIMIT etc.
+	    ->O->id				//	same as above, `O` and `id` are dynamic properties here
+            ->liMit(5);
 ```
 
 
