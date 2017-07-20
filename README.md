@@ -65,7 +65,7 @@ $sql = SQL()->SELECT('*')->FROM('users');
 
 ### Constructor
 
-The constructor also accepts your initial string value:
+The constructor also accepts ANY string value (can be anything, can be a fragment, or even non-SQL code):
 
 ```php
 $sql = SQL('SELECT * FROM users');
