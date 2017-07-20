@@ -10,12 +10,12 @@ SQL String Wrapper (or SQL Query Builder) is a **database and framework neutral*
 
 It's the glue that sits between `$sql = SQL();` and `$db->query($sql)` (the part where you might want to concatenate, `escape`, filter, validate, verify, `bind` or `prepare` a statement.
 
-The powerful built-in Multibyte (UTF-8) string/value regex-parser (custom-written, usage is optional); allows you to mix familiar `sprintf()`-like syntax `%s`/`%d` with `prepare`'s placeholder `?` or an `@` placeholder for NOT escaping/raw values like function calls; and a unique blend of powerful text and integer transforms like `%clamp:1:10`, range testing `%int:1:10`, accepting nullable fields `%s:n:80:crop` (**n**ull or string), hashing values `%md5`/`%sha1`/`%sha256`, JSON encoding, text transforms `%text:lcase:ucase:ucwords:ucfirst:crop:trim:pack:nullable:800`). `%s, %char, %varchar, %string, %text` are all synonyms (except `%text` provides additional transforms);
+The powerful built-in Multibyte (UTF-8) string/value regex-parser (custom-written, usage is optional); allows you to mix familiar `sprintf()` syntax `%s` / `%d` with `PDO::prepare` placeholders `?`; and even a 'raw value' `@` placeholder for function calls/constants; and a unique blend of powerful text and integer transforms like `%clamp:1:10`, range testing `%int:1:10`, accepting nullable fields `%s:n:80:crop` (**n**ull or string), hashing values `%md5`/`%sha1`/`%sha256`, JSON encoding, text transforms `%text:lcase:ucase:ucwords:ucfirst:crop:trim:pack:nullable:800`). `%s, %char, %varchar, %string, %text` are all synonyms (except `%text` provides additional transforms);
 
 It's also designed to bridge the gap between ORM developers and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**'.
 
-In short, this is just a wrapper around an internal empty `$sql` string variable (so empty that it even starts as a null value).
-You can do as much or as little as you want with it, like build string fragments with the powerful `prepare()` engine and join it to other strings. Do sprintf()-like `%s`, or PDO::prepare() 
+In short, this is just a wrapper around an internal empty `$sql` string variable, wich capabilities like `sprintf()` or `PDO::prepare`
+You can do as much or as little as you want with it, like build string fragments with the powerful `prepare()` engine and join it to other strings.
 
 https://packagist.org/packages/willoucom/php-sql-query
 https://packagist.org/packages/atk4/dsql
@@ -33,7 +33,7 @@ manually
 ```json
 /* composer.json */
 	"require": {
-		"php": ">=5.4",
+		"php": ">=5.6",
 		"twister/sql": "*"
 	}
 ```
