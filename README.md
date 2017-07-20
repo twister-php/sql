@@ -65,28 +65,27 @@ $sql = SQL()->SELECT('*')->FROM('users');
 
 ### Constructor
 
-The constructor also accepts ANY string value (can be anything, can be a fragment, or even non-SQL code):
+The constructor also accepts ANY string value (can be any string, a fragment, or even non-SQL code):
 
 ```php
 $sql = SQL('SELECT * FROM users');
 // $sql = 'SELECT * FROM users;
+
+$sql = SQL('Hello World');
 ```
 
-But it also has similar capabilities to `sprintf()` + `PDO::prepare()`.
-
-Slightly more advanced constructor, for demonstration purposes:
+However, almost ALL the functions (including the constructor) work much like `sprintf()` / `PDO::prepare()`!
 
 ```php
-$sql = SQL('SELECT * FROM users WHERE id = ? OR name = ?', $id, $name);
+$sql = SQL('WHERE id = ? OR name = ? OR fname = %s OR lname = %varchar', $id, $name, $fname, ...);
+
+// More advanced:
+
+$sql = SQL('WHERE id = %d OR name = %s OR role = "@" OR DOB = @', $id, $name, 'admin', '"2017-01-01"');
 ```
 
-More advanced:
 
-```php
-$sql = SQL('SELECT * FROM users WHERE id = ? OR name = ? OR role = "@" OR DOB = @', $id, $name, 'admin', ');
-```
-
-#### A taste of some syntax sugar
+### Syntax sugar
 
 There is even more majic to come, this is just a small taste!
 
