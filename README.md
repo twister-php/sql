@@ -22,14 +22,129 @@ https://packagist.org/packages/atk4/dsql
 
 Welcome to the Ultimate raw/native SQL Builder Class ever developed for PHP.
 
-# How to start
 
-This should be easier than learning Regular Expressions!
-Like starting with `|\d+|` ... then expand your knowledge.
-Very powerful but don't be overwhelmed, it's just like writing SQL.
-It's basically just adding the function names to your string; eg. `SELECT('users')` => `$this->sql .= 'SELECT ' . $str;`
-The function names are purely optional! You can just write everything in a string!
-Start just by wrapping some existing queries in the constructor. Actually, you can wrap ALL your queries in it.
+## Install
+
+Composer
+```
+composer require twister/sql
+```
+manually
+```json
+/* composer.json */
+	"require": {
+		"php": ">=5.4",
+		"twister/sql": "*"
+	}
+```
+or from GIT
+```
+https://github.com/twister-php/sql
+```
+
+## Beginners guide
+
+Internally, the basic idea is very simple. When you call a function, it just appends the function name (eg. `SELECT(...)`, `FROM(...)`, `WHERE(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining AKA a '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
+
+eg. simplified pseudo-code
+```php
+function SELECT($str)
+{
+    $this->sql .= 'SELECT ' . $str;
+    return $this;
+}
+function FROM($str)
+{
+    $this->sql .= PHP_EOL . 'FROM ' . $str;
+    return $this;
+}
+
+$sql = SQL()->SELECT('*')->FROM('users');
+// $sql = 'SELECT * FROM users;
+```
+
+### Constructor
+
+The constructor also accepts your initial string value:
+
+```php
+$sql = SQL('SELECT * FROM users');
+// $sql = 'SELECT * FROM users;
+```
+
+But it also has similar capabilities to `sprintf()` + `PDO::prepare()`.
+
+Slightly more advanced constructor, for demonstration purposes:
+
+```php
+$sql = SQL('SELECT * FROM users WHERE id = ? OR name = ?', $id, $name);
+```
+
+More advanced:
+
+```php
+$sql = SQL('SELECT * FROM users WHERE id = ? OR name = ? OR role = "@" OR DOB = @', $id, $name, 'admin', ');
+```
+
+#### A taste of some syntax sugar
+
+There is even more majic to come, this is just a small taste!
+
+```php
+$sql = SQL()->SELECT_ALL_FROM			//	special dynamic properties, also: SAF = 'SELECT * FROM '
+            ->users                             //	another different kind of dynamic (unknown) property
+	      ->J('accounts ...')		//	hundreds of shortcuts, S (select), F (from), J (join), LJ, W, OB, GB, L
+	    ->WHERE('id = ?, $id)		//	easier to read, because the text and variable are together
+	      ->OR('name = ?, $name)
+	      ->OR('role = "@"', $role)		//	$role might be an Enum or internal string like 'admin'
+	      ->OR('created = @', 'CURDATE()')	//	values with @ are NOT escaped
+	      ->OR('price = %d', $price)	//	sprintf() style
+	      ->OR('fname = %', $fname)
+	      ->AND('lname = %s:pack:trim', $lname)	//	many internal modifiers and text transformations
+	      ->OR('special = %clamp:1:10', $value)	//	integer clamped min(max()) style
+	      ->AND('(this AND that) OR (this OR that) OR whatever GROUP BY name LIMIT (5)');
+```
+
+NO function call requires you to ONLY put values of that type in it, you can finish your SQL query from anywhere, any function, any time. The function call syntax just looks better, and easier to break up and format your query. There is NO syntax checking, it's just a string, you are free to do whatever you want in it!
+
+
+
+By design, it looks almost like writing normal SQL; so you might be wondering what makes it special? This is just the beginners guide, it's like writing `|\d+|` in your first Regular Expression, you might wonder what makes Regular Expressions so powerful.
+
+so this:
+```php
+$sql = 'SELECT id, name FROM users WHERE id = ' . $id . ' OR name = ' . $db->quote();
+```
+is basically the same as this:
+```php
+$sql = SQL()->SELECT('id, name')
+            ->FROM('users')
+	    ->WHERE('id = ? OR name = ?', $id, $name);
+```
+
+pseudo-internal code
+```php
+function SELECT($str)
+{
+    $this->sql .= 'SELECT ' . $str;
+    return $this;
+}
+function FROM($str)
+{
+    $this->sql .= PHP_EOL . 'FROM ' . $str;
+    return $this;
+}
+function WHERE($str, ...$args)
+{
+    return $this->prepare(PHP_EOL . 'WHERE ' . $str, ...$args);
+}
+```
+
+Actually, the SELECT(), FROM(), WHERE(), JOIN(), LEFT_JOIN() etc. methods ALL accept variable input (PHP 5.6+ syntax).
+`prepare()` is essentially the same as `sprintf()` + `PDO::prepare()` ... but uses custom code whith MANY options not only ?, %s, %d etc.
+
+
+Start just by wrapping some existing queries inside the constructor and play around.
 
 ```php
 $sql = SQL($sql);
@@ -39,14 +154,16 @@ or
 $sql = SQL('SELECT * FROM users');
 ```
 
-Most of the core functionality is exactly like writing a normal statement, it's just string concatenations
+Most of the core functionality is exactly like writing a normal statement, it's just doing string concatenations.
+
+If you don't like that style, you can use any style you like (function names are NOT case-sensitive, and functions like `LEFT_JOIN` have versions without \_, eg. leftJoin()):
 
 ```php
 $sql = SQL()
-       ->SELECT('u.id, u.name')
-       ->FROM('users u')
-         ->JOIN('accounts a ON a.user_id = u.id')
-       ->WHERE('id = ?', $id);
+       ->select('u.id, u.name')				//	or SELECT(), Select(), SeLeCt()
+       ->from('users u')				//	or FROM(), From(), fRoM()
+         ->leftJoin('accounts a ON a.user_id = u.id')	//	or LEFT_JOIN(), LeftJoin(), Left_Join(), LeFtJoIn()
+       ->where('u.id = ? OR u.name = ?', $id, $name);	//	or WHERE(), Where(), ->wHeR()
 ```
 
 Then see what features it offers for what you want to do.
@@ -110,25 +227,6 @@ Basically, this class helps you as much or as little as you want it to! The bigg
 
 So what happens when you find yourself working with 400+ tables, 6000+ columns, 156 columns in one table, 10 tables with over 100 columns, 24 tables with over 50 columns, 1000+ varchar/char columns ... both ORM and raw SQL become a nightmare. ORM's suffer from [object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch); creating an abstraction layer with a built in query interface over PDO, which is already an abstraction layer and doesn't support many . I believe that the abstraction layer provided by most ORM's are actually harmful
 
-
-## Install
-
-Composer
-```
-composer require twister/sql
-```
-Composer manually
-```json
-/* composer.json */
-	"require": {
-		"php": ">=5.4",
-		"twister/sql": "*"
-	}
-```
-GIT
-```
-https://github.com/twister-php/sql
-```
 
 
 
