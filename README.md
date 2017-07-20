@@ -22,24 +22,39 @@ This class was inspired by the [MyBatis SQL Builder Class](http://www.mybatis.or
 
 The ultimate goal of this class is to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements; bringing even more power and flexibility than you thought possible!
 
+
+## Example
 ```php
-// SQL:
-$sql = 'SELECT COUNT(*) FROM users';
+$sql = 'SELECT COUNT(*) FROM users WHERE id = ' . $id . ' OR name = ' . $db->quote($name);
+```
+```php
+$sql = SQL('SELECT COUNT(*) FROM users WHERE id = ? OR name = ?', $id, $name);
+```
 
-// short syntax
-$sql = SQL()->SAF->users;
-
-$sql = SQL()->SELECT_ALL_FROM->users;
-
-$sql = SQL()['SELECT COUNT(*) FROM users'];
-
-$sql = SQL()->SELECT('COUNT(*)')->FROM('users');
-
-
-// initialize
-$sql = 'SELECT';
-$sql = SQL($sql);
-$sql .= 'here';
+### Multiple ways to write the same statements
+```php
+$sql = SQL('SELECT COUNT(*) FROM users')->WHERE('id = ? OR name = ?', $id, $name);
+// or
+$sql = SQL()->SAF('users WHERE id = ? OR name = ?', $id, $name);		//	short form syntax:   (S)ELECT (A)LL (F)ROM
+// or
+$sql = SQL()->SAF->users->where('id = ? OR name = ?', $id, $name);		//	SAF is a dynamic property here, uppercase only
+// or
+$sql = SQL()->SELECT_ALL_FROM('users WHERE id = ? OR name = ?', $id, $name);	//	long form
+// or
+$sql = SQL()->Select('COUNT(*)')->From('users')->Where('id = ? OR name = ?', $id, $name);
+// or
+$sql = SQL()->select('COUNT(*)')->from('users')->where('id = ? OR name = ?', $id, $name);
+```
+### [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)
+```php
+$sql = SQL()
+         ->SELECT_ALL_FROM('users')
+         ->WHERE('age > ?', $age)
+         ->ORDER_BY('age DESC');
+// or
+$sql = SQL()->SELECT_ALL_FROM('users'SELECT COUNT(*) FROM users');
+         ->WHERE('name = ?', $id, $name)
+         ->ORDER
 
 ```
 
