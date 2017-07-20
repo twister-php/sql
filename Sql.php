@@ -2,11 +2,68 @@
 
 class SQL implements \ArrayAccess
 {
-	private	static $queries		=	null;
-	private	static $conn		=	null;
-
+    /**
+     *	The magic starts here!
+     *
+     *	@var sql
+     */
 	public	$sql				=	null;
 
+    /**
+     *	The active connection.
+     *	Can be either MySQLi/PDO/null.
+     *
+     *	This variable might not be necessary in future,
+	 *		as I can get everything I need once, when you call setConn()/setConnection()
+     *
+     *	Because I want to find a way around checking the type of connection everytime I want to do something!
+     *
+     *	@var static conn
+     */
+	private	static $conn		=	null;
+
+    /**
+     *	NOTE: Not implemented yet! Still deciding what direction to take on string escaping ...
+     *
+     * The function that handles string escaping.
+     * This variable will be overwritten with either:
+	 *		`[self::$conn, 'real_escape_string']` for MySQLi connections
+	 *			or
+	 *		`[self::$conn, 'quote']` for PDO connections
+     *
+     * @var static escaper
+     */
+	private	static $escaper		=	'addslashes';	//	call_user_func(self::$escaper, $string)
+
+    /**
+     *	NOTE: I'm currently just using the default mb_string character-set!
+     *		So whatever your mb_string extention is set to, is the default charset, typically it's UTF-8!
+     *
+     *	@var static charset
+     */
+	private	static $charset		=	'utf8';
+
+    /**
+     *	Quote style to use for strings. Can change it to "'" or '\'' if you want!
+     *
+     *	@var quot
+     */
+	public	static $quot		=	'"';
+
+	/**
+	 *	These are NOT used by the function calls, like ->SELECT(),
+	 *		they are used as a fast lookup for the `dynamic` property names in `__get()`;
+	 *		eg. SQL()->SELECT_ALL_FROM->users		<<== note that `SELECT_ALL_FROM` is a property!
+	 *		__get() uses this list for a fast lookup of replacement values,
+	 *			instead of a long (and inefficient for this task) `switch()` statement.
+	 *	So basically, this is a list of all the `properties` you can access with replacement text.
+	 *	As such, these ARE case-sensitive (because `isset($translations['SELECT'])` is case sensitive!)
+	 *		ie. you cannot do `SQL()->select_all_from->users` and expect to get the same results!
+	 *
+	 *	This technique is purely optional! You can write your statements in about 10 different ways with this class!
+	 *
+     * 	@var static translations
+	 */
 	public static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
 										'SELECT'		=>	'SELECT ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html
 										'DELETE'		=>	'DELETE ',				//	https://dev.mysql.com/doc/refman/5.7/en/delete.html
@@ -258,45 +315,61 @@ class SQL implements \ArrayAccess
 										'_OR'			=>	' OR',
 										'_OR_'			=>	' OR ',
 
-										'_0_'			=>	'0',
-										'_1_'			=>	'1',
-										'_2_'			=>	'2',
-										'_3_'			=>	'3',
-										'_4_'			=>	'4',
-										'_5_'			=>	'5',
-										'_6_'			=>	'6',
-										'_7_'			=>	'7',
-										'_8_'			=>	'8',
-										'_9_'			=>	'9',
-										'_10_'			=>	'10',
-										'_11_'			=>	'11',
-										'_12_'			=>	'12',
-										'_13_'			=>	'13',
-										'_14_'			=>	'14',
-										'_15_'			=>	'15',
-										'_16_'			=>	'16',
-										'_17_'			=>	'17',
-										'_18_'			=>	'18',
-										'_19_'			=>	'19',
-										'_20_'			=>	'20',
-										'_21_'			=>	'21',
-										'_22_'			=>	'22',
-										'_23_'			=>	'23',
-										'_24_'			=>	'24',
-										'_25_'			=>	'25',
-										'_26_'			=>	'26',
-										'_27_'			=>	'27',
-										'_28_'			=>	'28',
-										'_29_'			=>	'29',
+										/**
+										 *	Numeric replacements, they currently exclude spacing,
+										 *		because _EQ_ / _AND_ can provide the spacing if necessary!
+										 *	The `_` prefix is required because these are property names,
+										 *		and properties cannot start with a number!
+										 *
+										 *	eg. SQL()->SELECT_ALL_FROM->users->WHERE->id->_EQ_->_0->_OR_->_10;
+										 *		SQL()->SELECT_ALL_FROM->users->WHERE->id->BETWEEN->_0_->_AND_->_100;
+										 */
+										'_0_'			=>	'0',	'_0'			=>	'0',
+										'_1_'			=>	'1',	'_1'			=>	'1',
+										'_2_'			=>	'2',	'_2'			=>	'2',
+										'_3_'			=>	'3',	'_3'			=>	'3',
+										'_4_'			=>	'4',	'_4'			=>	'4',
+										'_5_'			=>	'5',	'_5'			=>	'5',
+										'_6_'			=>	'6',	'_6'			=>	'6',
+										'_7_'			=>	'7',	'_7'			=>	'7',
+										'_8_'			=>	'8',	'_8'			=>	'8',
+										'_9_'			=>	'9',	'_9'			=>	'9',
+										'_10_'			=>	'10',	'_10'			=>	'10',
+										'_11_'			=>	'11',	'_11'			=>	'11',
+										'_12_'			=>	'12',	'_12'			=>	'12',
+										'_13_'			=>	'13',	'_13'			=>	'13',
+										'_14_'			=>	'14',	'_14'			=>	'14',
+										'_15_'			=>	'15',	'_15'			=>	'15',
+										'_16_'			=>	'16',	'_16'			=>	'16',
+										'_17_'			=>	'17',	'_17'			=>	'17',
+										'_18_'			=>	'18',	'_18'			=>	'18',
+										'_19_'			=>	'19',	'_19'			=>	'19',
+										'_20_'			=>	'20',	'_20'			=>	'20',
+										'_21_'			=>	'21',	'_21'			=>	'21',
+										'_22_'			=>	'22',	'_22'			=>	'22',
+										'_23_'			=>	'23',	'_23'			=>	'23',
+										'_24_'			=>	'24',	'_24'			=>	'24',
+										'_25_'			=>	'25',	'_25'			=>	'25',
+										'_26_'			=>	'26',	'_26'			=>	'26',
+										'_27_'			=>	'27',	'_27'			=>	'27',
+										'_28_'			=>	'28',	'_28'			=>	'28',
+										'_29_'			=>	'29',	'_29'			=>	'29',
+
 										'_30_'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
 										'_55_'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
 										'_80_'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
 
+										'_30'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
+										'_55'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
+										'_80'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
+
 										'BETWEEN'		=>	' BETWEEN ',
+										'_BETWEEN_'		=>	' BETWEEN ',						//	might look better in queries?
 
 										'OUT'			=>	'OUT ',								//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
+										'_OUT_'			=>	' OUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
 										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
-										'INOUT'			=>	'INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
+										'_INOUT_'		=>	' INOUT ',							//	https://dev.mysql.com/doc/refman/5.7/en/call.html		CREATE PROCEDURE p (OUT ver_param VARCHAR(25), INOUT incr_param INT)
 
 																								//	INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)]
 										'PARTITION'		=>	PHP_EOL . 'PARTITION ',				//	https://dev.mysql.com/doc/refman/5.7/en/select.html		[FROM table_references [PARTITION partition_list]
@@ -356,15 +429,29 @@ class SQL implements \ArrayAccess
 	//			->MIN('price')
 	//		->EXPLAIN();
 
-	public function __construct(...$args)
-	{
-		// WARNING: we need to loop and parse the values! why?
-		$this->sql = implode(null, $args);
 
+	/**
+	 *	Creates new statement with the powerful `prepare()` syntax
+	 *
+	 *	@param string $stmt Statement in `prepare()` syntax, all `?`, `@` and `%` values must be escaped!
+	 *	@param mixed ...$params Parameters to use
+	 *	@return $this
+	 */
+	public function __construct(string $stmt = null, ...$params)
+	{
+		/*
 		if (self::$conn === null) {
 			$this->sql =	'** USING DUMMY CONNECTION FOR TESTING ONLY ** ' . PHP_EOL .
 							'** please call SQL::setConn() with a valid MySQLi connection when you are ready! ** ' . PHP_EOL . PHP_EOL;
 			self::setDummyConn();
+		}
+		*/
+
+		if (empty($params)) {
+			$this->sql = $stmt;
+		}
+		else {
+			$this->prepare($stmt, ...$params);
 		}
 	}
 
@@ -376,10 +463,13 @@ class SQL implements \ArrayAccess
 	/**
 	 *
 	 */
-	public function EXPLAIN()
+	public function EXPLAIN(string $stmt = null, ...$params)
 	{
-		$this->sql = 'EXPLAIN ' . $this->sql;
-		return $this;
+		if ($stmt === null) {
+			$this->sql = 'EXPLAIN ' . $this->sql;
+			return $this;
+		}
+		return $this->prepare('EXPLAIN ' . $stmt, ...$params);
 	}
 
 	/**
@@ -424,97 +514,103 @@ class SQL implements \ArrayAccess
 	 *	@param mixed ... $args Parameters to use, either columns only or column-value pairs
 	 *	@return $this
 	 */
-	public function CALL(string $sp_name, ...$params)
+	public function CALL(string $sp_name = null, ...$params)
 	{
-		if (strpos($sp_name, '(')) {	//	detect if user prepared the format/pattern eg. CALL('sp_name(?, ?, @)', ...)
-			$this->prepare($sp_name, ...$params);
+		if (strpos($sp_name, '(') === false) {	//	detect if user prepared the format/pattern eg. CALL('sp_name(?, ?, @)', ...)
+			return $this->prepare('CALL ' . $sp_name, ...$params);
 		}
-		else {
-			$this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
+		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
+	}
+	public function C(string $sp_name = null, ...$params)
+	{
+		if (strpos($sp_name, '(') === false) {
+			return $this->prepare('CALL ' . $sp_name, ...$params);
 		}
-		return $this;
+		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
-	public function C(string $sp_name, ...$params)
+	public function SP(string $sp_name = null, ...$params)
 	{
-		$final = null;
-		$comma = null;
-		foreach($params as $param)
-		{
-			$final .= $comma . $this->sanitize($param);
-			$comma = ', ';
+		if (strpos($sp_name, '(') === false) {
+			return $this->prepare('CALL ' . $sp_name, ...$params);
 		}
-		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
-		return $this;
+		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
-	public function SP(string $sp_name, ...$params)
+	public function storedProc(string $sp_name = null, ...$params)		//	WARNING: This version might be different in future, because PostgreSQL uses `SELECT $sp_name` ... I might do an `auto-detect` in this version
 	{
-		$final = null;
-		$comma = null;
-		foreach($params as $param)
-		{
-			$final .= $comma . $this->sanitize($param);
-			$comma = ', ';
+		if (strpos($sp_name, '(') === false) {
+			return $this->prepare('CALL ' . $sp_name, ...$params);
 		}
-		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
-		return $this;
+		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
-	public function storedProc(string $sp_name, ...$params)
+
+
+	public function SELECT(string $stmt = null, ...$params)
 	{
-		$final = null;
-		$comma = null;
-		foreach($params as $param)
-		{
-			$final .= $comma . $this->sanitize($param);
-			$comma = ', ';
+		if (empty($params)) {
+			$this->sql .= 'SELECT ' . $stmt;
+			return $this;
 		}
-		$this->sql .= 'CALL ' . $sp_name . '(' . $final . ')';
-		return $this;
+		return $this->prepare('SELECT ' . $stmt, ...$params);
+	}
+	public function S(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= 'SELECT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT ' . $stmt, ...$params);
 	}
 
 
-	public function SELECT(...$args)
+	public function SELECT_CACHE(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE ' . $stmt, ...$params);
 	}
-	public function S(...$args)
+	public function selectCache(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE ' . $stmt, ...$params);
 	}
-
-
-	public function SELECT_CACHE(...$args)
+	public function SC(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
-		return $this;
-	}
-	public function selectCache(...$args)
-	{
-		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
-		return $this;
-	}
-	public function SC(...$args)
-	{
-		$this->sql .= 'SELECT SQL_CACHE ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE ' . $stmt, ...$params);
 	}
 
 
-	public function SELECT_NO_CACHE(...$args)
+	public function SELECT_NO_CACHE(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE ' . $stmt, ...$params);
 	}
-	public function selectNoCache(...$args)
+	public function selectNoCache(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE ' . $stmt, ...$params);
 	}
-	public function SNC(...$args)
+	public function SNC(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE ' . $stmt, ...$params);
 	}
 
 
@@ -529,58 +625,88 @@ class SQL implements \ArrayAccess
 	 *	Samples:
 	 *		SELECT DISTINCT c1, c2, c3 FROM t1 WHERE c1 > const;
 	 */
-	public function SELECT_DISTINCT(...$args)
+	public function SELECT_DISTINCT(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT DISTINCT ' . $stmt, ...$params);
 	}
-	public function selectDistinct(...$args)
+	public function selectDistinct(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT DISTINCT ' . $stmt, ...$params);
 	}
-	public function SD(...$args)
+	public function SD(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT DISTINCT ' . implode(', ', $args);
-		return $this;
-	}
-
-	public function DISTINCT(...$args)
-	{
-		$this->sql .= ' DISTINCT ' . implode(', ', $args);
-		return $this;
-	}
-
-	public function SELECT_CACHE_DISTINCT(...$args)
-	{
-		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
-	}
-	public function selectCacheDistinct(...$args)
-	{
-		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
-	}
-	public function SCD(...$args)
-	{
-		$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT DISTINCT ' . $stmt, ...$params);
 	}
 
-	public function SELECT_NO_CACHE_DISTINCT(...$args)
+	public function DISTINCT(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT DISTINCT ' . $stmt, ...$params);
 	}
-	public function selectNoCacheDistinct(...$args)
+
+	public function SELECT_CACHE_DISTINCT(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE DISTINCT ' . $stmt, ...$params);
 	}
-	public function SNCD(...$args)
+	public function selectCacheDistinct(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . implode(', ', $args);
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE DISTINCT ' . $stmt, ...$params);
+	}
+	public function SCD(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_CACHE DISTINCT ' . $stmt, ...$params);
+	}
+
+	public function SELECT_NO_CACHE_DISTINCT(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE DISTINCT ' . $stmt, ...$params);
+	}
+	public function selectNoCacheDistinct(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE DISTINCT ' . $stmt, ...$params);
+	}
+	public function SNCD(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= 'SELECT SQL_NO_CACHE DISTINCT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('SELECT SQL_NO_CACHE DISTINCT ' . $stmt, ...$params);
 	}
 
 
@@ -612,15 +738,21 @@ class SQL implements \ArrayAccess
 	 *	eg. INSERT('IGNORE')->INTO(...)
 	 *
 	 */
-	public function INSERT(...$args)
+	public function INSERT(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'INSERT ' . (empty($args) ? null : implode(' ', $args) . ' ');
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'INSERT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('INSERT ' . $stmt, ...$params);
 	}
-	public function I(...$args)
+	public function I(string $stmt = null, ...$params)
 	{
-		$this->sql .= 'INSERT ' . (empty($args) ? null : implode(' ', $args) . ' ');
-		return $this;
+		if (empty($params)) {
+			$this->sql .= 'INSERT ' . $stmt;
+			return $this;
+		}
+		return $this->prepare('INSERT ' . $stmt, ...$params);
 	}
 
 	/**
@@ -630,124 +762,207 @@ class SQL implements \ArrayAccess
 	 *
 	 *
 	 */
-	public function INSERT_INTO($tbl_name, ...$args)
+	public function INSERT_INTO($tbl_name, ...$params)
 	{
+		if (empty($params)) {
+			$this->sql .= 'INSERT INTO ' . $tbl_name;
+			return $this;
+		}
 		$this->sql .= 'INSERT ';
-		return $this->INTO($tbl_name, ...$args);
+		return $this->INTO($tbl_name, ...$params);
 	}
-	public function insertInto($tbl_name, ...$args)
+	public function insertInto($tbl_name, ...$params)
 	{
+		if (empty($params)) {
+			$this->sql .= 'INSERT INTO ' . $tbl_name;
+			return $this;
+		}
 		$this->sql .= 'INSERT ';
-		return $this->INTO($tbl_name, ...$args);
+		return $this->INTO($tbl_name, ...$params);
 	}
-	public function II($tbl_name, ...$args)
+	public function II($tbl_name, ...$params)
 	{
+		if (empty($params)) {
+			$this->sql .= 'INSERT INTO ' . $tbl_name;
+			return $this;
+		}
 		$this->sql .= 'INSERT ';
-		return $this->INTO($tbl_name, ...$args);
+		return $this->INTO($tbl_name, ...$params);
 	}
 
 	/**
 	 *	detect first character of column title ... if the title has '@' sign, then DO NOT ESCAPE! ... can be useful for 'DEFAULT', 'UNIX_TIMESTAMP()', or '@id' or 'MD5(...)' etc. (a connection variable) etc.
 	 *
 	 *	Examples:
-	 *		INTO('users', 'col1', 'col2', 'col3')
-	 *		INTO('users', ['col1', 'col2', 'col3'])
-	 *		INTO('users', ['col1' => 'value1', 'col2' => 'value2', 'col3' => 'value3'])
-	 *		INTO('users', ['col1', 'col2', 'col3'], ['value1', 'value2', 'value3'])
+	 *		INTO('users (col1, col2, dated) VALUES (?, ?, @)', $value1, $value2, 'CURDATE()')	//	VERY useful!
+	 *		INTO('users', ['col1', 'col2', '@dated'])											//	not very useful! Just puts the column names in; `@` is stripped from column titles!
+	 *		INTO('users', ['col1' => 'value1', 'col2' => 'value2', '@dated' => 'CURDATE()'])	//	column names and values can be nicely formatted on multiple lines
+	 *		INTO('users', ['col1', 'col2', '@dated'], ['value1', 'value2', 'CURDATE()'])		//	convenient style if your values are already in an array
+	 *		INTO('users', ['col1', 'col2', '@dated'], $value1, $value2, 'CURDATE()')			//	nice ... `dated` column will NOT be escaped!
+	 *
 	 *
 	 *	Samples:
 	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
 	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)] [(col_name,...)]  {VALUES | VALUE} ({expr | DEFAULT},...),(...),...
 	 *
-	 *	@param string $tbl_name Table name to `INSERT INTO`
-	 *	@param array|string $partitions can be array or string
-	 *	@param mixed ... $args Parameters to use, either columns only or column-value pairs
+	 *	@param string $stmt Table name or `prepare` style statement
+	 *	@param mixed ... $params Parameters to use, either columns only or column-value pairs
 	 *	@return $this
 	 */
-	public function INTO($tbl_name, ...$args)
+	public function INTO(string $tbl_name = null, ...$params)
 	{
-		if (count($args) === 1 && is_array($args[0]))
-		{
-			$args = $args[0];
-			//	detect the data type of the first key,
-			//		if it's a string, then we have 'col' => 'values' pairs
-			if (is_string(key($args)))
-			{
-				$cols	=	null;
-				$values	=	null;
-				foreach ($args as $col => $value)
-				{
-					if ($col[0] === '@') {
-						$cols[]		=	substr($col, 1);
-						$values[]	=	$value;
-					}
-					else if (is_numeric($value)) {
-						$cols[]		=	$col;
-						$values[]	=	$value;
-					}
-					else if ($value === null) {
-						$cols[]		=	$col;
-						$values[]	=	'NULL';
-					}
-					else if (is_string($value)) {
-						$cols[]		=	$col;
-						$values[]	=	$this->returnEscaped($value);
-					}
-					else {
-						throw new \Exception('Invalid type `' . gettype($value) . '` sent to ' . __METHOD__ . '(); only numeric, string and null values are supported!');
-					}
-				}
-				$args = $cols;
-			}
-			else {
-				foreach ($args as $col) {
-					if ($col[0] === '@') {	//	strip '@' from beginning of all columns
-						$args[key($args)] = substr($col, 1);
-					}
-				}
-			}
+		if (empty($params)) {
+			$this->sql .= 'INTO ' . $tbl_name;
+			return $this;
 		}
-		else if (count($args) === 2 && is_array($args[0]))
+		if (is_array($params[0]))
 		{
-			if ( ! is_array($args[1])) {
-				throw new \Exception('Both first and second parameter of ' . __METHOD__ . ' must be arrays; type: ' . gettype($args[1]) . ' given for the second argument');
-			}
-			else if (count($args[0]) !== count($args[1])) {
-				throw new \Exception('Mismatching count of columns and values: count($columns) = ' . count($args[0]) . ' && count($values) = ' . count($args[1]));
-			}
-			$cols	=	$args[0];
-			$values	=	$args[1];
-			foreach ($cols as $index => $col)
+			if (count($params) === 1)
 			{
-				if ($col[0] === '@') {
-					$cols[$index]	=	substr($col, 1);
-				//	$values[$index]	=	$value[$index];		//	unchanged
+				$params = $params[0];
+				//	detect the data type of the key for the first value,
+				//		if the key is a string, then we have 'col' => 'values' pairs
+				if (is_string(key($params)))
+				{
+					$cols	=	null;
+					$values	=	null;
+					foreach ($params as $col => $value)
+					{
+						if ($col[0] === '@') {
+							$cols[]		=	substr($col, 1);
+							$values[]	=	$value;
+						}
+						else if (is_numeric($value)) {
+							$cols[]		=	$col;
+							$values[]	=	$value;
+						}
+						else if (is_string($value)) {
+							$cols[]		=	$col;
+							$values[]	=	self::quote($value);
+						}
+						else if ($value === null) {
+							$cols[]		=	$col;
+							$values[]	=	'NULL';
+						}
+						else {
+							throw new \BadMethodCallException('Invalid type `' . gettype($value) .
+								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+						}
+					}
+					$params = $cols;
 				}
 				else {
-					$value = $values[$index];
-					if (is_numeric($value)) {
-					//	$cols[$index]	=	$col;			//	unchanged
-					//	$values[$index]	=	$value[$index];	//	unchanged
-					}
-					else if ($value === null) {
-					//	$cols[$index]	=	$col;			//	unchanged
-						$values[$index]	=	'NULL';
-					}
-					else if (is_string($value)) {
-					//	$cols[$index]	=	$col;			//	unchanged
-						$values[$index]	=	$this->returnEscaped($value);
-					}
-					else {
-						throw new \Exception('Invalid type `' . gettype($value) . '` sent to ' . __METHOD__ . '(); only numeric, string and null values are supported!');
+					foreach ($params as $index => $col) {
+						if ($col[0] === '@') {	//	strip '@' from beginning of all column names ... just in-case!
+							$params[$index] = substr($col, 1);
+						}
 					}
 				}
 			}
-			$args = $cols;
+			else if (is_array($params[1]))
+			{
+				if (count($params) !== 2) {
+					throw new \Exception('When the first two parameters supplied to SQL()->INTO("' . $tbl_name .
+							'", ...) statements are arrays, no other parameters are necessary!');
+				}
+				$cols	=	$params[0];
+				$values	=	$params[1];
+				if (count($cols) !== count($values)) {
+					throw new \Exception('Mismatching number of columns and values: count of $columns array = ' .
+							count($cols) . ' and count of $values array = ' . count($values) .
+							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $tbl_name . '", ...) statement');
+				}
+				foreach ($cols as $index => $col)
+				{
+					if ($col[0] === '@') {
+						$cols[$index]	=	substr($col, 1);
+					//	$values[$index]	=	$value[$index];		//	unchanged
+					}
+					else {
+						$value = $values[$index];
+						if (is_numeric($value)) {
+						//	$cols[$index]	=	$col;			//	unchanged
+						//	$values[$index]	=	$value[$index];	//	unchanged
+						}
+						else if (is_string($value)) {
+						//	$cols[$index]	=	$col;			//	unchanged
+							$values[$index]	=	self::quote($value);
+						}
+						else if ($value === null) {
+						//	$cols[$index]	=	$col;			//	unchanged
+							$values[$index]	=	'NULL';
+						}
+						else {
+							throw new \Exception('Invalid type `' . gettype($value) .
+								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+						}
+					}
+				}
+				$params = $cols;
+			}
+			else
+			{	//	syntax: INTO('users', ['col1', 'col2', '@dated'], $value1, $value2, 'CURDATE()')
+				$cols	=	array_shift($params);	//	`Shift an element off the beginning of array`
+				$values	=	$params;
+				if (count($cols) !== count($values)) {
+					throw new \Exception('Mismatching number of columns and values: count of $columns array = ' .
+							count($cols) . ' and count of $values = ' . count($values) .
+							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $tbl_name . '", ...) statement');
+
+				}
+				foreach ($cols as $index => $col)
+				{
+					if ($col[0] === '@') {
+						$cols[$index]	=	substr($col, 1);
+					//	$values[$index]	=	$value[$index];		//	unchanged
+					}
+					else {
+						$value = $values[$index];
+						if (is_numeric($value)) {
+						//	$cols[$index]	=	$col;			//	unchanged
+						//	$values[$index]	=	$value[$index];	//	unchanged
+						}
+						else if (is_string($value)) {
+						//	$cols[$index]	=	$col;			//	unchanged
+							$values[$index]	=	self::quote($value);
+						}
+						else if ($value === null) {
+						//	$cols[$index]	=	$col;			//	unchanged
+							$values[$index]	=	'NULL';
+						}
+						else {
+							throw new \Exception('Invalid type `' . gettype($value) .
+								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+						}
+					}
+				}
+				$params = $cols;
+			}
+			/*
+			else
+			{
+				if (count($params) > 2) {
+					throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+						') supplied to SQL()->INTO() statement, when the first parameter is an array,
+						you can only supply One or Two arrays as params; One array with column name-value pairs
+						or Two arrays with column and values in each.');
+				}
+				throw new \BadMethodCallException('Invalid parameters (' . count($params) .
+					') supplied to SQL()->INTO() statement. Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
+					(	substr_count($pattern, '?') + substr_count($pattern, '@') -
+						substr_count($pattern, '??') - substr_count($pattern, '@@') -
+						substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+					count($params)) . ' more value(s)');
+			}
+			*/
+		//	$this->sql .= 'INTO ' . $tbl_name .
+		//					( ! empty($params)	?	' (' . implode(', ', $params) . ')' : null) .
+		//					( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
+			$this->sql .= 'INTO ' . $tbl_name . ' (' . implode(', ', $params) . ') ' . (isset($values) ? 'VALUES (' . implode(', ', $values) . ')' : null);
+			return $this;
 		}
-		$this->sql .= 'INTO ' . $tbl_name .
-						( ! empty($args)	?	' (' . implode(', ', $args) . ')' : null) .
-						( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
-		return $this;
+		//	syntax: ->INTO('users (col1, col2, dated) VALUES (?, ?, @)', $value1, $value2, 'CURDATE()')
+		return $this->prepare('INTO ' . $tbl_name, ...$params);
 	}
 
 	/**
@@ -881,40 +1096,82 @@ class SQL implements \ArrayAccess
 	 *
 	 *	ANY $key/$index value starting with '@' will cause the value to NOT be escaped!
 	 *	eg. VALUES(['value1', '@' => 'UNIX_TIMESTAMP()', '@1' => 'MAX(table)', '@2' => 'DEFAULT', '@3' => 'NULL'])
+	 *	eg. VALUES('?, @, @', 'value1', 'DEFAULT', 'NULL')
+	 *	eg. VALUES('5, 6, 7, 8, @id, CURDATE()')
 	 */
-	public function VALUES(...$args)
+	public function VALUES($stmt = null, ...$params)
 	{
-		$values = '';
-		$comma = null;
-		if (count($args) === 1 && is_array($args[0])) {
-			$args = $args[0];
-		}
-		foreach ($args as $col => $arg) {
-			if (is_numeric($arg)) {
-				$values .= $comma . $arg;
-			}
-			else if ($arg === null) {
-				$values .= $comma . 'NULL';
-			}
-			else if (is_string($arg)) {
-				if (is_string($col) && $col[0] === '@') {
-					$values .= $comma . $arg;
-				}
-				else {
-					$values .= $comma . $this->returnEscaped($arg);
+		if (empty($params))
+		{
+			if (is_array($stmt)) {
+				$values = '';
+				$comma = null;
+				foreach ($stmt as $col => $value) {
+					if (is_numeric($value)) {
+						$values .= $comma . $value;
+					}
+					else if (is_string($value)) {
+						if (is_string($col) && $col[0] === '@') {	//	detect `raw output` modifier in column key/index/name!
+							$values .= $comma . $value;
+						}
+						else {
+							$values .= $comma . self::quote($value);
+						}
+					}
+					else if ($value === null) {
+						$values .= $comma . 'NULL';
+					}
+					else {
+						throw new \Exception('Invalid type `' . gettype($value) .
+							'` sent to VALUES([..]); only numeric, string and null are supported!');
+					}
+					$comma = ', ';
 				}
 			}
 			else {
-				throw new \Exception('Invalid type `' . gettype($arg) . '` sent to VALUES(); only numeric, string and null are supported!');
+				$values = $stmt;
 			}
-			$comma = ', ';
+			$this->sql .= ' VALUES (' . $values . ')';
+			return $this;
 		}
-		$this->sql .= ' VALUES (' . $values . ')';
-		return $this;
+		return $this->prepare(' VALUES (' . $stmt . ')', ...$params);
 	}
-	public function V(...$args)
+	public function V($stmt = null, ...$params)
 	{
-		return $this->VALUES(...$args);
+		if (empty($params))
+		{
+			if (is_array($stmt)) {
+				$values = '';
+				$comma = null;
+				foreach ($stmt as $col => $value) {
+					if (is_numeric($value)) {
+						$values .= $comma . $value;
+					}
+					else if (is_string($value)) {
+						if (is_string($col) && $col[0] === '@') {	//	detect `raw output` modifier in column key/index/name!
+							$values .= $comma . $value;
+						}
+						else {
+							$values .= $comma . self::quote($value);
+						}
+					}
+					else if ($value === null) {
+						$values .= $comma . 'NULL';
+					}
+					else {
+						throw new \Exception('Invalid type `' . gettype($value) .
+							'` sent to VALUES([..]); only numeric, string and null are supported!');
+					}
+					$comma = ', ';
+				}
+			}
+			else {
+				$values = $stmt;
+			}
+			$this->sql .= ' VALUES (' . $values . ')';
+			return $this;
+		}
+		return $this->prepare(' VALUES (' . $stmt . ')', ...$params);
 	}
 
 	/**
@@ -1139,7 +1396,7 @@ class SQL implements \ArrayAccess
 	 *
 	 *	Examples:
 	 */
-	public function WHERE(...$args)
+	public function WHERE(string $statement, ...$params)
 	{
 		$this->sql .= PHP_EOL . 'WHERE ';
 		for(; key($args) !== null; next($args))
@@ -1203,16 +1460,26 @@ class SQL implements \ArrayAccess
 	/**
 	 *	
 	 *	
+	 *	Notes on mysqli::real_escape_string
+	 *		http://php.net/manual/en/mysqli.real-escape-string.php#46339
+	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
+	 *
+	 *		`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`
+	 *
+	 *
+	 *
 	 *	WARNING: What about cases LIKE('users.fname') ???
-	 *	
+	 *
 	 *	Example:
 	 *		->LIKE('abc%')		->$sql .= "abc%"
+	 *
+	 *
 	 *
 	 *
 	 *	Samples:
 	 *		WHERE key_col LIKE 'ab%'
 	 */
-	public function LIKE(string $like)
+	public function LIKE(string $format, string $value = null)
 	{
 		$this->sql .= 'LIKE ' . $this->sanitize($like);
 		return $this;
@@ -1777,13 +2044,13 @@ class SQL implements \ArrayAccess
 										$count++;
 
 										if (is_numeric($value))	return $value;
-										if (is_string($value))	return '"' . $this->real_escape_string(self::utf8($value)) . '"';
+										if (is_string($value))	return self::quote($value);
 										if (is_null($value))	return 'NULL';
 										if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';
 
 										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+														'` given at index ' . $count . ' passed in SQL->prepare(`' . $pattern .
 														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
 
 									case '@':	//	similar to ?, but doesn't include "" around strings, ie. literal/raw string
@@ -1811,7 +2078,7 @@ class SQL implements \ArrayAccess
 
 										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+														'` given at index ' . $count . ' passed in SQL->prepare(`' . $pattern .
 														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `@` (raw output) statements!');
 
 								//	case '%':
@@ -1968,7 +2235,7 @@ class SQL implements \ArrayAccess
 												$noescape	= strpos($normalized, ':noescape')	!== false;
 												$utf8mb4	= strpos($normalized, ':utf8mb4')	!== false || strpos($normalized, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
 
-												return ($noquot ? null : '"') . ($noescape ? $value : $this->real_escape_string($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : '"');
+												return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : self::$quot);
 
 
 											case 'd':
@@ -2210,10 +2477,26 @@ class SQL implements \ArrayAccess
 	}
 
 
-
-	public static function setBuilderLocation($queries)
+	/**
+	 *	Optionally set the MySQL connection to use, for `mysql_real_escape_string`, otherwise use 
+	 *	MySQL wants \n, \r and \x1a
+	 *	Remember to slash underscores (_) and percent signs (%), too, if you're going use the LIKE operator on the variable
+	 *	$search = array("\x00", "\x0a", "\x0d", "\x1a", "\x09");
+	 *	$replace = array('\0', '\n', '\r', '\Z' , '\t');
+	 *	str_replace($search, $replace, $Data )		Taken from: http://php.net/manual/en/function.addslashes.php#56848
+	 */
+	public static function setConn($conn = null)
 	{
-		self::$queries = $queries;
+		self::$conn = $conn;
+		if (self::$conn instanceof \PDO) {
+			self::$escaper = [$conn, 'quote'];
+		}
+		else if (self::$conn instanceof \MySQLi) {
+			self::$escaper = [$conn, 'real_escape_string'];
+		}
+		else {
+			self::$escaper = '';
+		}
 	}
 
 	/**
@@ -2224,7 +2507,7 @@ class SQL implements \ArrayAccess
 	 *	$replace = array('\0', '\n', '\r', '\Z' , '\t');
 	 *	str_replace($search, $replace, $Data )		Taken from: http://php.net/manual/en/function.addslashes.php#56848
 	 */
-	public static function setConn($conn = null)
+	public static function setConnection($conn = null)
 	{
 		self::$conn = $conn;
 	}
@@ -2282,11 +2565,13 @@ class SQL implements \ArrayAccess
 		$this->sql .= '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
 		return $this;
 	}
+/*
 	public function escape(string $value)
 	{
 		$this->sql .= '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
 		return $this;
 	}
+*/
 	// This function is used in post.php files to remove 4-byte UTF-8 characters (MySQL only accepts upto 3-bytes), pack multiple space values, trim and get only $length characters!
 	public static function varchar($str, $length = 65535, $empty = '', $compact = true)
 	{
@@ -2296,6 +2581,7 @@ class SQL implements \ArrayAccess
 		return empty($str) ? $empty : $str;
 	}
 
+
 	public function escapeString(string $value)
 	{
 		return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
@@ -2304,36 +2590,80 @@ class SQL implements \ArrayAccess
 	{
 		return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
 	}
-	public function real_escape_string(string $value)
+
+
+	/**
+	 *	WARNING: this is a Multibyte escaper based on mysqli::real_escape_string();
+	 *		typically used with UTF-8 connections and strings!
+	 *	As long as you make sure your mb_internal_encoding() is set the same as your database connection;
+	 *		This is the same as using mysqli::real_escape_string() when you use the same encoding on both ends, typically UFT-8!
+	 *
+	 *	Notes:
+	 *		PDO::quote sucks!
+	 *			http://php.net/manual/en/pdo.quote.php
+	 *		It adds a weird syntax (`'` becomes `''`),
+	 *			doesn't support NULL and forces "'",
+	 *			unlike MySQLi->real_escape_string()
+	 *
+	 *	Notes on mysqli::real_escape_string
+	 *		http://php.net/manual/en/mysqli.real-escape-string.php#46339
+	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
+	 *
+	 *		`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`	ctl-Z = dec:26 hex:1A
+	 *
+	 *		`NewLine (\n) is 10 (0xA) and CarriageReturn (\r) is 13 (0xD).`
+	 *
+	 *	http://php.net/manual/en/function.addslashes.php#33975
+	 *		`Note that when using addslashes() on a string that includes cyrillic characters, addslashes() totally mixes up the string, rendering it unusable.`
+	 *
+	 *	Notes:
+	 *		I don't use preg_replace() anymore because of this comment:
+	 *		http://php.net/manual/en/function.preg-replace.php#74037
+	 *		`Be aware that when using the "/u" modifier, if your input text contains any bad UTF-8 code sequences,
+	 *			then preg_replace will return an empty string, regardless of whether there were any matches.`
+	 *		`This is due to the PCRE library returning an error code if the string contains bad UTF-8.`
+	 */
+	public static function escape(string $string)
 	{
-		return self::$conn->real_escape_string(self::utf8($value));
+	//	return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string);	//	includes % and _ because they have special meaning in MySQL LIKE statements!
+		return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string);	//	27 = ' 22 = " 5C = \ 1A = ctl-Z 00 = \0 (NUL) 0A = \n 0D = \r
+	//	return preg_replace('~[\x00\x0A\x0D\x1A\x22\x27\x5C]~u', '\\\$0', $string);	preg_replace() equivalent, they differ in their `backreference` syntax!
+	}
+
+	/**
+	 *	Version suitable for escaping strings for MySQL LIKE statements; which should include the % and _ characters!
+	 */
+	public static function escapeLIKE(string $string)
+	{
+		return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string);
+	}
+
+	/**
+	 *	WARNING: This is NOT the same as PDO::quote ... YET! This is more like mysqli::real_escape_string!
+	 *	PDO adds the weird '' syntax to strings, which has been shown to be vulnerable to attack under certain conditions!
+	 */
+	public static function quote(string $string)
+	{
+	//	return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string) . self::$quot;
+		return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string) . self::$quot;
+	//	$this->sql .= '"' . ($escape ? self::$conn->real_escape_string(self::utf8($value)) : $value) . '"';
+	//	return $this;
 	}
 
 	/**
 	 *	Used when we detect ? ... actually, we can't do array processing!
 	 *
 	 */
-	public function sanitize($value)
+	public static function sanitize($value)
 	{
 		if (is_numeric($value)) return $value;
-		if (is_string($value)) return '"' . self::$conn->real_escape_string(self::utf8($value)) . '"';
+		if (is_string($value)) self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', self::utf8($value)) . self::$quot;
 		if (is_null($value)) return 'NULL';
 		if (is_bool($value)) return $value ? 'TRUE' : 'FALSE';
 		foreach ($value as $key => &$v)
 			$v = $this->sanitize($v);
 		return '(' . implode(', ', $value) . ')';
 	}
-
-	/**
-	 *	Add (optional) quote marks on strings ... maybe we make `escape` a wrapper around `real_escape_string` which does NOT add quotes!
-	 *	
-	 */
-	public function quote(string $value, $escape = true)
-	{
-		$this->sql .= '"' . ($escape ? self::$conn->real_escape_string(self::utf8($value)) : $value) . '"';
-		return $this;
-	}
-
 
 
 	/**
