@@ -2,7 +2,7 @@ WORK in active progress! As of 20 July 2017, probably for the next week or so!
 This is the unfinished README! Many things have changed and improved since I wrote this a few days ago!
 
 # SQL
-SQL Query String Wrapper ~ because SQL abstraction is for the weak!
+SQL Query String Wrapper ~ in native/natural SQL language because SQL abstraction is for the weak!
 
 SQL String Wrapper (or SQL Query Builder) is a **stateless**, natural/native SQL language (zero learning curve, no new syntax to learn) query string builder or wrapper. It doesn't store anything internally about the state/section/part of the query string it's building, except the string itself, just like you might store an `$sql` variable and concatenate to it (only one `$sql` variable is used internally). In fact you can build partial SQL fragments or even non-SQL strings, as it doesn't parse the string for correctness; it's basically just a glorified string concatenator, designed with functionality to assist you in building, designing and prototyping SQL query strings faster, leveraging your existing SQL knowledge so there is no learning curve; and it's glorious!
 
