@@ -6,22 +6,21 @@ SQL Query String Wrapper ~ the swiss-army knife of native SQL queries; because (
 
 ### Description
 
-SQL String Wrapper (or SQL Query Builder) is a **database and framework neutral**, **light-weight** but **feature rich**, **stateless**, **native SQL language query string builder/wrapper**; with **no learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, build, develop and prototype** native SQL query strings. You can build **partial SQL fragments** or non-SQL strings. It's basically just **a glorified string concatenator** with hundreds of ways to do the same thing.
+SQL String Wrapper (or SQL Query Builder) is a **database and framework neutral**, **light-weight** but **feature rich**, **stateless**, **native SQL language query string builder/wrapper**; with (almost) **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, build, develop and prototype** native SQL query strings. You can build **partial SQL fragments** or non-SQL strings. It's basically just **a glorified string concatenator** with hundreds of ways to do the same thing.
 
-It's the glue that sits between `$sql = SQL();` and `$db->query($sql)` (the part where you might want to concatenate, `escape`, filter, validate, verify, `bind` or `prepare` a statement.
+It's the glue that sits between `$sql = ...;` and `$db->query($sql)` (the part where you might want to concatenate, `escape`, filter, validate, verify, `bind` or `prepare` a statement.
 
-The powerful built-in Multibyte (UTF-8) string/value regex-parser (custom-written, usage is optional); allows you to mix familiar `sprintf()` syntax `%s` / `%d` with `PDO::prepare` placeholders `?`; and even a 'raw value' `@` placeholder for function calls/constants; and a unique blend of powerful text and integer transforms like `%clamp:1:10`, range testing `%int:1:10`, accepting nullable fields `%s:n:80:crop` (**n**ull or string), hashing values `%md5`/`%sha1`/`%sha256`, JSON encoding, text transforms `%text:lcase:ucase:ucwords:ucfirst:crop:trim:pack:nullable:800`). `%s, %char, %varchar, %string, %text` are all synonyms (except `%text` provides additional transforms);
+The powerful built-in Multibyte (UTF-8) string/value regex-parser (custom-written, usage is optional); allows you to mix familiar `sprintf()` syntax `%s` / `%d` with `PDO::prepare` placeholders `?`; with a 'raw value' `@` placeholder for function calls/constants and custom tags like `%varchar`, `%char`, `%int` with a unique blend of powerful text and integer transforms like `%clamp:1:10`, range testing `%int:1:10`, accepting nullable fields `%s:n:80:crop` (**n**ull or string with crop), hashing values `%md5`/`%sha1`/`%sha256`, `%jsonify`, text transforms `%text:lcase:ucase:ucwords:ucfirst:crop:trim:pack:nullable:800`). `%s`=`%char`=`%varchar`=`%string`=`%text` are all synonyms (except `%text` provides additional transforms); so too are `%d`=`%int`=`id` etc.
 
-It's also designed to bridge the gap between ORM developers and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**'.
+In short, this is just a feature-rich wrapper around an internal empty `$sql` string variable.
+You can do as much or as little as you want with it; like build code fragments with the powerful `sprintf`/`prepare()` engine.
 
-In short, this is just a wrapper around an internal empty `$sql` string variable, wich capabilities like `sprintf()` or `PDO::prepare`
-You can do as much or as little as you want with it, like build string fragments with the powerful `prepare()` engine and join it to other strings.
 
-https://packagist.org/packages/willoucom/php-sql-query
-https://packagist.org/packages/atk4/dsql
+# History
 
-Welcome to the Ultimate raw/native SQL Builder Class ever developed for PHP.
+I got the initial inspiration for this code when reading about the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html); and it's dedicated to the few; but proud developers that love the power and flexibility of writing native SQL queries! With great power ...
 
+It was originally designed to bridge the gap between ORM query builders and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**', but keeping the syntax as close to SQL as possible.
 
 ## Install
 
@@ -167,12 +166,6 @@ $sql = SQL()
 
 Then see what features it offers for what you want to do.
 
-
-# History
-
-This class was inspired by the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html), and is dedicated to the few; but proud developers that love the power and flexibility of writing raw/native SQL queries! But with great power ...
-
-The ultimate goal of this class is to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements; bringing even more power and flexibility than you thought possible!
 
 
 ## Example
