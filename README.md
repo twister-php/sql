@@ -22,7 +22,7 @@ I got the initial inspiration for this code when reading about the [MyBatis SQL 
 
 It was originally designed to bridge the gap between ORM query builders and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**', but keeping the syntax as close to SQL as possible.
 
-## Install
+# Install
 
 Composer
 ```
@@ -41,9 +41,26 @@ or from GIT
 https://github.com/twister-php/sql
 ```
 
-## Beginners guide
+# Hello World
 
-Internally, the basic idea is very simple. When you call a function, it just appends the function name (eg. `SELECT(...)`, `FROM(...)`, `WHERE(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining AKA a '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
+```php
+$sql = SQL('Hello @', 'World');   		//   @  =  literal value
+// Hello World
+```
+
+```php
+$sql = Sql('Hello ?', 'Trevor');
+// Hello "Trevor"
+```
+
+```php
+$sql = sql('Age: ?', 40);   			//   ?  =  auto-escape
+// Hello "Trevor"
+```
+
+# Beginners guide
+
+The general idea is very simple; when you call a function, it just appends the function name (eg. `SELECT(...)`, `FROM(...)`, `WHERE(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining AKA a '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
 
 eg. simplified pseudo-code
 ```php
@@ -62,16 +79,57 @@ $sql = SQL()->SELECT('*')->FROM('users');
 // $sql = 'SELECT * FROM users;
 ```
 
-### Constructor
 
-The constructor also accepts ANY string value (can be any string, a fragment, or even non-SQL code):
+## Constructor
+
+```php
+$sql = new SQL();
+$sql = new Sql();
+$sql = new sql();
+$sql = SQL();
+$sql = Sql();
+$sql = sql();
+```
+
+`SQL()` is just a convenient global wrapper function:
+```php
+function SQL(string $stmt = null, ...$params)
+{
+	return new SQL($stmt, ...$params);
+}
+```
+
+The constructor also accepts ANY string value (can be an SQL fragment, or even non-SQL code):
 
 ```php
 $sql = SQL('SELECT * FROM users');
 // $sql = 'SELECT * FROM users;
 
-$sql = SQL('Hello World');
+$sql = SQL('Hello @', 'World');   			// @ will not escape the value
+
+$sql = SQL('WHERE id = ? AND role = "@"', $id, 'admin');
 ```
+
+The internal string is 'forward only' (appends commands), so SQL commands in the wrong order will produce an invalid SQL string.
+
+```php
+$id = 999;
+$sql = SQL('WHERE id = ?', $id);
+$sql->SELECT('*')->FROM('users');
+// WHERE id = 999SELECT * FROM users
+// Note this is invalid SQL, and `999SELECT`
+```
+
+But you can do this manually:
+
+```php
+$id = 999;
+$sql = SQL('WHERE id = ?', $id);
+
+$sql = 'SELECT * FROM users ' . $sql;
+// SELECT * FROM users WHERE id = 999
+```
+
 
 However, almost ALL the functions (including the constructor) work much like `sprintf()` / `PDO::prepare()`!
 
