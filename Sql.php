@@ -83,6 +83,26 @@ class SQL implements \ArrayAccess
      */
 	public	static $quot		=	'"';
 
+    /**
+     *	Custom data modifiers - with callbacks
+     *	  eg.
+     *		sql::createModifier(':password', function ($value, $mods) { return md5($value); });
+     *		$sql = sql('%s:password', $password);
+     *
+     *	@var static modifiers
+     */
+	private	static $modifiers	=	null;
+
+    /**
+     *	Custom data modifiers - with callbacks
+     *	  eg.
+     *		sql::createDataType('password', function ($value, $modifiers) { return '"' . md5($value) . '"'; });
+     *		$sql = sql('WHERE password = %password', $password);
+     *
+     *	@var static modifiers
+     */
+	private	static $types		=	null;
+
 	/**
 	 *	These are used as a fast lookup for the `dynamic` property names in `__get()`;
 	 *		they are (currently) NOT used in the function calls, like ->SELECT(),
@@ -105,6 +125,7 @@ class SQL implements \ArrayAccess
 										'INSERT'		=>	'INSERT ',
 										'UPDATE'		=>	'UPDATE ',
 										'CALL'			=>	'CALL ',
+
 
 										'INSERT_INTO'	=>	'INSERT INTO ',			//	or II
 										'DELETE_FROM'	=>	'DELETE FROM ',			//	or DF
@@ -258,14 +279,46 @@ class SQL implements \ArrayAccess
 										'USE'			=>	' USE ',							//	USE an index ... spacing ??? ...	https://dev.mysql.com/doc/refman/5.7/en/join.html
 										'IGNORE'		=>	' IGNORE ',							//	IGNORE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
 										'FORCE'			=>	' FORCE ',							//	FORCE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
-										'NATURAL'		=>	' NATURAL ',							//	FORCE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
+										'NATURAL'		=>	' NATURAL ',						//	FORCE an index		spacing?		https://dev.mysql.com/doc/refman/5.7/en/join.html
 
 										'DESC'			=>	' DESC',
 										'ASC'			=>	' ASC',
-										'IN'			=>	' IN ',
-										'NOT_IN'		=>	' NOT IN ',
-										'NOT'			=>	' NOT',
-										'NULL'			=>	' NULL',
+										'IN'			=>	'IN',
+										'IN_'			=>	'IN ',
+										'_IN'			=>	' IN',
+										'_IN_'			=>	' IN ',
+										'NOT_IN'		=>	'NOT IN',
+										'NOT_IN_'		=>	'NOT IN ',
+										'_NOT_IN'		=>	' NOT IN',
+										'_NOT_IN_'		=>	' NOT IN ',
+										'NOT'			=>	'NOT',
+										'NOT_'			=>	'NOT ',
+										'_NOT'			=>	' NOT',
+										'_NOT_'			=>	' NOT ',
+										'NULL'			=>	'NULL',
+										'NULL_'			=>	'NULL ',
+										'_NULL'			=>	' NULL',
+										'_NULL_'		=>	' NULL ',
+										'IS'			=>	'IS',
+										'IS_'			=>	'IS ',
+										'_IS'			=>	' IS',
+										'_IS_'			=>	' IS ',
+										'IS_NOT'		=>	'IS NOT',
+										'IS_NOT_'		=>	'IS NOT ',
+										'_IS_NOT'		=>	' IS NOT',
+										'_IS_NOT_'		=>	' IS NOT ',
+										'IS_NULL'		=>	'IS NULL',
+										'IS_NULL_'		=>	'IS NULL ',
+										'_IS_NULL'		=>	' IS NULL',
+										'_IS_NULL_'		=>	' IS NULL ',
+										'LIKE'			=>	'LIKE',
+										'LIKE_'			=>	'LIKE ',
+										'_LIKE'			=>	' LIKE',
+										'_LIKE_'		=>	' LIKE ',
+										'NOT_LIKE'		=>	'NOT LIKE',
+										'NOT_LIKE_'		=>	'NOT LIKE ',
+										'_NOT_LIKE'		=>	' NOT LIKE',
+										'_NOT_LIKE_'	=>	' NOT LIKE ',
 										'CHARACTER_SET'	=>	' CHARACTER SET ',					//	[INTO OUTFFILE 'file_name' [CHARACTER SET charset_name]
 										'CHARACTER'		=>	' CHARACTER ',						//	[INTO OUTFFILE 'file_name' [CHARACTER SET charset_name] ... where else is CHARACTER used? Table definitions and?
 										'INTO_DUMPFILE'	=>	' INTO DUMPFILE ',					//	[INTO OUTFILE 'file_name' [CHARACTER SET charset_name] export_options | INTO DUMPFILE 'file_name'
@@ -356,7 +409,7 @@ class SQL implements \ArrayAccess
 										'_LTEQ'			=>	' <=',
 										'_LTEQ_'		=>	' <= ',
 										'AS'			=>	'AS',
-										'AS_'			=>	'AS_',
+										'AS_'			=>	'AS ',
 										'_AS'			=>	' AS',
 										'_AS_'			=>	' AS ',
 										'ON'			=>	'ON',
@@ -367,7 +420,7 @@ class SQL implements \ArrayAccess
 										'AND_'			=>	'AND ',
 										'_AND'			=>	' AND',
 										'_AND_'			=>	' AND ',
-										'OR'			=>	'OR',
+										'OR'			=>	'OR',		//	what about logical/bitwise | (or) ???
 										'OR_'			=>	'OR ',
 										'_OR'			=>	' OR',
 										'_OR_'			=>	' OR ',
@@ -375,6 +428,35 @@ class SQL implements \ArrayAccess
 										'XOR_'			=>	'XOR ',
 										'_XOR'			=>	' XOR',
 										'_XOR_'			=>	' XOR ',
+										'ADD'			=>	'+',
+										'ADD_'			=>	'+ ',
+										'_ADD'			=>	' +',
+										'_ADD_'			=>	' + ',
+										'SUB'			=>	'-',		//	NEG / SUB ... same operator
+										'SUB_'			=>	'- ',
+										'_SUB'			=>	' -',
+										'_SUB_'			=>	' - ',
+										'NEG'			=>	'-',
+										'NEG_'			=>	'- ',
+										'_NEG'			=>	' -',
+										'_NEG_'			=>	' - ',
+										'MUL'			=>	'*',
+										'MUL_'			=>	'* ',
+										'_MUL'			=>	' *',
+										'_MUL_'			=>	' * ',
+										'DIV'			=>	'/',
+										'DIV_'			=>	'/ ',
+										'_DIV'			=>	' /',
+										'_DIV_'			=>	' / ',
+										'MOD'			=>	'%',
+										'MOD_'			=>	'% ',
+										'_MOD'			=>	' %',
+										'_MOD_'			=>	' % ',
+
+										'MATCH'			=>	'MATCH',	//	MySQL syntax: MATCH (x) AGAINST (y IN BOOLEAN MODE)
+										'MATCH_'		=>	'MATCH ',	//	PostgreSQL: x @@ to_tsquery(y)
+										'_MATCH'		=>	' MATCH',	//	Oracle: CONTAINS(x, y)
+										'_MATCH_'		=>	' MATCH ',	//	SQLlite: MATCH
 
 										'AFTER'			=>	'AFTER',
 										'AFTER_'		=>	'AFTER ',
@@ -791,12 +873,37 @@ class SQL implements \ArrayAccess
 	 */
 	public function LAST_INSERT_ID($id = null)
 	{
-		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
+		$this->sql .= (substr($this->sql, -1) === ' ' ? null : ' ') . 'LAST_INSERT_ID(' . $id . ')';
 		return $this;
 	}
 	public function lastInsertId($id = null)
 	{
-		$this->sql .= 'LAST_INSERT_ID(' . $id . ')';
+		$this->sql .= (substr($this->sql, -1) === ' ' ? null : ' ') . 'LAST_INSERT_ID(' . $id . ')';
+		return $this;
+	}
+
+
+	/**
+	 *	Samples:
+	 *		->OP('user *', $value)
+	 *		UPDATE sequence SET c1 = 123, id = LAST_INSERT_ID(id+1);
+	 *		SELECT LAST_INSERT_ID();
+	 *
+	 *	PROBLEM: If we use `comma` with `UPDATE sequence SET c1 = 123, id = LAST_INSERT_ID(id+1);`  ... c1 will set the comma, but `LAST_INSERT_ID() does NOT require it!
+	 */
+	public function OP($op, $value = null)
+	{
+		$this->sql .= (substr($this->sql, -1) === ' ' ? null : ' ') . $op . ' ';
+		if (is_numeric($value)) {
+			$this->sql .= $value;
+		} else if (is_string($value)) {
+			$this->sql .= self::quote($value);
+		}
+		return $this;
+	}
+	public function SPACE($value = null)
+	{
+		$this->sql .= (substr($this->sql, -1) === ' ' ? null : ' ') . $value;
 		return $this;
 	}
 
@@ -1256,12 +1363,19 @@ class SQL implements \ArrayAccess
 	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name SET col_name={expr | DEFAULT}, ... [ ON DUPLICATE KEY UPDATE col_name=expr [, col_name=expr] ... ]
 	 *		UPDATE [LOW_PRIORITY] [IGNORE] table_reference SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}]
 	 *
-	 *		NOTE: Alternative 1: (['col1' => $value1, 'col2' => $value2, '@dated' => 'CURDATE()']) 		single array:	[columns => values]
-	 *		NOTE: Alternative 2: (['col1', 'col2', '@dated'], [$value1, $value2, 'CURDATE()'])			two arrays:		[columns], [values]
+	 *		 ... ${id} || $id (looks too much like a variable!  #{id}  :{id}   @user   (entity framework!)  {0} = parameters by index!
+	 *
+	 *
+	 *
+	 *		NOTE: Alternative 1: (['col1' => $value1, 'col2' => $value2, '@dated' => 'CURDATE()']) 		single array:		[columns => values]
+	 *		NOTE: Alternative 2: (['col1', 'col2', '@dated'], [$value1, $value2, 'CURDATE()'])			two arrays:			[columns], [values]
 	 *		NOTE: Alternative 3: ('col1 = ?, col2 = ?, dated = @', $value1, $value2, 'CURDATE()')
+	 *		NOTE: Alternative 4: (['col1 = ?', col2 = ?, dated = @', $value1, $value2, 'CURDATE()') 	single array v2:	['column', $value, 'column', $value]
 	 */
+/*
 	public function SET($stmt = null, ...$params)
 	{
+
 		if (is_array($stmt))
 		{
 			$result = null;
@@ -1270,7 +1384,7 @@ class SQL implements \ArrayAccess
 			{
 				if (is_numeric(key($stmt))) {
 					throw new \BadMethodCallException('Invalid array type given to ->SET([...]). ' . 
-						'The single array variant requires the array to includes both column names (in the keys) and values. ' .
+						'The single array variant requires the array to have column names (as string keys) and values. ' .
 						'eg. ->SET([\'col1\' => 123, \'col2\' => \'value2\', \'@col3\' => \'CURDATE()\'])');
 				}
 				foreach ($stmt as $col => $value)
@@ -1375,6 +1489,7 @@ class SQL implements \ArrayAccess
 		}
 		return $this->prepare(' SET ' . $stmt, ...$params);
 	}
+*/
 	public function SET(...$args)
 	{
 		$values = null;
@@ -2507,6 +2622,8 @@ class SQL implements \ArrayAccess
 			%tojson				#to_json
 			%fromjson			#from_json
 			%json_encode		#json_encode
+			%jsonencode			#jsonencode
+			%jsonify			#jsonify
 			%serialize			#serialize
 			%string{trim:ltrim:rpad: :5:json_encode}
 			%escape				Escape only, doesn't add quotes "..."				:enull === empty equals null
@@ -2524,6 +2641,11 @@ class SQL implements \ArrayAccess
 			%bit{Y:N}					problem: how to define 'nullable' if we normalize the strings ??? because if we have %bit{:n:y:n} ... it's ambiguous!
 			%bool(ean){YES:NO}
 	 *
+	 *	Support for WHERE('owner_id IN (?)', $array)	... (?) = array placeholder	  ([]) ???  	from Ruby!   ... (#?) || (#) == numeric array (faster?)  (#, 1, 2, 3) || (1, 2, 3, #, 4, 5, 6) ??? NO!
+	 *		I prefer ->WHERE('owner_id IN ([])', $array)
+	 *
+	 *	Array placeholder [], values are simply comma separated ... [@] = raw array, [#] numeric array ? (faster?)   ... [#, 1, 2, 3] || [1, 2, 3, #] || [NULL, #]
+	 *
 	 *	@param string $pattern eg. 'CALL sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000)'
 	 *	@param string|numeric|null $params Input values to replace and/or escape
 	 *	@return $this
@@ -2531,6 +2653,9 @@ class SQL implements \ArrayAccess
 	public function prepare(string $pattern, ...$params)	//	\%('.+|[0 ]|)([1-9][0-9]*|)s		somebody else's sprintf('%s') multi-byte conversion ... %s includes the ability to add padding etc.
 	{
 		$count = 0;
+		if (count($params) === 1 && is_array($params[0])) {		//	allowing: ->prepare('SELECT name FROM user WHERE id IN (?, ?, ?)', [1, 2, 3])
+			$params = $params[0];
+		}
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 							function ($matches) use (&$count, $pattern, &$params)
 							{
@@ -2615,14 +2740,29 @@ class SQL implements \ArrayAccess
 
 										if ( ! empty($matches[3]))
 											$matches[3] = rtrim(ltrim($matches[3], '{'), '}');
-										$normalized = $matches[2] . (empty($matches[3]) ? null : ':' . $matches[3]);
+										$modifiers = $matches[2] . (empty($matches[3]) ? null : ':' . $matches[3]);
 
 										if (is_null($value)) {
 											//	working, but (future) support for regular expressions might create false positives
-											if (preg_match('~[\{:]n(ull(able)?)?([:\{\}]|$)~', $normalized)) {
+											if (preg_match('~[\{:]n(ull(able)?)?([:\{\}]|$)~', $modifiers)) {
 												return 'NULL';
 											}
 											throw new \InvalidArgumentException('NULL value detected for a non-nullable field at index ' . $index . ' for command: `' . $matches[0] . '`');
+										}
+
+										if (isset(self::$modifiers[$command]))
+										{
+											if (call_user_func(self::$types[$command], $value, $modifiers, 'init')) {
+												return $value;
+											}
+										}
+
+										if (isset(self::$types[$command]))
+										{
+											$result = call_user_func(self::$types[$command], $value, $modifiers);
+											if (is_string($result)) {
+												return $result;
+											}
 										}
 
 										switch ($command)
@@ -2633,60 +2773,67 @@ class SQL implements \ArrayAccess
 											case 'text':				//	I think we should use `text` only to check for all the modifiers ... so we don't do so many tests for common %s values ... this is `text` transformations ...
 											case 's':
 
+												//	empty string = NULL
+												if (strpos($modifiers, ':json') !== false) {
+													$value = json_encode($value);
+												}
+
+												jsonify
+
 												if ( ! is_string($value)) {
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
 																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
 																	'`) pattern, only string values are allowed for %s statements!');
 												}
 
-											//	$modifiers = array_flip(explode(':', $normalized));	//	strpos() is probably still faster!
+											//	$modifiers = array_flip(explode(':', $modifiers));	//	strpos() is probably still faster!
 
-												if (strpos($normalized, ':pack') !== false) {
+												if (strpos($modifiers, ':pack') !== false) {
 													$value = trim(mb_ereg_replace('\s+', ' ', $value));
-												} else if (strpos($normalized, ':trim') !== false) {
+												} else if (strpos($modifiers, ':trim') !== false) {
 													$value = trim($value);
 												}
 
 												//	empty string = NULL
-												if (strpos($normalized, ':enull') !== false && empty($value)) {
+												if (strpos($modifiers, ':enull') !== false && empty($value)) {
 													return 'NULL';
 												}
 
 												if ($command === 'text') {	//	`text` only modifiers ... not necessarily the `text` data types, just extra `text` modifiers
-													if (strpos($normalized, ':tolower') !== false || strpos($normalized, ':lower') !== false || strpos($normalized, ':lcase') !== false) {
+													if (strpos($modifiers, ':tolower') !== false || strpos($modifiers, ':lower') !== false || strpos($modifiers, ':lcase') !== false) {
 														$value = mb_strtolower($value);
 													}
 
-													if (strpos($normalized, ':toupper') !== false || strpos($normalized, ':upper') !== false || strpos($normalized, ':ucase') !== false) {
+													if (strpos($modifiers, ':toupper') !== false || strpos($modifiers, ':upper') !== false || strpos($modifiers, ':ucase') !== false) {
 														$value = mb_strtoupper($value);
 													}
 
-													if (strpos($normalized, ':ucfirst') !== false) {
+													if (strpos($modifiers, ':ucfirst') !== false) {
 														$value = mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
 													}
 
-													if (strpos($normalized, ':ucwords') !== false) {
+													if (strpos($modifiers, ':ucwords') !== false) {
 														$value = mb_convert_case($value, MB_CASE_TITLE);
 													}
 
-													if (strpos($normalized, ':md5') !== false) {	//	don't :pack if you are hashing passwords!
+													if (strpos($modifiers, ':md5') !== false) {	//	don't :pack if you are hashing passwords!
 														$value = md5($value);
 													}
 
-													if (strpos($normalized, ':sha') !== false) {
-														if (strpos($normalized, ':sha1') !== false) {
+													if (strpos($modifiers, ':sha') !== false) {
+														if (strpos($modifiers, ':sha1') !== false) {
 															$value = hash('sha1', $value);
-														} else if (strpos($normalized, ':sha256') !== false) {
+														} else if (strpos($modifiers, ':sha256') !== false) {
 															$value = hash('sha256', $value);
-														} else if (strpos($normalized, ':sha384') !== false) {
+														} else if (strpos($modifiers, ':sha384') !== false) {
 															$value = hash('sha384', $value);
-														} else if (strpos($normalized, ':sha512') !== false) {
+														} else if (strpos($modifiers, ':sha512') !== false) {
 															$value = hash('sha512', $value);
 														}
 													}
 												}
 
-												preg_match('~(?:(?::\d*)?:\d+)~', $normalized, $range);
+												preg_match('~(?:(?::\d*)?:\d+)~', $modifiers, $range);
 												/**
 												 *	"%varchar:1.9:-10."
 												 *		":1.9:-10"
@@ -2727,7 +2874,7 @@ class SQL implements \ArrayAccess
 													}
 													if ( $max && $strlen > $max) {
 //dump($normalized);
-														if (strpos($normalized, ':crop') !== false) {
+														if (strpos($modifiers, ':crop') !== false) {
 															$value = mb_substr($value, 0, $max);
 														}
 														else {
@@ -2739,13 +2886,13 @@ class SQL implements \ArrayAccess
 												}
 
 												//	:raw = :noquot + :noescape
-												if (strpos($normalized, ':raw') !== false) {
+												if (strpos($modifiers, ':raw') !== false) {
 													return $value;
 												}
 
-												$noquot		= strpos($normalized, ':noquot')	!== false;
-												$noescape	= strpos($normalized, ':noescape')	!== false;
-												$utf8mb4	= strpos($normalized, ':utf8mb4')	!== false || strpos($normalized, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
+												$noquot		= strpos($modifiers, ':noquot')	!== false;
+												$noescape	= strpos($modifiers, ':noescape')	!== false;
+												$utf8mb4	= strpos($modifiers, ':utf8mb4')	!== false || strpos($modifiers, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
 
 												return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : self::$quot);
 
@@ -2762,7 +2909,19 @@ class SQL implements \ArrayAccess
 											case 'unisigned';
 
 												if (is_numeric($value))
+												{
+													if (strpos($modifiers, ':clamp') !== false)
+													{
+														preg_match('~:clamp:(?:([-+]?[0-9]*\.?[0-9]*):)?([-+]?[0-9]*\.?[0-9]*)~', $modifiers, $range);
+														if (empty($range)) {
+															throw new \InvalidArgumentException("Invalid %{$command}:clamp syntax `{$matches[0]}`
+																		detected for call to SQL->prepare(`{$pattern}`) at index {$index};
+																		%{$command}:clamp requires a numeric range: eg. %{$command}:clamp:10 or %{$command}:clamp:1:10");
+														}
+														$value = min(max($value, is_numeric($range[1]) ? $range[1] : 0), is_numeric($range[2]) ? $range[2] : PHP_INT_MAX);
+													}
 													return $value;
+												}
 
 												throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
 																'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
@@ -2776,7 +2935,7 @@ class SQL implements \ArrayAccess
 																	'`) pattern, only numeric data types (integer and float) are allowed for %clamp statements!');
 												}
 
-												preg_match('~(?:(?::[-+]?[0-9]*\.?[0-9]*)?:[-+]?[0-9]*\.?[0-9]+)~', $normalized, $range);
+												preg_match('~(?:(?::[-+]?[0-9]*\.?[0-9]*)?:[-+]?[0-9]*\.?[0-9]+)~', $modifiers, $range);
 												/**
 												 *	"%clamp:1.9:-10."
 												 *		":1.9:-10"
@@ -3202,12 +3361,23 @@ class SQL implements \ArrayAccess
 		unset($this->sql[$idx]);
 	}
 
+
+
+	public static function createDataType(string $type, callable $func)
+	{
+		self::$types[$type] = $func;
+	}
+
+	public static function createModifier(string $modifier, callable $func)	//	should add the `position`, like `before`, `after` etc.
+	{
+		self::$modifiers[$modifier] = $func;
+	}
 }
 
 /**
  *	Helper function to build a new SQL query object, just saves using `new` :p
  */
-function SQL(...$args)
+function SQL(string $stmt = null, ...$params)
 {
-	return new SQL(...$args);
+	return new SQL($stmt, ...$params);
 }
