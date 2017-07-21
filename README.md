@@ -44,18 +44,41 @@ https://github.com/twister-php/sql
 # Hello World
 
 ```php
-$sql = SQL('Hello @', 'World');   		//   @  =  literal value
-// Hello World
+$sql = sql('SELECT ?', 'Hello World');
+
+// 'SELECT "Hello World"'
 ```
 
 ```php
-$sql = Sql('Hello ?', 'Trevor');
-// Hello "Trevor"
+$sql = SQL('Hello @', 'World');		//	@  =  literal values  (no quotes or escaping)
+// 'Hello World'
 ```
 
 ```php
-$sql = sql('Age: ?', 40);   			//   ?  =  auto-escape
-// Hello "Trevor"
+$sql = SQL('?', '"Hello World"');	//	?  quoted + escaped
+// '"\"Hello World\""'
+
+$sql = Sql('?', 4);			//	?  auto-detects numeric, null and string
+// '4'
+
+$sql = sql('?', null);
+// 'NULL'
+```
+
+```php
+$sql = SQL('@', '"Hello World"');	//	@  literals
+
+// '"Hello World"'
+
+
+$sql = Sql('@', 'Hello World');		//	@  no quotes or escaping
+
+// 'Hello World'
+
+
+$sql = sql('@', 'CURDATE()');		//	@  useful for function calls
+
+// 'CURDATE()'
 ```
 
 # Beginners guide
