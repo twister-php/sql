@@ -2,11 +2,35 @@ WORK in active progress! As of 20 July 2017, probably for the next week or so!
 This is the unfinished README! Many things have changed and improved since I wrote this a few days ago!
 
 # SQL
-SQL Query String Wrapper ~ the swiss-army knife of native SQL queries; because (SQL-language) abstraction is for the weak!
+SQL Query String Wrapper ~ the swiss-army knife of native SQL queries; because everyone could use one at some point!
 
-### Description
 
-SQL String Wrapper (or SQL Query Builder) is a **database and framework neutral**, **light-weight** but **feature rich**, **stateless**, **native SQL language query string builder/wrapper**; with (almost) **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, build, develop and prototype** native SQL query strings. You can build **partial SQL fragments** or non-SQL strings. It's basically just **a glorified string concatenator** with hundreds of ways to do the same thing.
+
+You don't need layers of 'abstraction' (where you can't even see the query being generated) to build safer or better SQL.
+Most ORM's 'abstract' the SQL commands away from you to 'make it safer', or 'more portable', or 'faster/better to write'.
+They just introduce hundreds of new/weird functions (like Laravel's `take()` instead of `limit()`), new librabries, hundreds of new classes, interfaces, traits, exceptions etc.
+
+It's the difference between "managed" and "unmanaged" code.
+
+Well, I like my 
+to make working with SQL strings easier, safer and faster; you need the right set of functionality!
+When we work with strings, we have functions like strlen(), strpos(), substr() etc. so we don't have to write those ourselves.
+When it comes to functions that help us write an SQL query, we only have the standard string functions to work with.
+This wrapper doesn't 
+
+
+## Description
+
+SQL String Wrapper (or SQL Query Builder) is a **a glorified string wrapper** with unlimited ways to do the same thing. It's **database and framework neutral**, **light-weight** (one variable) but **feature rich**, **stateless**, **native SQL language query string builder/wrapper**; with (almost) **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, build, develop and prototype** native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or **non-SQL strings**.
+
+```php
+$string = sql('%varchar:raw:pack:trim:crop:80', $name);
+//	:raw  - don't add quotes " or escapes `\`
+//	:pack - auto packs whitespace
+//	:trim
+//	:crop - crops to 80 characters
+$string = sql('%s:md5', $password);
+```
 
 It's the glue that sits between `$sql = ...;` and `$db->query($sql)` (the part where you might want to concatenate, `escape`, filter, validate, verify, `bind` or `prepare` a statement.
 
@@ -301,6 +325,33 @@ Basically, this class helps you as much or as little as you want it to! The bigg
 So what happens when you find yourself working with 400+ tables, 6000+ columns, 156 columns in one table, 10 tables with over 100 columns, 24 tables with over 50 columns, 1000+ varchar/char columns ... both ORM and raw SQL become a nightmare. ORM's suffer from [object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch); creating an abstraction layer with a built in query interface over PDO, which is already an abstraction layer and doesn't support many . I believe that the abstraction layer provided by most ORM's are actually harmful
 
 
+
+# Advanced - Custom Data Types and Modifiers
+
+Create your own data-types
+eg. `%password`, `%dateofbirth`, `%vector`, `%url`
+
+```php
+sql::createDataType('password', function ($value, $modifiers) { return '"' . md5($value) . '"'; } );
+
+echo sql('%password', 'god');
+// "a4757d7419ff3b48e92e90596f0e7548"
+
+echo sql('SELECT * FROM users WHERE password = %password', 'god');
+// SELECT * FROM users WHERE password = "a4757d7419ff3b48e92e90596f0e7548"
+```
+
+Or create your own text/string/integer modifiers
+eg. `:foo`, `:bar`, `:url`, `:encode`, `:decode`
+
+
+```php
+sql::createModifier(':encode', function ($value, $modifiers) { return '"' . md5($value) . '"'; } );
+
+$sql = sql('%s:password', $password);
+```
+
+Note: there are already many built-in text modifiers, like `json
 
 
 
