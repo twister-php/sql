@@ -22,5 +22,10 @@
         "files": [
             "helpers.php"
         ]
-	}
+	},
+    "suggest": {
+        "symfony/var-dumper": "Pretty print complex values better with var-dumper available",
+        "filp/whoops": "Interactive error and exception handling",
+        "jdorn/sql-formatter": "SQL query highlighting"
+    }
 }
