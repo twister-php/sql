@@ -1,7 +1,7 @@
 {
 	"name": "twister/sql",
-	"description": "Fluent-style SQL String Builder",
-	"keywords": ["SQL", "SQL Wrapper", "Raw SQL", "fluent style"],
+	"description": "SQL Query String Builder",
+	"keywords": ["sql", "sql wrapper", "raw sql", "fluent style sql"],
 	"type": "library",
 	"homepage": "https://github.com/twister-php/sql",
 	"license": "MIT",
@@ -12,11 +12,15 @@
 		}
 	],
 	"require": {
-		"php": ">=5.6"
+		"php": ">=5.6.4",
+		"ext-mbstring": "*"
 	},
 	"autoload": {
 		 "psr-4": {
-			"": "./"
-		}
+			"Twister\\Sql": ""
+		},
+        "files": [
+            "helpers.php"
+        ]
 	}
 }
