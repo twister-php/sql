@@ -1,14 +1,13 @@
 <?php
-
 /**
  *	SQL Query Builder
  *
- *	@package    SQL Query Builder
- *	@author     Trevor Herselman <therselman@gmail.com>
- *	@copyright  Copyright (c) 2017 Trevor Herselman
- *	@license    http://opensource.org/licenses/MIT
- *	@link       https://github.com/twister-php/sql
- *	@version    0.0.1
+ *	@package     SQL Query Builder
+ *	@description Rapidly construct raw SQL query strings
+ *	@author      Trevor Herselman <therselman@gmail.com>
+ *	@copyright   Copyright (c) 2017 Trevor Herselman
+ *	@license     http://opensource.org/licenses/MIT
+ *	@link        https://github.com/twister-php/sql
  *
  *	MIT License
  *
@@ -38,9 +37,9 @@ class SQL implements \ArrayAccess
     /**
      *	The magic starts here!
      *
-     *	@var sql
+     *	@var string $sql
      */
-	public	$sql				=	null;
+	private $sql				=	null;
 
     /**
      *	The active connection.
@@ -51,7 +50,7 @@ class SQL implements \ArrayAccess
      *
      *	Because I want to find a way around checking the type of connection everytime I want to do something!
      *
-     *	@var static conn
+     *	@var static mixed $conn
      */
 	private	static $conn		=	null;
 
@@ -565,6 +564,17 @@ class SQL implements \ArrayAccess
 	//		->EXPLAIN();
 
 
+    /**
+     * Use `$container = new Container()` if you want a container with the default configuration.
+     *
+     * If you want to customize the container's behavior, you are discouraged to create and pass the
+     * dependencies yourself, the ContainerBuilder class is here to help you instead.
+     *
+     * @see ContainerBuilder
+     *
+     * @param ContainerInterface $wrapperContainer If the container is wrapped by another container.
+     */
+//    public function __construct(
 	/**
 	 *	Creates new statement with the powerful `prepare()` syntax
 	 *
@@ -679,7 +689,19 @@ class SQL implements \ArrayAccess
 	}
 
 
-	public function SELECT(string $stmt = null, ...$params)
+	/**
+	 *
+	 *
+	 *
+	 *	@see \Sql::prepare()
+	 *
+	 *
+	 *	@param
+	 *
+	 *
+	 *	@return $this
+	 */
+	public function select(string $stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= 'SELECT ' . $stmt;
@@ -687,7 +709,13 @@ class SQL implements \ArrayAccess
 		}
 		return $this->prepare('SELECT ' . $stmt, ...$params);
 	}
-	public function S(string $stmt = null, ...$params)
+
+	/**
+	 *	@see \Sql::select()
+	 *
+	 *	@alias SELECT()
+	 */
+	public function s(string $stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= 'SELECT ' . $stmt;
@@ -697,7 +725,15 @@ class SQL implements \ArrayAccess
 	}
 
 
-	public function SELECT_ALL_FROM(string $stmt = null, ...$params)
+	public function selectAllFrom(string $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['SELECT_ALL_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['SELECT_ALL_FROM'] . $stmt, ...$params);
+	}
+	public function select_all_from(string $stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= self::$translations['SELECT_ALL_FROM'] . $stmt;
@@ -2654,12 +2690,13 @@ class SQL implements \ArrayAccess
 	{
 		$count = 0;
 		if (count($params) === 1 && is_array($params[0])) {		//	allowing: ->prepare('SELECT name FROM user WHERE id IN (?, ?, ?)', [1, 2, 3])
-			$params = $params[0];
+			$params = $params[0];								//	problem is when the first value is for :json_encode ... we can allow ONE decode ?
+			$params_conversion = true;							//	basically, this value is to support :json_encode, when there is only ONE value passed, then $params become our value, and not $params[0]!
 		}
-		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
+		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|\[.*\]|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 							function ($matches) use (&$count, $pattern, &$params)
 							{
-//dump($matches);
+dump($matches);
 								$match = $matches[0];
 								switch($match[0])
 								{
@@ -2680,14 +2717,14 @@ class SQL implements \ArrayAccess
 										next($params);
 										$count++;
 
-										if (is_numeric($value))	return $value;
+										if (is_numeric($value))	return (string) $value;
 										if (is_string($value))	return self::quote($value);
 										if (is_null($value))	return 'NULL';
-										if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';
+										if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 
 										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . $count . ' passed in SQL->prepare(`' . $pattern .
+														'` given at index ' . key($params) . ' passed to SQL->prepare(`' . $pattern .
 														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
 
 									case '@':	//	similar to ?, but doesn't include "" around strings, ie. literal/raw string
@@ -2707,15 +2744,14 @@ class SQL implements \ArrayAccess
 										next($params);
 										$count++;
 
-										if (is_scalar($value))	return $value;
-									//	if (is_numeric($value))	return $value;
-									//	if (is_string($value))	return $value;
+										if (is_string($value))	return $value;	//	first test because it's the most common for @
+										if (is_numeric($value))	return (string) $value;
 										if (is_null($value))	return 'NULL';
-									//	if (is_bool($value))	return $value ? 'TRUE' : 'FALSE';	//	covered by scalar!	... will be sent as `true` and `false`
+										if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 
 										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . $count . ' passed in SQL->prepare(`' . $pattern .
+														'` given at index ' . key($params) . ' passed to SQL->prepare(`' . $pattern .
 														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `@` (raw output) statements!');
 
 								//	case '%':
@@ -2759,7 +2795,11 @@ class SQL implements \ArrayAccess
 
 										if (isset(self::$types[$command]))
 										{
-											$result = call_user_func(self::$types[$command], $value, $modifiers);
+										//	Cannot use call_user_func() with a value reference ... 2 different errors ... one when I try `&$value`
+										//	Parse error: syntax error, unexpected '&' in Sql.php on line ...
+										//	Warning: Parameter 1 to {closure}() expected to be a reference, value given in Sql.php on line ...
+										//	$result = call_user_func(self::$types[$command], $value, $modifiers);
+											$result = self::$types[$command]($value, $modifiers);
 											if (is_string($result)) {
 												return $result;
 											}
@@ -2773,12 +2813,61 @@ class SQL implements \ArrayAccess
 											case 'text':				//	I think we should use `text` only to check for all the modifiers ... so we don't do so many tests for common %s values ... this is `text` transformations ...
 											case 's':
 
-												//	empty string = NULL
-												if (strpos($modifiers, ':json') !== false) {
-													$value = json_encode($value);
-												}
+												//	WARNING: We need to handle the special case of `prepare('%s:json_encode', ['v2', 'v2'])` ... where the first param is an array ...
 
-												jsonify
+												//	empty string = NULL
+												if (strpos($modifiers, ':json') !== false)
+												{
+dump($params);
+dump($value);
+													if (isset($params_conversion) && $params_conversion) {	//	the first $param[0] WAS an array (as test at the top) ... and there was only one value ...
+														$value	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
+													}
+dump($params);
+dump($value);
+													if (is_array($value)) {
+														//	loop through the values and handle :trim :pack etc. on them
+														if (strpos($modifiers, ':pack') !== false) {
+															foreach ($value as $json_key => $json_value) {
+																if (is_string())
+																	$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
+																else if (is_numeric())
+																	$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
+															}
+														}
+														else if (strpos($modifiers, ':trim') !== false) {
+															foreach ($value as $json_key => $json_value) {
+																$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
+															}
+														}
+													}
+dump($params);
+dump($value);
+													//	ordered by most common
+													if (strpos($modifiers, ':jsonencode') !== false) {
+														$value = json_encode($value);
+													}
+													else if (strpos($modifiers, ':json_encode') !== false) {	//	`_` is giving problems in the regular expression! Dunno why!
+														$value = json_encode($value);
+													}
+													else if (strpos($modifiers, ':jsonify') !== false) {
+														$value = json_encode($value);
+													}
+													else if (strpos($modifiers, ':to_json') !== false) {
+														$value = json_encode($value);
+													}
+													else if (strpos($modifiers, ':json_decode') !== false) {	//	WARNING: only string values in :json_decode are valid! So it has limited application!
+														$value = json_decode($value);
+													}
+													else if (strpos($modifiers, ':from_json') !== false) {
+														$value = json_decode($value);
+													}
+													else if (strpos($modifiers, ':fromjson') !== false) {
+														$value = json_decode($value);
+													}
+												}
+dump($params);
+dump($value);
 
 												if ( ! is_string($value)) {
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
@@ -3067,6 +3156,17 @@ class SQL implements \ArrayAccess
 
 
 
+    /**
+     * Returns an entry of the container by its name.
+     *
+     * @param string $name Entry name or a class name.
+     *
+     * @throws InvalidArgumentException The name parameter must be of type string.
+     * @throws DependencyException Error while resolving the entry.
+     * @throws NotFoundException No entry found for the given name.
+     * @return mixed
+     */
+//    public function get($name)
 	/**
 	 *	https://dev.mysql.com/doc/refman/5.7/en/select.html
 	 *	
@@ -3322,11 +3422,27 @@ class SQL implements \ArrayAccess
 	}
 
 	/**
-	 *	Used when we detect ? ... actually, we can't do array processing!
+	 *	Use this function to `clean` up all NON-essential characters!
+	 *	\s modifier: " ,\t,\r,\n,\v,\f"		\v = vertical tab (decimal:11)		\f = form feed (decimal:12) = \x0C
 	 *
 	 */
-	public static function sanitize($value)
+	/**
+	 *	Taken from: http://www.regular-expressions.info/unicode.html
+	 *	\p{Z} or \p{Separator}: any kind of whitespace or invisible separator.
+	 *		\p{Zs} or \p{Space_Separator}: a whitespace character that is invisible, but does take up space.
+	 *		\p{Zl} or \p{Line_Separator}: line separator character U+2028.
+	 *		\p{Zp} or \p{Paragraph_Separator}: paragraph separator character U+2029.
+	 *	\p{C} or \p{Other}: invisible control characters and unused code points.
+	 *		\p{Cc} or \p{Control}: an ASCII or Latin-1 control character: 0x00–0x1F and 0x7F–0x9F.
+	 *		\p{Cf} or \p{Format}: invisible formatting indicator.
+	 *		\p{Co} or \p{Private_Use}: any code point reserved for private use.
+	 *		\p{Cs} or \p{Surrogate}: one half of a surrogate pair in UTF-16 encoding.
+	 *		\p{Cn} or \p{Unassigned}: any code point to which no character has been assigned.
+	 */
+	public static function sanitize(string $str)
 	{
+		return preg_replace('/(?!\s)\p{C}/u', null, $str);	//	creates a NEGATIVE look-ahead for \s characters; while \p{C} will remove ALL non-essential characters (ie. invisible control characters and unused code points) such as \0
+
 		if (is_numeric($value)) return $value;
 		if (is_string($value)) self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', self::utf8($value)) . self::$quot;
 		if (is_null($value)) return 'NULL';
@@ -3340,11 +3456,34 @@ class SQL implements \ArrayAccess
 	/**
 	 *	ArrayAccess interface
 	 */
+    /**
+     * Gets a parameter or an object.
+     *
+     * @param string $id The unique identifier for the parameter or object
+     *
+     * @return mixed The value of the parameter or an object
+     *
+     * @throws \InvalidArgumentException if the identifier is not defined
+     */
 	public function offsetGet($sql)
 	{
 		$this->sql .= is_null($sql) ? 'NULL' : $sql;
 		return $this;
 	}
+    /**
+     * Sets a parameter or an object.
+     *
+     * Objects must be defined as Closures.
+     *
+     * Allowing any PHP callable leads to difficult to debug problems
+     * as function names (strings) are callable (creating a function with
+     * the same name as an existing parameter would break your container).
+     *
+     * @param string $id    The unique identifier for the parameter or object
+     * @param mixed  $value The value of the parameter or a closure to define an object
+     *
+     * @throws \RuntimeException Prevent override of a frozen service
+     */
 	public function offsetSet($idx, $sql)
 	{
 //		if (is_numeric($idx))
@@ -3352,10 +3491,24 @@ class SQL implements \ArrayAccess
 //		else
 			$this->sql = $sql;
 	}
+
+    /**
+     * Checks if a parameter or an object is set.
+     *
+     * @param string $id The unique identifier for the parameter or object
+     *
+     * @return bool
+     */
 	public function offsetExists($idx)
 	{
 		return isset($this->sql[$idx]);
 	}
+
+    /**
+     * Unsets a parameter or an object.
+     *
+     * @param string $id The unique identifier for the parameter or object
+     */
 	public function offsetUnset($idx)
 	{
 		unset($this->sql[$idx]);
@@ -3363,14 +3516,205 @@ class SQL implements \ArrayAccess
 
 
 
+    /**
+     * REFERENCE
+     *
+     * Builds a {@see \Closure} capable of instantiating the given $className without
+     * invoking its constructor.
+     *
+     * @param string $className
+     *
+     * @return Closure
+     */
+
+    /**
+     * Builds a {@see \Closure} capable of instantiating the given $className without
+     * invoking its constructor.
+     *
+     * @param string $type
+     * @param string $func
+     *
+     * @return void
+     */
 	public static function createDataType(string $type, callable $func)
 	{
 		self::$types[$type] = $func;
 	}
 
+    /**
+     * Builds a {@see \Closure} capable of instantiating the given $className without
+     * invoking its constructor.
+     *
+     * @param string $className
+     *
+     * @return Closure
+     */
 	public static function createModifier(string $modifier, callable $func)	//	should add the `position`, like `before`, `after` etc.
 	{
 		self::$modifiers[$modifier] = $func;
+	}
+
+
+
+	//	recursively `packs` all string values within an array/value
+	//	used on array values for :jsonify / :jsonencode
+	public static function pack($value)	//	AKA packStrings ?	/ packAll ?
+	{
+		if (is_array($value)) {
+			foreach($value as $k => &$v) {
+				if (is_string($v)) {
+					$value[$k] = trim(mb_ereg_replace('\s+', ' ', $v));
+				}
+				else if (is_array($v)) {	//	2 levels handled internally, just a small optimization for large multi-level arrays!
+					foreach($v as $k2 => $v2) {
+						if (is_string($v2)) {
+							$v[$k2] = trim(mb_ereg_replace('\s+', ' ', $v2));
+						}
+						else if (is_array($v2)) {
+							$v[$k2] = self::pack($v2);
+						}
+					}
+				}
+			}
+			return $value;
+		}
+		if (is_string($value)) {
+			return trim(mb_ereg_replace('\s+', ' ', $value));
+		}
+		return $value;
+	}
+	//	recursively `trims` all string values within an array/value
+	//	used on array values for :jsonify / :jsonencode  where :trim
+	public static function trim($value)	//	AKA packStrings ?	/ packAll ?
+	{
+		if (is_array($value)) {
+			foreach($value as $k => &$v) {
+				if (is_string($v)) {
+					$value[$k] = trim(mb_ereg_replace('\s+', ' ', $v));
+				}
+				else if (is_array($v)) {	//	2 levels handled internally, just a small optimization for large multi-level arrays!
+					foreach($v as $k2 => $v2) {
+						if (is_string($v2)) {
+							$v[$k2] = trim(mb_ereg_replace('\s+', ' ', $v2));
+						}
+						else if (is_array($v2)) {
+							$v[$k2] = self::pack($v2);
+						}
+					}
+				}
+			}
+			return $value;
+		}
+		if (is_string($value)) {
+			return trim(mb_ereg_replace('\s+', ' ', $value));
+		}
+		return $value;
+	}
+
+	/**
+	 *	Supplementary Reference for mb_trim() and mb_pack()
+	 *
+	 *	Taken from: http://www.regular-expressions.info/unicode.html
+	 *
+	 *	\p{Z} or \p{Separator}: any kind of whitespace or invisible separator.
+	 *		\p{Zs} or \p{Space_Separator}: a whitespace character that is invisible, but does take up space.
+	 *		\p{Zl} or \p{Line_Separator}: line separator character U+2028.
+	 *		\p{Zp} or \p{Paragraph_Separator}: paragraph separator character U+2029.
+	 *
+	 *	\p{C} or \p{Other}: invisible control characters and unused code points.
+	 *		\p{Cc} or \p{Control}: an ASCII or Latin-1 control character: 0x00–0x1F and 0x7F–0x9F.
+	 *		\p{Cf} or \p{Format}: invisible formatting indicator.
+	 *		\p{Co} or \p{Private_Use}: any code point reserved for private use.
+	 *		\p{Cs} or \p{Surrogate}: one half of a surrogate pair in UTF-16 encoding.
+	 *		\p{Cn} or \p{Unassigned}: any code point to which no character has been assigned.
+	 *
+	 *	\s modifier: " ,\t,\r,\n,\v,\f"		\v = vertical tab (decimal:11)		\f = form feed (decimal:12) = \x0C
+	 *
+	 *	trim:	" ,\t,\r,\n,\0,\x0B"	\x0B == \v == vertical tab (decimal:11)		\n = line feed		\t = tab		\r = carriage return
+	 *
+	 *	ctrl-Z = decimal:26	symbol: ^Z  / SUB  / EOF
+	 *
+	 *	`Control character` class:		https://en.wikipedia.org/wiki/Control_character
+	 *
+	 *	`\s` includes characters in two different classes
+	 *		\t, \r, \n are defined in the \p{Cc} class
+	 *		` ` (space) is defined in the \p{Zs} class
+	 *
+	 *	Supplementary Information from:
+	 *		http://nadeausoftware.com/articles/2007/9/php_tip_how_strip_punctuation_characters_web_page#Removinglineparagraphandwordseparators
+	 *
+	 *  \p{Z}  -   `Removing line, paragraph, and word separators`
+	 *             `Separator characters delimit lines, paragraphs, and words.
+	 *              The most common separator is a space character, but Unicode defines 18 different spaces,
+	 *              such as n- and m-sized spaces, and a non-breaking space.
+	 *              Replace all of these with a generic space to simplify content analysis and further regular expressions.`
+	 *
+	 *		// Remove control, formatting, and surrogate characters
+	 *		$text = preg_replace( '/[\p{Cc}\p{Cf}\p{Cs}]/u', ' ', $text );
+	 *
+	 */
+	/**
+	 *	Advanced UTF-8 enabled `trimmer`
+	 *
+	 *	Removes all `invisible control characters and unused code points.`
+	 *		as well as `any kind of whitespace or invisible separator.`
+	 *
+	 *	My `exact` match for trim()'s characters would be: [ \x00\x09\x0A\x0B\x0D]	\0=00  \t=09 \n=0A \v=0B \r=0D
+	 *
+	 *	However, I find this range to be too limited when dealing with UTF-8 data from external sources.
+	 *
+	 * @link http://news.php.net/php.internals/74654
+	 *
+	 *
+	 */
+	public static function mb_trim(string $str)
+	{
+		return preg_replace('/^[\p{Z}\p{C}]+|[\p{Z}\p{C}]+$/u', null, $str);
+	}
+
+
+	/**
+	 *	Advanced UTF-8 enabled string packer (whitespace merger/normalizer)
+	 *
+	 *	Step 1:	'/(?!\s)\p{C}/u'
+	 *		Remove `invisible control characters and unused code points`.
+	 *			Except those defined by the \s class, which include \t\r\n
+	 *			In other words, remove all `control characters` except \s
+	 *			The negative look-ahead class `(?!\s)` removes the \s characters
+	 *				from the next pattern, which is `\p{C}`
+	 *			We do this to preserve the \s range, but remove characters like \0
+	 *
+	 *	Step 2:	'/^[\p{Z}\s]+|[\p{Z}\s]+$/u'
+	 *		`trim`
+	 *			Remove leading and trailing whitespace and control characters.
+	 *
+	 *	Step 3:	'/[\p{Z}\s]+/u'
+	 *		\p{Z} - `any kind of whitespace or invisible separator.`
+	 *			\p{Z} includes ` ` (space), but not \t\r\n, which we include with \s
+	 *			Replace all `\s+` ranges with ' '
+	 *			`\s` does NOT include the additional whitespace characters as defined by \p{Z},
+	 *				both \s and \p{Z} include ` `,
+	 *				but \s includes \t\r\n (control characters),
+	 *				and \p{Z} includes all other whitespace like &nbsp; / &#160;
+	 *
+	 *	About the whitepace merging enhancement: '/(?! )[\p{Z}\s]+/u' (the middle pattern)
+	 *		Previously, I would have just used '/\s+/u', ' ' to merge whitespace.
+	 *			However, I found that adding the negative lookahead `(?! )` for the space character
+	 *			to improve performace in ALL cases (large and small text) by 20%-40%
+	 *		This essentially increases performance on pre-formatted text that only uses traditional spaces,
+	 *			because it essentially will leave those strings alone; ie. not having to do any work on them!
+	 *			Even a string with 5 spaces in 27 characters was 25% faster to process!
+	 *		This was an enhancement I developed myself on 21 July 2017 @ 9pm, the day after Chester Bennington died!
+	 */
+	public static function mb_pack(string $str)
+	{
+		static $patterns     =	null;
+		static $replacements =	null;
+		if ($patterns === null) {	//	`caching` the arrays construction in-case mb_pack() is called again!
+			$patterns        =	['/(?!\s)\p{C}/u', '/^[\p{Z}\s]+|[\p{Z}\s]+$/u', '/(?! )[\p{Z}\s]+/u'];
+			$replacements    =	[null, null, ' '];	//	null == ''
+		}
+		return preg_replace($patterns, $replacements, $str);
 	}
 }
 
