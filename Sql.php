@@ -1415,24 +1415,35 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	Example:
-	 *		.USING('id')
-	 *		.USING('id', 'user_id')	??? legal??
+	 *	USING statement
 	 *
-	 *	Sample:
-	 *		t1 LEFT JOIN t2 USING (id) LEFT JOIN t3 USING (id)
+	 *	Generate a USING ( $fields ) statement
+	 *		$fields are joined/imploded with ', '
+	 *
+	 *	@param  string $fields,...
+	 *
+	 *	@return	$this
 	 */
-	public function using(...$args)
+	public function using(...$fields)
 	{
-		$this->sql .= self::$translations['USING'] . '(' . implode(', ', $args) . ')';
+		$this->sql .= self::$translations['USING'] . '(' . implode(', ', $fields) . ')';
 		return $this;
 	}
 
 	/**
-	 *	Examples:
-	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *		t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL) ON t1.a=t2.a
+	 *	ON statement
+	 *
+	 *	Generate an ON statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	{@see Sql::prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params,...
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function on($stmt = null, ...$params)
 	{
@@ -1444,9 +1455,19 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
-	 *	Examples:
-	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
+	 *	AND statement
+	 *
+	 *	Generate an AND statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	{@see Sql::prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params,...
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function and($stmt = null, ...$params)
 	{
@@ -1458,12 +1479,19 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
+	 *	OR statement
 	 *
+	 *	Generate an OR statement with convenient `prepare()` syntax (optional)
 	 *
+	 *	{@see Sql::prepare()} for optional syntax rules
 	 *
-	 *	Examples:
-	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *		LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params,...
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function or($stmt = null, ...$params)
 	{
@@ -1475,13 +1503,20 @@ class Sql implements \ArrayAccess
 	}
 
 
-
 	/**
+	 *	WHERE statement
 	 *
-	 *		->WHERE('name = ?', $name)
-	 *		->WHERE(['fname = ?', $fname, 'lname = ?', $lname], 'name = ?', $name)	=> WHERE (fname = $fname) OR (lname = $lname)
+	 *	Generate a WHERE statement with convenient `prepare()` syntax (optional)
 	 *
-	 *	Examples:
+	 *	{@see Sql::prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params,...
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function where($stmt = null, ...$params)
 	{
@@ -1490,48 +1525,26 @@ class Sql implements \ArrayAccess
 			return $this;
 		}
 		return $this->prepare(self::$translations['WHERE'] . $stmt, ...$params);
-
-
-	//	original code ...
-		$this->sql .= self::$translations['WHERE'];
-		for(; key($args) !== null; next($args))
-		{
-			$arg = current($args);
-			if (mb_strpos($arg, '?') !== false) {
-				for ($offset = 0; ($pos = mb_strpos($arg, '?', $offset)) !== false; $offset = $pos + 1 ) {
-					$next = next($args);
-					$this->sql .= mb_substr($arg, $offset, $pos - $offset) . $this->sanitize($next);
-					$final = null;
-				}
-				$this->sql .= mb_substr($arg, $offset);
-			}
-			else {
-				// lookahead
-				$next = next($args);
-				if (is_array($next)) {
-					// $next member is an array of (hopefully) replacement values eg. ['id' => 5] for ':id'
-					$this->sql .= mb_ereg_replace_callback(':([a-z]+)',
-										function ($matches) use ($next)
-										{
-											if (isset($next[$matches[1]])) {
-												return $this->sanitize($next[$matches[1]]);
-											}
-											else if (isset($next['@' . $matches[1]])) {
-												return $next['@' . $matches[1]];
-											}
-											throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
-										}, $arg);
-				}
-				else {
-					$this->sql .= $arg;
-					prev($args);
-				}
-			}
-		}
-		$this->sql .= $final;
-		return $this;
 	}
-	public function W(string $stmt = null, ...$params)
+
+	/**
+	 *	WHERE statement - shorthand
+	 *
+	 *	Generate a WHERE statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	This is the same as `where()`, only shorthand form
+	 *
+	 *	{@see Sql::prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function w($stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= self::$translations['WHERE'] . $stmt;
