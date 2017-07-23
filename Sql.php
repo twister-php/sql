@@ -239,7 +239,7 @@ class Sql implements \ArrayAccess
 											'NOT_'			=>	'NOT ',
 											'_NOT'			=>	' NOT',
 											'_NOT_'			=>	' NOT ',
-											'NULL'			=>	'NULL',
+											'NULL'			=>	'NULL',				//	Warning: don't add spaces here, used in several places without spaces!
 											'NULL_'			=>	'NULL ',
 											'_NULL'			=>	' NULL',
 											'_NULL_'		=>	' NULL ',
@@ -537,7 +537,7 @@ class Sql implements \ArrayAccess
 	 *                      (optional) Statement to `prepare()`;
 	 *                      {@see self::prepare()} for syntax rules
 	 *
-	 *	@param  mixed       $params
+	 *	@param  mixed       ...$params
 	 *                      (optional) Parameters associated with $stmt
 	 *
 	 *	@return void
@@ -552,11 +552,35 @@ class Sql implements \ArrayAccess
 		}
 	}
 
+	/**
+	 *	__toString() Magic Method
+	 *
+	 *	{@link http://php.net/manual/en/language.oop5.magic.php#object.tostring}
+	 *
+	 *	@return	string $this->sql
+	 */
 	public function __toString()
 	{
 		return $this->sql;
 	}
 
+	/**
+	 *	__invoke() Magic Method
+	 *
+	 *	@alias prepare()
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	{@link http://php.net/manual/en/language.oop5.magic.php#object.invoke}
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function __invoke($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -566,22 +590,12 @@ class Sql implements \ArrayAccess
 		return $this->prepare($stmt, ...$params);
 	}
 
-	public function write($stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= is_null($sql) ? self::$translations['NULL'] : $sql;
-			return $this;
-		}
-		return $this->prepare($stmt, ...$params);
-	}
-
-
 
 	/**
 	 *	CALL Stored Procudure
 	 *
-	 *	This function has the ability to detect if you've pre-prepared the format
-	 *		for individual values;
+	 *	This function has the ability to auto-detect if you've
+	 *		pre-prepared the format for individual values;
 	 *		eg. call('sp_name(?, ?, @)', $v1, $v2, $v3)
 	 *		vs. call('sp_name', $v1, $v2, $v3)
 	 *
@@ -589,7 +603,7 @@ class Sql implements \ArrayAccess
 	 *		This is useful if you don't have any special string handling requirements
 	 *
 	 *	To disable value escaping, use one of the following techniques:
-	 *			->call('sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000)', 'u.name', '@sql_variable', $name)
+	 *			->call('sp_name(LAST_INSERT_ID(), @, @, ?)', 'u.name', '@sql_variable', $name)
 	 *			->call('sp_name', ['@' => 'LAST_INSERT_ID()'])
 	 *			->call('sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
 	 *			->call('SELECT sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
@@ -614,7 +628,9 @@ class Sql implements \ArrayAccess
 	 *	@todo Possibly detect the connection type; and use the appropriate syntax; because PostgreSQL uses `SELECT sp_name(...)`
 	 *
 	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
-	 *	@param  mixed  $params  Parameters required for the stored procedure
+	 *
+	 *	@param  mixed  ...$params  Parameters required for the stored procedure
+	 *
 	 *	@return $this
 	 */
 	public function call($sp_name = null, ...$params)
@@ -624,6 +640,18 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
+
+	/**
+	 *	CALL Stored Procudure - shorthand for `call()`
+	 *
+	 *	@alias call()
+	 *
+	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
+	 *
+	 *	@param  mixed  ...$params  Parameters required for the stored procedure
+	 *
+	 *	@return	$this
+	 */
 	public function c($sp_name = null, ...$params)
 	{
 		if (strpos($sp_name, '(') === false) {
@@ -631,6 +659,18 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
+
+	/**
+	 *	CALL Stored Procudure - shorthand for `call()`
+	 *
+	 *	@alias call()
+	 *
+	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
+	 *
+	 *	@param  mixed  ...$params  Parameters required for the stored procedure
+	 *
+	 *	@return	$this
+	 */
 	public function sp($sp_name = null, ...$params)
 	{
 		if (strpos($sp_name, '(') === false) {
@@ -638,6 +678,18 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
+
+	/**
+	 *	CALL Stored Procudure - shorthand for `call()`
+	 *
+	 *	@alias call()
+	 *
+	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
+	 *
+	 *	@param  mixed  ...$params  Parameters required for the stored procedure
+	 *
+	 *	@return	$this
+	 */
 	public function storedProc($sp_name = null, ...$params)
 	{
 		if (strpos($sp_name, '(') === false) {
@@ -647,6 +699,19 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**
+	 *	Generates an SQL `INSERT` statement
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function insert($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -655,6 +720,20 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INSERT'] . $stmt, ...$params);
 	}
+
+	/**
+	 *	Generates an SQL `INSERT` statement - shorthand for `insert()`
+	 *
+	 *	@alias insert()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function i($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -664,41 +743,89 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['INSERT'] . $stmt, ...$params);
 	}
 
-	public function insert_into($tbl_name, ...$params)
+	/**
+	 *	Generates an SQL `INSERT INTO` statement
+	 *
+	 *	See {@see insertInto()} for alternative spelling
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insert_into($stmt, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= self::$translations['INSERT_INTO'] . $tbl_name;
+			$this->sql .= self::$translations['INSERT_INTO'] . $stmt;
 			return $this;
 		}
 		$this->sql .= self::$translations['INSERT'];
-		return $this->into($tbl_name, ...$params);
+		return $this->into($stmt, ...$params);
 	}
-	public function insertInto($tbl_name, ...$params)
+
+	/**
+	 *	Generates an SQL `INSERT INTO` statement
+	 *
+	 *	See {@see insert_into()} for alternative spelling
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insertInto($stmt, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= 'INSERT INTO ' . $tbl_name;
+			$this->sql .= 'INSERT INTO ' . $stmt;
 			return $this;
 		}
 		$this->sql .= 'INSERT ';
-		return $this->into($tbl_name, ...$params);
+		return $this->into($stmt, ...$params);
 	}
-	public function ii($tbl_name, ...$params)
+
+	/**
+	 *	Generates an SQL `INSERT INTO` statement - shorthand for `insertInto()`
+	 *
+	 *	@alias insert_into()
+	 *	@alias insertInto()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function ii($stmt, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= 'INSERT INTO ' . $tbl_name;
+			$this->sql .= 'INSERT INTO ' . $stmt;
 			return $this;
 		}
 		$this->sql .= 'INSERT ';
-		return $this->into($tbl_name, ...$params);
+		return $this->into($stmt, ...$params);
 	}
 
 
 	/**
-	 *	Helper function for `INTO` syntax
+	 *	Generates an SQL `INTO` statement
 	 *
 	 *	A variety of method calling techniques are provided:
 	 *
 	 *	1) 
+	 *
+	 *	@todo: complete this documentation
 	 *
 	 *	detect first character of column title ... if the title has '@' sign, then DO NOT ESCAPE! ... can be useful for 'DEFAULT', 'UNIX_TIMESTAMP()', or '@id' or 'MD5(...)' etc. (a connection variable) etc.
 	 *
@@ -714,11 +841,11 @@ class Sql implements \ArrayAccess
 	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
 	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)] [(col_name,...)]  {VALUES | VALUE} ({expr | DEFAULT},...),(...),...
 	 *
-	 *	@param string $stmt Table name or `prepare` style statement
-	 *	@param mixed ... $params Parameters to use, either columns only or column-value pairs
+	 *	@param  string    $stmt   Table name or `prepare` style statement
+	 *	@param  mixed  ...$params Parameters to use, either columns only or column-value pairs
 	 *	@return $this
 	 */
-	public function into($tbl_name = null, ...$params)
+	public function into($stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= 'INTO ' . $tbl_name;
@@ -875,17 +1002,25 @@ class Sql implements \ArrayAccess
 	}
 
 
-
 	/**
+	 *	Generates an SQL `VALUES` statement
+	 *
 	 *	Samples:
 	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
 	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_name,...)] [(col_name,...)]  {VALUES | VALUE} ({expr | DEFAULT},...),(...),...
-	 *
 	 *
 	 *	ANY $key/$index value starting with '@' will cause the value to NOT be escaped!
 	 *	eg. VALUES(['value1', '@' => 'UNIX_TIMESTAMP()', '@1' => 'MAX(table)', '@2' => 'DEFAULT', '@3' => 'NULL'])
 	 *	eg. VALUES('?, @, @', 'value1', 'DEFAULT', 'NULL')
 	 *	eg. VALUES('5, 6, 7, 8, @id, CURDATE()')
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function values($stmt = null, ...$params)
 	{
@@ -924,6 +1059,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(' VALUES (' . $stmt . ')', ...$params);
 	}
+	/**
+	 *	Generates an SQL `VALUES` statement - shorthand for `values()`
+	 *
+	 *	@alias values()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function v($stmt = null, ...$params)
 	{
 		if (empty($params))
@@ -963,6 +1111,28 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**
+	 *	Generates an SQL `SET` statement
+	 *
+	 *	@todo fix up this documentation
+	 *
+	 *	Samples:
+	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
+	 *	https://dev.mysql.com/doc/refman/5.7/en/update.html
+	 *		INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name SET col_name={expr | DEFAULT}, ... [ ON DUPLICATE KEY UPDATE col_name=expr [, col_name=expr] ... ]
+	 *		UPDATE [LOW_PRIORITY] [IGNORE] table_reference SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}]
+	 *
+	 *		 ... ${id} || $id (looks too much like a variable!  #{id}  :{id}   @user   (entity framework!)  {0} = parameters by index!
+	 *
+	 *	Alternative 1: (['col1' => $value1, 'col2' => $value2, '@dated' => 'CURDATE()']) 		single array:		[columns => values]
+	 *	Alternative 2: (['col1', 'col2', '@dated'], [$value1, $value2, 'CURDATE()'])			two arrays:			[columns], [values]
+	 *	Alternative 3: ('col1 = ?, col2 = ?, dated = @', $value1, $value2, 'CURDATE()')
+	 *	Alternative 4: (['col1 = ?', col2 = ?, dated = @', $value1, $value2, 'CURDATE()') 	single array v2:	['column', $value, 'column', $value]
+	 *
+	 *	@param  mixed       ...$args
+	 *
+	 *	@return	$this
+	 */
 	public function set(...$args)
 	{
 		$values = null;
@@ -1042,8 +1212,19 @@ class Sql implements \ArrayAccess
 	}
 
 
-
-
+	/**
+	 *	Generates an SQL `EXPLAIN` statement
+	 *
+	 *	Might be MySQL specific
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function explain($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1055,25 +1236,25 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	Helper to generate an SQL 'SELECT' statement
+	 *	Generates an SQL 'SELECT' statement
 	 *
-	 *	This function will merge a list of columns/fields
+	 *	This function will join/implode a list of columns/fields
 	 *
 	 *	eg. `$sql = sql()->select('u.id', 'u.name', 'u.foo', 'u.bar');
 	 *
-	 *	Due to the greater convenience provided by this technique,
-	 *	the method of providing values via `prepare()`'s `?`/`@` is not provided!
+	 *	Due to the greater convenience provided by this method,
+	 *		the `prepare()` syntax is not provided here
 	 *
 	 *	`prepare()`/`sprintf()` like functionality can be provided by using
-	 *		another Sql Query Object's construnctor like this:
+	 *		another Sql Query Object's constructor like this:
 	 *
 	 *	`$sql = sql()->select('u.id',
 	 *	                      // note how the next `sql()` call will be converted to a string
 	 *	                      sql('(SELECT ... WHERE a.id = @) AS foo', $id),
 	 *	                      'u.name')
-	 *	             ->from('users u');
+	 *	             ->from('users u');`
 	 *
-	 *	@param  string[] $cols Column list will be imploded with ', '
+	 *	@param  string ...$cols Column list will be imploded with ', '
 	 *
 	 *	@return $this
 	 */
@@ -1085,22 +1266,17 @@ class Sql implements \ArrayAccess
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 *	Generates an SQL `FROM` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function from($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1109,6 +1285,20 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['FROM'] . $stmt, ...$params);
 	}
+
+	/**
+	 *	Generates an SQL `FROM` statement - shorthand for `from()`
+	 *
+	 *	@alias from()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function f($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1119,6 +1309,17 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**
+	 *	Generates an SQL `JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1127,6 +1328,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `JOIN` statement - shorthand for `join()`
+	 *
+	 *	@alias join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function j($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1136,6 +1350,21 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `JOIN $table ON` statement
+	 *
+	 *	Combines functionality of JOIN and ON ... experimental!
+	 *
+	 *	@param  string      $table
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function join_on($table, $stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1144,23 +1373,22 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
-	public function joinOn($table, $stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= self::$translations['JOIN'] . $table . self::$translations['ON'];
-			return $this;
-		}
-		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
-	}
+	/**
+	 *	Generates an SQL `JOIN $table ON` statement - shorthand for `join_on()`
+	 *
+	 *	@alias join_on()
+	 *
+	 *	@param  string      $table
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function j_on($table, $stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= self::$translations['JOIN'] . $table . self::$translations['ON'];
-			return $this;
-		}
-		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
-	}
-	public function jOn($table, $stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= self::$translations['JOIN'] . $table . self::$translations['ON'];
@@ -1170,22 +1398,63 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
-	 *	Samples:
-	 *	https://dev.mysql.com/doc/refman/5.5/en/nested-join-optimization.html
-	 *		LEFT JOIN (t2, t3, t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *			=== LEFT JOIN (t2 CROSS JOIN t3 CROSS JOIN t4) ON (t2.a=t1.a AND t3.b=t1.b AND t4.c=t1.c)
-	 *		t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL) ON t1.a=t2.a
-	 *			=== (t1 LEFT JOIN t2 ON t1.a=t2.a) LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL
-	 *		FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL) ON t1.a=t2.a;
-	 *		FROM (t1 LEFT JOIN t2 ON t1.a=t2.a) LEFT JOIN t3 ON t2.b=t3.b OR t2.b IS NULL;
-	 *		t1 LEFT JOIN (t2, t3) ON t1.a=t2.a
-	 *			!==	t1 LEFT JOIN t2 ON t1.a=t2.a, t3
-	 *		FROM T1 INNER JOIN T2 ON P1(T1,T2) INNER JOIN T3 ON P2(T2,T3)
-	 *		FROM T1 LEFT JOIN (T2 LEFT JOIN T3 ON P2(T2,T3)) ON P1(T1,T2)
-	 *		(T2 LEFT JOIN T3 ON P2(T2,T3))
-	 *		T1 LEFT JOIN (T2,T3) ON P1(T1,T2) AND P2(T1,T3) WHERE P(T1,T2,T3)
+	 *	Generates an SQL `JOIN $table ON` statement
 	 *
+	 *	Alternative spelling for `join_on`
 	 *
+	 *	@param  string      $table
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function joinOn($table, $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['JOIN'] . $table . self::$translations['ON'];
+			return $this;
+		}
+		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
+	}
+	/**
+	 *	Generates an SQL `JOIN $table ON` statement - shorthand for `joinOn()`
+	 *
+	 *	@alias joinOn()
+	 *
+	 *	@param  string      $table
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function jOn($table, $stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['JOIN'] . $table . self::$translations['ON'];
+			return $this;
+		}
+		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `LEFT JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
 	public function left_join($stmt = null, ...$params)
 	{
@@ -1195,6 +1464,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `LEFT JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function leftJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1203,6 +1483,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `LEFT JOIN` statement
+	 *
+	 *	@alias left_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function lj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1212,6 +1505,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `LEFT OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function left_outer_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1220,6 +1524,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `LEFT OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function leftOuterJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1228,6 +1543,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `LEFT OUTER JOIN` statement
+	 *
+	 *	@alias left_outer_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function loj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1237,6 +1565,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `RIGHT JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function right_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1245,6 +1584,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `RIGHT JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function rightJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1253,6 +1603,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `RIGHT JOIN` statement
+	 *
+	 *	@alias right_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function rj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1262,6 +1625,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `RIGHT OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function right_outer_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1270,6 +1644,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `RIGHT OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function rightOuterJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1278,6 +1663,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `RIGHT OUTER JOIN` statement
+	 *
+	 *	@alias right_outer_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function roj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1287,6 +1685,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `INNER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function inner_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1295,6 +1704,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `INNER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function innerJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1303,6 +1723,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `INNER JOIN` statement
+	 *
+	 *	@alias inner_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function ij($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1312,6 +1745,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function outer_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1320,6 +1764,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `OUTER JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function outerJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1328,6 +1783,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `OUTER JOIN` statement
+	 *
+	 *	@alias outer_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function oj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1337,6 +1805,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `CROSS JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function cross_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1345,6 +1824,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `CROSS JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function crossJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1353,6 +1843,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `CROSS JOIN` statement
+	 *
+	 *	@alias cross_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function cj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1362,6 +1865,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `STRAIGHT_JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function straight_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1370,6 +1884,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `STRAIGHT_JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function straightJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1378,6 +1903,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `STRAIGHT_JOIN` statement
+	 *
+	 *	@alias straight_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function sj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1387,6 +1925,17 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
 
+	/**
+	 *	Generates an SQL `NATURAL JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function natural_join($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1395,6 +1944,17 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `NATURAL JOIN` statement
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function naturalJoin($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1403,6 +1963,19 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
 	}
+	/**
+	 *	Generates an SQL `NATURAL JOIN` statement
+	 *
+	 *	@alias natural_join()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
 	public function nj($stmt = null, ...$params)
 	{
 		if (empty($params)) {
@@ -1415,12 +1988,17 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	USING statement
+	 *	Generates an SQL `USING` statement
 	 *
-	 *	Generate a USING ( $fields ) statement
-	 *		$fields are joined/imploded with ', '
+	 *	$fields list is joined/imploded with `', '`
+	 *	$fields are NOT escaped or quoted
 	 *
-	 *	@param  string $fields,...
+	 *	Example:
+	 *
+	 *		echo sql()->using('id', 'acc');
+	 *		 USING (id, acc)
+	 *
+	 *	@param  string ...$fields
 	 *
 	 *	@return	$this
 	 */
@@ -1431,16 +2009,16 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
-	 *	ON statement
+	 *	Generates an SQL `ON` statement
 	 *
-	 *	Generate an ON statement with convenient `prepare()` syntax (optional)
+	 *	Generates an `ON` statement with convenient `prepare()` syntax (optional)
 	 *
-	 *	{@see Sql::prepare()} for optional syntax rules
+	 *	See {@see \Sql::prepare()} for optional syntax rules
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
 	 *
-	 *	@param  mixed       $params,...
+	 *	@param  mixed       ...$params
 	 *                      (optional) Parameters associated with $stmt
 	 *
 	 *	@return	$this
@@ -1454,66 +2032,20 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['ON'] . $stmt, ...$params);
 	}
 
+
+
+
 	/**
-	 *	AND statement
+	 *	Generates an SQL `WHERE` statement
 	 *
-	 *	Generate an AND statement with convenient `prepare()` syntax (optional)
+	 *	Generates a `WHERE` statement with convenient `prepare()` syntax (optional)
 	 *
-	 *	{@see Sql::prepare()} for optional syntax rules
+	 *	See {@see \Sql::prepare()} for optional syntax rules
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
 	 *
-	 *	@param  mixed       $params,...
-	 *                      (optional) Parameters associated with $stmt
-	 *
-	 *	@return	$this
-	 */
-	public function and($stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= self::$translations['AND'] . $stmt;
-			return $this;
-		}
-		return $this->prepare(self::$translations['AND'] . $stmt, ...$params);
-	}
-
-	/**
-	 *	OR statement
-	 *
-	 *	Generate an OR statement with convenient `prepare()` syntax (optional)
-	 *
-	 *	{@see Sql::prepare()} for optional syntax rules
-	 *
-	 *	@param  string|null $stmt
-	 *                      (optional) Statement to `prepare()`;
-	 *
-	 *	@param  mixed       $params,...
-	 *                      (optional) Parameters associated with $stmt
-	 *
-	 *	@return	$this
-	 */
-	public function or($stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= self::$translations['OR'] . $stmt;
-			return $this;
-		}
-		return $this->prepare(self::$translations['OR'] . $stmt, ...$params);
-	}
-
-
-	/**
-	 *	WHERE statement
-	 *
-	 *	Generate a WHERE statement with convenient `prepare()` syntax (optional)
-	 *
-	 *	{@see Sql::prepare()} for optional syntax rules
-	 *
-	 *	@param  string|null $stmt
-	 *                      (optional) Statement to `prepare()`;
-	 *
-	 *	@param  mixed       $params,...
+	 *	@param  mixed       ...$params
 	 *                      (optional) Parameters associated with $stmt
 	 *
 	 *	@return	$this
@@ -1528,13 +2060,15 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
-	 *	WHERE statement - shorthand
+	 *	Generate an SQL `WHERE` statement - shorthand for `where()`
 	 *
-	 *	Generate a WHERE statement with convenient `prepare()` syntax (optional)
+	 *	Generate a `WHERE` statement with convenient `prepare()` syntax (optional)
 	 *
 	 *	This is the same as `where()`, only shorthand form
 	 *
-	 *	{@see Sql::prepare()} for optional syntax rules
+	 *	@alias where()
+	 *
+	 *	See {@see \Sql::prepare()} for optional syntax rules
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
@@ -1555,333 +2089,46 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	Escapes the input value, and replaces the '?'
-	 *	
-	 *	Example:
-	 *		->WHERE_LIKE('', $id)
+	 *	Generates an SQL `IN` statement
 	 *
+	 *	Automatically determines $args member data types
+	 *	Automatically quotes and escapes strings
 	 *
-	 *	Samples:
-	 *		WHERE key_col LIKE 'ab%'
-	 */
-	public function WHERE_LIKE(string $col, string $like)
-	{
-		$this->sql .= self::$translations['WHERE'] . $col . ' LIKE ' . $this->sanitize($like);
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	
-	 *	Notes on mysqli::real_escape_string
-	 *		http://php.net/manual/en/mysqli.real-escape-string.php#46339
-	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
-	 *
-	 *		`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`
-	 *
-	 *
-	 *
-	 *	WARNING: What about cases LIKE('users.fname') ???
-	 *
-	 *	Example:
-	 *		->LIKE('abc%')		->$sql .= "abc%"
-	 *
-	 *
-	 *
-	 *
-	 *	Samples:
-	 *		WHERE key_col LIKE 'ab%'
-	 */
-	public function LIKE(string $format, string $value = null)
-	{
-		$this->sql .= 'LIKE ' . $this->sanitize($like);
-		return $this;
-	}
-
-	/**
-	 *	`Tests whether a value is NULL.`
-	 *
-	 *	https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#operator_is-null
-	 *
-	 *	Example:
-	 *		->IS_NULL()			==> $sql .= ' IS NULL'
-	 *		->IS_NULL($field)	==> $sql .= $field . ' IS NULL'
-	 *
-	 *	Sample:
-	 *		WHERE key_col IS NULL
-	 *		SELECT 1 IS NULL, 0 IS NULL, NULL IS NULL;
-	 *			-> 0, 0, 1
-	 */
-	public function IS_NULL(string $field = null)
-	{
-		$this->sql .= $field . ' IS NULL';
-		return $this;
-	}
-	public function isNull(string $field = null)
-	{
-		$this->sql .= $field . ' IS NULL';
-		return $this;
-	}
-
-	public function WHERE_IS_NULL(string $field)
-	{	//	TODO, we could detect if a value was input ... if is_null($input) ... then do something else !?!?
-		$this->sql .= self::$translations['WHERE'] . $field . ' IS NULL';
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_count
-	 *	
-	 *	Example:
-	 *		.COUNT('test_score')
-	 *			$sql .= ' COUNT(test_score)';
-	 *		.COUNT('test_score', 'my_min_test_score')
-	 *			$sql .= ' COUNT(test_score) AS my_min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT COUNT(*) FROM student
-	 */
-	public function COUNT(string $col = '*', string $as = null)
-	{
-		$this->sql .= 'COUNT(' . $col . ($as === null ? ')' : ') AS ' . $as);
-		return $this;
-	}
-	/**
-	 *	Forces a column alias
-	 *	Automatically prepends 'min_' to the $col name if no $as was supplied!
-	 *
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_min
-	 *
-	 *	Example:
-	 *		.MIN('test_score')
-	 *			$sql .= ' MIN(test_score)';
-	 *		.MIN('test_score', 'my_min_test_score')
-	 *			$sql .= ' MIN(test_score) AS my_min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
-	 */
-	public function COUNT_AS(string $col, string $as = null)
-	{
-		if ($as === null) {
-			//	TODO: check $col for invalid characters if $as === null! because we need to append a col name and not some agregate function!
-			
-		}
-		$this->sql .= 'COUNT(' . $col . ') AS ' . $as ?: ('count_of_' . $col);		///	WARNING: ... need to only get the first part of `work.artist_id`
-		return $this;
-	}
-
-
-	/**
-	 *
+	 *	Essentially provides the same service as implode()
+	 *	But with the added benefit of intelligent escaping and quoting
+	 *	However, implode() will be more efficient for numeric arrays
 	 *
 	 *	Example:
 	 *
-	 *	Samples:
-	 *		
-	 */
-	public function AS(string $stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= ' AS ' . $stmt;
-			return $this;
-		}
-		return $this->prepare(' AS ' . $stmt, ...$params);
-	}
-
-
-	/**
-	 *	`Returns the first non-NULL value in the list, or NULL if there are no non-NULL values.`
-	 *	`The return type of COALESCE() is the aggregated type of the argument types.`
+	 *		`echo sql()->in($array)`
+	 *		` IN (0, 1, 2, 3, ...)`
 	 *
-	 *	WARNING: This function does NOT do string output escaping!
-	 *		Because string values can be literals, numbers, NULL, table/column names etc.
-	 *		But most commonly it's used with table.columns
-	 *
-	 *	https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
-	 *
-	 *	Example:
-	 *		->COALESCE('product.special_price', 'product.price')
-	 *
-	 *	Samples:
-	 *		COALESCE(x, y)
-	 */
-	public function COALESCE(...$args)
-	{
-		$this->sql .= 'COALESCE(';
-		$comma = null;
-		foreach ($args as $arg)
-		{
-			if (is_scalar($arg)) {
-				$this->sql .= $comma . $arg;
-			}
-			else if ($arg === null) {
-				$this->sql .= $comma . 'NULL';
-			}
-			$comma = ', ';
-		}
-		$this->sql .= ')';
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_min
-	 *	
-	 *	Example:
-	 *		.MIN('test_score')
-	 *			$sql .= ' MIN(test_score)';
-	 *		.MIN('test_score', 'my_min_test_score')
-	 *			$sql .= ' MIN(test_score) AS my_min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
-	 */
-	public function MIN(string $col, string $as = null)
-	{
-		$this->sql .= 'MIN(' . $col . ($as === null ? ')' : ') AS ' . $as);
-		return $this;
-	}
-	/**
-	 *	Forces a column alias
-	 *	Automatically prepends 'min_' to the $col name if no $as was supplied!
-	 *
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_min
-	 *
-	 *	Example:
-	 *		.MIN('test_score')
-	 *			$sql .= ' MIN(test_score)';
-	 *		.MIN('test_score', 'my_min_test_score')
-	 *			$sql .= ' MIN(test_score) AS my_min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
-	 */
-	public function MIN_AS(string $col, string $as = null)
-	{
-		if ($as === null) {
-			//	TODO: check $col for invalid characters if $as === null! because we need to append a col name and not some agregate function!
-		}
-		$this->sql .= 'MIN(' . $col . ') AS ' . $as ?: ('min_' . $col);
-		return $this;
-	}
-	/**
-	 *	
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_min
-	 *	
-	 *	Example:
-	 *		.MIN_DISTINCT('test_score')
-	 *			$sql .= ' MIN(DISTINCT test_score)';
-	 *		.MIN_DISTINCT('test_score', 'my_min_test_score')
-	 *			$sql .= ' MIN(DISTINCT test_score) AS my_min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
-	 */
-	public function MIN_DISTINCT(string $col, string $as = null)
-	{
-		$this->sql .= 'MIN(DISTINCT ' . $col . ($as === null ? ')' : ') AS ' . $as);
-		return $this;
-	}
-	/**
-	 *	Forces a column alias
-	 *	Automatically prepends 'min_' to the $col name if no $as was supplied!
-	 *
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_min
-	 *
-	 *	Example:
-	 *		.MIN_DISTINCT_AS('test_score', 'my_min_test_score')
-	 *			$sql .= ' MIN(DISTINCT test_score) AS my_min_test_score';
-	 *		.MIN_DISTINCT_AS('test_score')
-	 *			$sql .= ' MIN(DISTINCT test_score) AS min_test_score';
-	 *
-	 *	Samples:
-	 *		SELECT student_name, MIN(test_score), MAX(test_score) FROM student GROUP BY student_name;
-	 */
-	public function MIN_DISTINCT_AS(string $col, string $as = null)
-	{
-		$this->sql .= 'MIN(DISTINCT ' . $col . ') AS ' . $as ?: ('min_' . $col);
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html#function_max
-	 *
-	 *	Example:
-	 *		.MAX(5)
-	 *
-	 *	Samples:
-	 *		
-	 */
-	public function MAX(string $max)
-	{
-		throw new \Exception('Need to copy the MIN() handlers to MAX() when I am done!');
-		$this->sql .= 'MAX(' . $max . ')';
-		return $this;
-	}
-
-	/**
-	 *	
-	 *	
-	 *	Example:
-	 *		.SUM('price')
-	 *
-	 *	Samples:
-	 *		
-	 */
-	public function SUM(string $col, string $as = null)
-	{
-		$this->sql .= 'SUM(' . $col . ')' . ($as === null ? null : ' AS ' . $as);
-		return $this;
-	}
-
-	/**
-	 *	
-	 *	
-	 *	Example:
-	 *		.SUM('price')
-	 *
-	 *	Samples:
-	 *		
-	 */
-	public function SUM_AS(string $col, string $as)
-	{
-		$this->sql .= 'SUM(' . $col . ') AS ' . $as;
-		return $this;
-	}
-
-	/**
-	 *	
-	 *	
-	 *	Example:
-	 *		.SUM('price')
 	 *
 	 *	Samples:
 	 *		DELETE FROM t WHERE i IN(1,2);
-	 *		
-	 *		
+	 *
+	 *	@param  mixed       ...$args
+	 *
+	 *	@return	$this
 	 */
-	public function IN(...$args)			//	WARNING: Not sure how to best handle this yet! prepare() or like this ?
+	public function in(...$args)
 	{
-/*
-		if (empty($params)) {
-			$this->sql .= ' AS ' . $stmt;
-			return $this;
-		}
-		return $this->prepare(' AS ' . $stmt, ...$params);
-*/
-
 		$comma = null;
 		$this->sql .= ' IN (';
 		foreach ($args as $arg)
 		{
-			$this->sql .= $comma . $this->sanitize($arg);
+			if (is_numeric($arg)) {
+				$this->sql .= $comma . $arg;
+			}
+			else if (is_string($arg)) {
+				$this->sql .= $comma . self::quote($arg);
+			}
+			else if (is_null($arg)) {
+				$this->sql .= $comma . 'NULL';
+			}
+			else if (is_bool($arg)) {
+				$this->sql .= $comma . $arg ? '1' : '0';
+			}
 			$comma = ', ';
 		}
 		$this->sql .= ')';
@@ -1890,38 +2137,26 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	2 Styles! If only 2x parameters are specified, then we skip adding the field before!
-	 *		$arg1 . ' BETWEEN ' . $arg2 . ' AND ' . $arg3
-	 *		' BETWEEN ' . $arg1 . ' AND ' . $arg2
+	 *	Clamp values between a $min and $max range
 	 *
-	 *	WARNING: I think I've had an issue once where I used some kind of sum/agregate and the values needed to be in (...)
-	 *	
-	 *	Example:
-	 *		->BETWEEN('age', $min, $max)
-	 *		->WHERE->age->BETWEEN($min, $max)
-	 *		->WHERE('age')->BETWEEN($min, $max)
+	 *	$value can also be a database field name
+	 *	All values are rendered without quotes or escapes
+	 *	$min and $max can be database field names
 	 *
-	 *	Samples:
-	 *		WHERE UnitPrice BETWEEN 15.00 AND 20.00
-	 *		WHERE ProductName BETWEEN "A" and "D"
-	 */
-	public function BETWEEN($arg1, $arg2, $arg3 = null)
-	{
-		$this->sql .= $arg3 === null ? (' BETWEEN ' . $arg1 . ' AND ' . $arg2) : ($arg1 . ' BETWEEN ' . $arg2 . ' AND ' . $arg3);
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	
 	 *	Example:
-	 *		->CLAMP('price', $min, $max)
+	 *		->clamp('price', $min, $max)
 	 *
 	 *	Samples:
 	 *		max($min, min($max, $current));
+	 *
+	 *	@param  int|string  $value  Value, column or field name
+	 *	@param  int|string  $min    Min value or field name
+	 *	@param  int|string  $max    Max value or field name
+	 *	@param  string|null $as     Optionally print an `AS` clause
+	 *
+	 *	@return	$this
 	 */
-	public function CLAMP(string $value, $min, $max, string $as = null)
+	public function clamp($value, $min, $max, $as = null)
 	{
 		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ')' . ($as === null ? null : ' AS ' . $as);
 		return $this;
@@ -1929,24 +2164,11 @@ class Sql implements \ArrayAccess
 
 
 	/**
+	 *	Generates an SQL `UNION` statement
+	 *
+	 *	Generates a `WHERE` statement with convenient `prepare()` syntax (optional)
 	 *
 	 *
-	 *	Example:
-	 *		->CLAMP_AS('price', $min, $max, 'price_range')
-	 *
-	 *	Samples:
-	 *		max($min, min($max, $current));
-	 */
-	public function CLAMP_AS(string $value, $min, $max, string $as)
-	{
-		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ') AS ' . $as;
-		return $this;
-	}
-
-
-	/**
-	 *	
-	 *	
 	 *	Example:
 	 *		->UNION()
 	 *		->UNION('SELECT * FROM users')
@@ -1955,8 +2177,16 @@ class Sql implements \ArrayAccess
 	 *
 	 *	Samples:
 	 *		WHERE key_col LIKE 'ab%'
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
 	 */
-	public function UNION(string $stmt = null, ...$params)
+	public function union($stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql .= self::$translations['UNION'] . $stmt;
@@ -1967,31 +2197,22 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	
-	 *	
+	 *	Generates an SQL `ORDER BY` statement
+	 *
 	 *	Example:
-	 *		.ORDER_BY
 	 *
+	 *		`echo sql()->order_by('dated DESC', 'name')`
+	 *		`ORDER BY (dated DESC, name)`
 	 *
-	 *	Samples:
-	 *		ORDER BY key_part1, key_part2
-	 *		ORDER BY key_part2
-	 *		ORDER BY key_part1 DESC, key_part2 DESC
-	 *		ORDER BY key_part1 DESC, key_part2 DESC
-	 *		ORDER BY key_part1 ASC
-	 *		ORDER BY key_part1 DESC
-	 *		ORDER BY key_part2
-	 *		ORDER BY key1, key2
-	 *		ORDER BY ABS(key)
-	 *		ORDER BY -key
-	 *		ORDER BY NULL
-	 *		ORDER BY a, b
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
 	 */
-	public function ORDER_BY(string ...$args)
+	public function order_by(...$cols)
 	{
 		$this->sql .= self::$translations['ORDER_BY'];
 		$comma = null;
-		foreach ($args as $arg)
+		foreach ($cols as $arg)
 		{
 			if ($comma === null)
 			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
@@ -2015,11 +2236,67 @@ class Sql implements \ArrayAccess
 		}
 		return $this;
 	}
-	public function orderBy(string ...$args)
+	/**
+	 *	Generates an SQL `ORDER BY` statement
+	 *
+	 *	@alias
+	 *
+	 *	Example:
+	 *
+	 *		`echo sql()->orderBy('dated DESC', 'name')`
+	 *		`ORDER BY (dated DESC, name)`
+	 *
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function orderBy(...$cols)
 	{
 		$this->sql .= self::$translations['ORDER_BY'];
 		$comma = null;
-		foreach ($args as $arg)
+		foreach ($cols as $arg)
+		{
+			if ($comma === null)
+			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
+				$this->sql .= $arg;
+				$comma = ', ';
+			}
+			else
+			{
+				switch (trim(strtoupper($arg)))
+				{
+					case 'DESC':
+					case 'ASC':
+						//	skip adding commas for `DESC` and `ASC`
+						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
+						$this->sql .= ' ' . trim($arg);
+						break;
+					default:
+						$this->sql .= $comma . $arg;
+				}
+			}
+		}
+		return $this;
+	}
+	/**
+	 *	Generates an SQL `ORDER BY` statement
+	 *
+	 *	@alias order_by()
+	 *
+	 *	Example:
+	 *
+	 *		`echo sql()->ob('dated DESC', 'name')`
+	 *		`ORDER BY (dated DESC, name)`
+	 *
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function ob(...$cols)
+	{
+		$this->sql .= self::$translations['ORDER_BY'];
+		$comma = null;
+		foreach ($cols as $arg)
 		{
 			if ($comma === null)
 			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
@@ -2045,6 +2322,8 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
+	 *	Generates an SQL `LIMIT` statement
+	 *
 	 *	LIMIT syntax has 2 variations:
 	 *		[LIMIT {[offset,] row_count | row_count OFFSET offset}]
 	 *		LIMIT 5
@@ -2057,14 +2336,21 @@ class Sql implements \ArrayAccess
 	 *		.LIMIT(5)->OFFSET(10)
 	 *
 	 *	Samples:
+	 *
+	 *	@param  int       $v1
+	 *	@param  int       $v2
+	 *
+	 *	@return	$this
 	 */
-	public function LIMIT(int $v1, int $v2 = null)
+	public function limit($v1, $v2 = null)
 	{
 		$this->sql .= self::$translations['LIMIT'] . $v1 . ($v2 === null ? null : ', ' . $v2);
 		return $this;
 	}
 
 	/**
+	 *	Generates an SQL `OFFSET` statement
+	 *
 	 *	LIMIT syntax has 2 variations:
 	 *		[LIMIT {[offset,] row_count | row_count OFFSET offset}]
 	 *		LIMIT 5
@@ -2078,40 +2364,35 @@ class Sql implements \ArrayAccess
 	 *
 	 *	Samples:
 	 *		
+	 *	@param  int       $offset
+	 *
+	 *	@return	$this
 	 */
-	public function OFFSET(int $offset)
+	public function offset($offset)
 	{
-		$this->sql .= ' OFFSET ' . $offset;
+		$this->sql .= self::$translations['OFFSET'] . $offset;
 		return $this;
 	}
 
 	/**
-	 *	
+	 *	`sprintf()` wrapper
+	 *
+	 *	Wrapper for executing an sprintf() statement, and writing
+	 *		the result directly to the internal $sql string
 	 *
 	 *	Example:
-	 *		.sprintf()
 	 *
-	 *	Samples:
-	 *		
+	 *		`echo sql()->sprintf('SELECT * FROM users WHERE id = %d', $id)`
+	 *		`SELECT * FROM users WHERE id = 5`
+	 *
+	 *	@param  string       $format The format string is composed of zero or more directives
+	 *
+	 *	@param  string       ...$args
+	 *
+	 *	@return	$this
 	 */
-	public function sprintf(...$args)			//	http://php.net/manual/en/function.sprintf.php
+	public function sprintf($format, ...$args)			//	http://php.net/manual/en/function.sprintf.php
 	{
-		$this->sql .= sprintf(...$args);		//	TODO: Detect `?` and parse the string first ???
-		return $this;
-	}
-
-	/**
-	 *	
-	 *
-	 *	Example:
-	 *		.bind()
-	 *
-	 *	Samples:
-	 *		WHERE book.ID >= :p1 AND book.ID <= :p2)'; // :p1 => 123, :p2 => 456		WHERE book.AUTHOR_ID IN (:p1, :p2)'; // :p1 => 123, :p2 => 456
-	 */
-	public function bind(...$args)				//	http://php.net/manual/en/function.sprintf.php
-	{
-		throw new \Exception('TODO: bind() parameters with ?');
 		$this->sql .= sprintf(...$args);		//	TODO: Detect `?` and parse the string first ???
 		return $this;
 	}
@@ -2120,100 +2401,19 @@ class Sql implements \ArrayAccess
 	/**
 	 *	Prepare a given input string with given parameters
 	 *
-	 *	WARNING: This function doesn't replace the PDO::prepare() statement for security, only convenience!
+	 *	Prepares a statement for execution but write the result to the internal buffer
 	 *
-	 *	To disable value escaping, use one of the following techniques:
-	 *			->prepare('sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000, %s:40, %d)', 'u.name', '@sql_variable', $name)
-	 *			->prepare('sp_name', ['@' => 'LAST_INSERT_ID()'])
-	 *			->prepare('sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
-	 *			->prepare('SELECT sp_name(@, ?)', 'LAST_INSERT_ID()', $name)
-	 *			->prepare('SELECT sp_name(LAST_INSERT_ID(), ?)', $name)
+	 *	WARNING: This function doesn't replace the `PDO::prepare()` statement for security, only convenience!
 	 *
-	 *			SQL()->prepare('#date{nullable:call:msg:onerror:msg}', $date, function(){...});
-	 *			SQL()->prepare('#date', $date, function(){...});
+	 *	@todo This is the central function, with constant work and room for improvements
 	 *
-	 *	Examples:
-	 *		INTO('users', 'col1', 'col2', 'col3')
-	 *		INTO('users', ['col1', 'col2', 'col3'])
-	 *		INTO('users', ['col1' => 'value1', 'col2' => 'value2', 'col3' => 'value3'])
-	 *		INTO('users', ['col1', 'col2', 'col3'], ['value1', 'value2', 'value3'])
+	 *	@param string $stmt       Statement with zero or more directives
 	 *
-	 *	SQL Syntax:
-	 *		PDO:
-	 *			$stmt = $pdo->prepare("CALL sp_returns_string(?)");
-	 *			$stmt->bindParam(1, $return_value, PDO::PARAM_STR, 4000);
-	 *			$stmt->execute();
-
-		Syntax WISHLIST
-
-			%e{##-##-##}
-			%{format}date(time)
-			{{%timestamp}}
-			%q					%quot			test for string	 or 	%q:n	allows null as well!
-			{{%datetimez}}
-			{{%money}}
-			{{%currency}}
-			%{min,max}int		%int{min:max}		%int{:max} %int{min:}		%int:100,
-			%clamp{n:100}		%clamp{null:100}	default is MAX value ... allows null values
-			%clamp{100}			%clamp{100}			default is MAX value
-			%clamp{:100}		%clamp{,100}		same as default
-			%clamp{0:}			%clamp{0,}
-			%clamp{0:100}		%clamp{0,100}		%clamp:1:100
-			%float{0..1}		range check															:default:1.0   (when null!)		:def:1.0
-			%range{0..1}		range test, call callback on failure or throw exception!
-			%clamp{0:100}		%clamp{0,100}
-			%varchar{4000}		{max}	default
-			%varchar{:4000}		same as default				:enull		:raw  :ufirst :lower(case) :uwords :upper(case)			:noquot ??? 	:noescape ???	(can be used with crop and pack/trim)
-			%varchar{8:4000}	{min:max}
-			%varchar{8:}		specify min
-			%match{\d\d}		%match:n:call{\d{3}}	%match:n:call{~\d{3}~}
-			%onerror			-	next value is an error handler callback
-			%after{DATE}		after{tomorrow} after{2017-01-01}								https://laravel.com/docs/5.4/validation#rule-after
-			%after_or_equal{DATE}																https://laravel.com/docs/5.4/validation#rule-after-or-equal
-			%alpha																				https://laravel.com/docs/5.4/validation#rule-alpha
-			%alpha_dash																			https://laravel.com/docs/5.4/validation#rule-alpha-dash
-			%alpha_num																			https://laravel.com/docs/5.4/validation#rule-alpha-num
-			%array																				https://laravel.com/docs/5.4/validation#rule-array
-			%before:date																		https://laravel.com/docs/5.4/validation#rule-before
-			%before_or_equal:date																https://laravel.com/docs/5.4/validation#rule-before-or-equal
-			%between{min,max}				AKA `clamp`											https://laravel.com/docs/5.4/validation#rule-between
-			%boolean																			https://laravel.com/docs/5.4/validation#rule-boolean	The field under validation must be able to be cast as a boolean. Accepted input are true, false,  1, 0, "1", and "0".
-			%confirmed																			https://laravel.com/docs/5.4/validation#rule-confirmed	... can provide a way to check if the value matches another value ... with {1} or whatever, provide an index number to the params ???
-			%isip				#is_ip
-			%isint				#is_int
-			%isjson				#is_json
-			%tojson				#to_json
-			%fromjson			#from_json
-			%json_encode		#json_encode
-			%jsonencode			#jsonencode
-			%jsonify			#jsonify
-			%serialize			#serialize
-			%string{trim:ltrim:rpad: :5:json_encode}
-			%escape				Escape only, doesn't add quotes "..."				:enull === empty equals null
-			%quot{nullable}		Escape AND quote "..."
-			%raw
-			%email{call}
-			%call{message}
-			%char
-			%hex
-			%lower
-			%upper
-			%{male , female}enum	or 	%{male : female}enum	#enumi = insensitive | #ienum
-			%{male , female}set		or 	%{male : female}set
-			%{value1, value2, value3, value4}index
-			%bit{Y:N}					problem: how to define 'nullable' if we normalize the strings ??? because if we have %bit{:n:y:n} ... it's ambiguous!
-			%bool(ean){YES:NO}
+	 *	@param mixed  ...$params Values to replace and/or escape from statement
 	 *
-	 *	Support for WHERE('owner_id IN (?)', $array)	... (?) = array placeholder	  ([]) ???  	from Ruby!   ... (#?) || (#) == numeric array (faster?)  (#, 1, 2, 3) || (1, 2, 3, #, 4, 5, 6) ??? NO!
-	 *		I prefer ->WHERE('owner_id IN ([])', $array)
-	 *
-	 *	Array placeholder [], values are simply comma separated ... [@] = raw array, [#] numeric array ? (faster?)   ... [#, 1, 2, 3] || [1, 2, 3, #] || [NULL, #]
-	 *
-	 *	@param string $pattern eg. 'CALL sp_name(LAST_INSERT_ID(), @, @, ?:varchar:4000)'
-	 *	@param string|numeric|null $params Input values to replace and/or escape
 	 *	@return $this
 	 */
-	public function prepare(string $pattern, ...$params)	//	\%('.+|[0 ]|)([1-9][0-9]*|)s		somebody else's sprintf('%s') multi-byte conversion ... %s includes the ability to add padding etc.
+	public function prepare($stmt, ...$params)	//	\%('.+|[0 ]|)([1-9][0-9]*|)s		somebody else's sprintf('%s') multi-byte conversion ... %s includes the ability to add padding etc.
 	{
 		$count = 0;
 		if (count($params) === 1 && is_array($params[0])) {		//	allowing: ->prepare('SELECT name FROM user WHERE id IN (?, ?, ?)', [1, 2, 3])
@@ -2223,7 +2423,7 @@ class Sql implements \ArrayAccess
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|\[.*\]|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 							function ($matches) use (&$count, $pattern, &$params)
 							{
-dump($matches);
+//dump($matches);
 								$match = $matches[0];
 								switch($match[0])
 								{
@@ -2345,13 +2545,13 @@ dump($matches);
 												//	empty string = NULL
 												if (strpos($modifiers, ':json') !== false)
 												{
-dump($params);
-dump($value);
+//dump($params);
+//dump($value);
 													if (isset($params_conversion) && $params_conversion) {	//	the first $param[0] WAS an array (as test at the top) ... and there was only one value ...
 														$value	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
 													}
-dump($params);
-dump($value);
+//dump($params);
+//dump($value);
 													if (is_array($value)) {
 														//	loop through the values and handle :trim :pack etc. on them
 														if (strpos($modifiers, ':pack') !== false) {
@@ -2368,8 +2568,8 @@ dump($value);
 															}
 														}
 													}
-dump($params);
-dump($value);
+//dump($params);
+//dump($value);
 													//	ordered by most common
 													if (strpos($modifiers, ':jsonencode') !== false) {
 														$value = json_encode($value);
@@ -2393,8 +2593,8 @@ dump($value);
 														$value = json_decode($value);
 													}
 												}
-dump($params);
-dump($value);
+//dump($params);
+//dump($value);
 
 												if ( ! is_string($value)) {
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
@@ -2649,58 +2849,6 @@ dump($value);
 
 
 
-	/**
-	 *	
-	 *		http://php.net/manual/en/function.explode.php
-	 *
-	 *	Example:
-	 *		.implode()
-	 *
-	 *	Samples:
-	 *		
-	 */
-	public function implode(...$args)
-	{
-		$this->sql .= implode(...$args);
-		return $this;
-	}
-
-	/**
-	 *	
-	 *		http://php.net/manual/en/function.bin2hex.php
-	 *
-	 *	Example:
-	 *		.hexify()
-	 *
-	 *	Samples:
-	 *
-	 */
-	public function hexify($str)
-	{
-		$this->sql .= ' 0x' . bin2hex($str);
-		return $this;
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      *	Appends text directly to the internal $sql string
      *
@@ -2752,6 +2900,4 @@ dump($value);
 	{
         throw new BadMethodCallException('Sql objects cannot be modified like this.');
 	}
-
-
 }
