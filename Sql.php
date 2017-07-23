@@ -37,33 +37,48 @@ namespace Twister;
  */
 class Sql implements \ArrayAccess
 {
-    /**
-     *	The magic starts here!
-     *
-     *	@var string|null
-     */
+	/**
+	 *	The magic is contained within ...
+	 *
+	 *	@var string|null
+	 */
 	protected $sql				=	null;
 
-    /**
-     *	Quote style to use for strings.
-     *	Can be either `'"'` or `"'"`
-     *
-     *	@var string
-     */
-	protected static $quot		=	'"';
-
-    /**
-     *	@var callable[]|null
-     */
-	protected static $modifiers	=	null;
-
-    /**
-     *	@var callable[]|null
-     */
-	protected static $types		=	null;
 
 	/**
-     * 	@var string[] translations
+	 *	Quote style to use for strings.
+	 *	Can be either `'"'` or `"'"`
+	 *
+	 *	@var string
+	 */
+	protected static $quot		=	'"';
+
+
+	/**
+	 *	@var callable[]|null
+	 */
+	protected static $modifiers	=	null;
+
+
+	/**
+	 *	@var callable[]|null
+	 */
+	protected static $types		=	null;
+
+
+	/**
+	 * 	Contains the list of SQL reserved words with some formatting
+	 *
+	 *	This list can be modified internally with singleLineStatements() and lowerCaseStatements()
+	 *
+	 *
+	 *	`Twister\Sql::singleLineStatements()`
+	 *		will create single line results (replacing \s+ with ' ') for use with the console / command prompt
+	 *
+	 *	`Twister\Sql::lowerCaseStatements()`
+	 *		will set all these values to 'lower case' for those that prefer it
+	 *
+	 * 	@var string[] translations
 	 */
 	protected static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
 											'SELECT'		=>	'SELECT ',
@@ -453,6 +468,10 @@ class Sql implements \ArrayAccess
 										];
 
 
+	/**************************************************************************/
+	/**                           __construct()                              **/
+	/**************************************************************************/
+
 
 	/**
 	 *	Construct a new SQL statement, initialized by the optional $stmt string
@@ -470,9 +489,12 @@ class Sql implements \ArrayAccess
 	 *
 	 *	Basic examples:
 	 *
+	 *	    @ = raw data placeholder - no escaping or quotes
+	 *		? = type is auto detected, null = 'NULL', bool = 0/1, strings are escaped & quoted
+	 *
 	 *		`$sql = sql();`
 	 *		`$sql = sql('@', $raw);`                        //	@ = raw output - no escaping or quotes
-	 *		`$sql = sql('?', $mixed_auto_escaped);`         //	? = (only) strings are escaped & quoted
+	 *		`$sql = sql('?', $mixed);`                      //	? = strings are escaped & quoted
 	 *		`$sql = sql('Hello @', 'World');`               //	'Hello World'
 	 *		`$sql = sql('Hello ?', 'World');`               //	'Hello "World"'
 	 *		`$sql = sql('age >= @', 18);`                   //	age >= 18
@@ -482,7 +504,7 @@ class Sql implements \ArrayAccess
 	 *		`$sql = sql('SELECT * FROM users');`
 	 *		`$sql = sql('SELECT * FROM users WHERE id = ?', $id);`
 	 *		`$sql = sql('SELECT @', 'CURDATE()');`          //	SELECT CURDATE()    - @ = raw output
-	 *		`$sql = sql('SELECT ?', 'CURDATE()');`          //	SELECT "CURDATE()"	- ? = escaped & incorrect
+	 *		`$sql = sql('SELECT ?', 'CURDATE()');`          //	SELECT "CURDATE()"	- ? = incorrectly escaped
 	 *
 	 *	Examples with output:
 	 *
@@ -552,6 +574,12 @@ class Sql implements \ArrayAccess
 		}
 	}
 
+
+	/**************************************************************************/
+	/**                            __toString()                              **/
+	/**************************************************************************/
+
+
 	/**
 	 *	__toString() Magic Method
 	 *
@@ -563,6 +591,12 @@ class Sql implements \ArrayAccess
 	{
 		return $this->sql;
 	}
+
+
+	/**************************************************************************/
+	/**                             __invoke()                               **/
+	/**************************************************************************/
+
 
 	/**
 	 *	__invoke() Magic Method
@@ -591,16 +625,24 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**************************************************************************/
+	/**                         CALL storedProc                              **/
+	/**************************************************************************/
+
+
 	/**
 	 *	CALL Stored Procudure
 	 *
 	 *	This function has the ability to auto-detect if you've
-	 *		pre-prepared the format for individual values;
-	 *		eg. call('sp_name(?, ?, @)', $v1, $v2, $v3)
-	 *		vs. call('sp_name', $v1, $v2, $v3)
+	 *		pre-prepared the format for individual values or not;
+	 *
+	 *		eg. ->call('sp_name(?, ?, @)', $v1, $v2, $v3)
+	 *		or  ->call('sp_name', $v1, $v2, $v3)
+	 *
+	 *	Both methods are supported.
 	 *
 	 *	The function can automatically generate the required parameter list for you!
-	 *		This is useful if you don't have any special string handling requirements
+	 *		This is useful if you don't have any special handling requirements
 	 *
 	 *	To disable value escaping, use one of the following techniques:
 	 *			->call('sp_name(LAST_INSERT_ID(), @, @, ?)', 'u.name', '@sql_variable', $name)
@@ -641,6 +683,7 @@ class Sql implements \ArrayAccess
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
 
+
 	/**
 	 *	CALL Stored Procudure - shorthand for `call()`
 	 *
@@ -660,6 +703,7 @@ class Sql implements \ArrayAccess
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
 
+
 	/**
 	 *	CALL Stored `
 	 *
@@ -678,6 +722,7 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
+
 
 	/**
 	 *	CALL Stored Procudure - shorthand for `storedProc()`
@@ -699,11 +744,18 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**************************************************************************/
+	/**                             INSERT                                   **/
+	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `INSERT` statement
 	 *
 	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	eg. `->insert('INTO users ...', ...)`
+	 *	    `INSERT INTO users ...`
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
@@ -722,10 +774,14 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['INSERT'] . $stmt, ...$params);
 	}
 
+
 	/**
 	 *	Generates an SQL `INSERT` statement - shorthand for `insert()`
 	 *
 	 *	@alias insert()
+	 *
+	 *	eg. `->i('INTO users ...', ...)`
+	 *	    `INSERT INTO users ...`
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
@@ -744,10 +800,48 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['INSERT'] . $stmt, ...$params);
 	}
 
+
+	/**************************************************************************/
+	/**                          INSERT INTO                                 **/
+	/**************************************************************************/
+
+
 	/**
 	 *	Generates an SQL `INSERT INTO` statement
 	 *
-	 *	See {@see insertInto()} for alternative spelling
+	 *	See {@see insert_into()} for 'snake case' alternative
+	 *
+	 *	eg. `->insertInto('users ...', ...)`
+	 *	    `INSERT INTO users ...`
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insertInto($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT_INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'];
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT INTO` statement
+	 *
+	 *	See {@see insertInto()} for 'camel case' alternative
+	 *
+	 *	eg. `->insert_into('users ...', ...)`
+	 *	    `INSERT INTO users ...`
 	 *
 	 *	See {@see prepare()} for optional syntax rules
 	 *
@@ -769,33 +863,15 @@ class Sql implements \ArrayAccess
 		return $this->into($stmt, ...$params);
 	}
 
-	/**
-	 *	Generates an SQL `INSERT INTO` statement
-	 *
-	 *	See {@see insert_into()} for alternative spelling
-	 *
-	 *	See {@see prepare()} for optional syntax rules
-	 *
-	 *	@param  string|null $stmt
-	 *                      (optional) Statement to `prepare()`;
-	 *
-	 *	@param  mixed       ...$params
-	 *                      (optional) Parameters associated with $stmt
-	 *
-	 *	@return	$this
-	 */
-	public function insertInto($stmt, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql .= 'INSERT INTO ' . $stmt;
-			return $this;
-		}
-		$this->sql .= 'INSERT ';
-		return $this->into($stmt, ...$params);
-	}
 
 	/**
 	 *	Generates an SQL `INSERT INTO` statement - shorthand for `insertInto()`
+	 *
+	 *	This is exactly the same as calling `insertInto()` or `insert_into()`
+	 *	just conveniently shorter syntax
+	 *
+	 *	eg. `->ii('users ...', ...)`
+	 *	    `INSERT INTO users ...`
 	 *
 	 *	@alias insert_into()
 	 *	@alias insertInto()
@@ -811,16 +887,217 @@ class Sql implements \ArrayAccess
 	public function ii($stmt, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= 'INSERT INTO ' . $stmt;
+			$this->sql .= self::$translations['INSERT_INTO'] . $stmt;
 			return $this;
 		}
-		$this->sql .= 'INSERT ';
+		$this->sql .= self::$translations['INSERT'];
 		return $this->into($stmt, ...$params);
 	}
 
 
 	/**
+	 *	Generates an SQL `INSERT HIGH_PRIORITY INTO` statement
+	 *
+	 *	Same as insertInto() except the `HIGH_PRIORITY` modifier is added
+	 *
+	 *	eg. `->insertHighPriorityInto('users ...', ...)`
+	 *	    `INSERT HIGH_PRIORITY INTO users ...`
+	 *
+	 *	See {@see insert_high_priority_into()} for 'snake case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insertHighPriorityInto($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . self::$translations['HIGH_PRIORITY'] . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . self::$translations['HIGH_PRIORITY'];
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT HIGH_PRIORITY INTO` statement
+	 *
+	 *	Same as `insert_into()` except for adding the `HIGH_PRIORITY` modifier
+	 *
+	 *	eg. `->insert_high_priority_into('users ...', ...)`
+	 *	    `INSERT HIGH_PRIORITY INTO users ...`
+	 *
+	 *	See {@see insertHighPriorityInto()} for 'camel case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insert_high_priority_into($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . self::$translations['HIGH_PRIORITY'] . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . self::$translations['HIGH_PRIORITY'];
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT IGNORE INTO` statement
+	 *
+	 *	Same as `insertInto()` except for adding the `IGNORE` modifier
+	 *
+	 *	eg. `->insertIgnoreInto('users ...', ...)`
+	 *	    `INSERT IGNORE INTO users ...`
+	 *
+	 *	See {@see insert_ignore_into()} for 'snake case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insertIgnoreInto($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . self::$translations['IGNORE'] . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . self::$translations['IGNORE'];
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT IGNORE INTO` statement
+	 *
+	 *	Same as `insert_into()` except for adding the `IGNORE` modifier
+	 *
+	 *	eg. `->insert_ignore_into('users ...', ...)`
+	 *	    `INSERT IGNORE INTO users ...`
+	 *
+	 *	See {@see insertIgnoreInto()} for 'camel case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insert_ignore_into($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . self::$translations['IGNORE'] . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . self::$translations['IGNORE'];
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT $modifier INTO` statement
+	 *
+	 *	Same as `insertInto()` except adds a custom $modifier between 'INSERT' and 'INTO'
+	 *
+	 *	eg. `->insertWithModifierInto('_MY_MODIFIER_', 'users ...');`
+	 *	    `INSERT _MY_MODIFIER_ INTO users ...`
+	 *
+	 *	See {@see insert_with_modifier_into()} for 'snake case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string      $modifier
+	 *                      An SQL `INSERT` statement modifier to place between the `INSERT`
+	 *                      and `INTO` clause; such as `HIGH_PRIORITY` or `IGNORE`
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insertWithModifierInto($modifier, $stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . $modifier . ' ' . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . $modifier . ' ';
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `INSERT $modifier INTO` statement
+	 *
+	 *	Same as `insert_into()` except adds a custom $modifier between 'INSERT' and 'INTO'
+	 *
+	 *	eg. `->insert_with_modifier_into('_MY_MODIFIER_', 'users ...');`
+	 *	    `INSERT _MY_MODIFIER_ INTO users ...`
+	 *
+	 *	See {@see insertWithModifierInto()} for 'camel case' alternative
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string      $modifier
+	 *                      An SQL `INSERT` statement modifier to place between the `INSERT`
+	 *                      and `INTO` clause; such as `HIGH_PRIORITY` or `IGNORE`
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function insert_with_modifier_into($modifier, $stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['INSERT'] . $modifier . ' ' . self::$translations['INTO'] . $stmt;
+			return $this;
+		}
+		$this->sql .= self::$translations['INSERT'] . $modifier . ' ';
+		return $this->into($stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
+	/**                                INTO                                  **/
+	/**************************************************************************/
+
+
+	/**
 	 *	Generates an SQL `INTO` statement
+	 *
+	 *	There are multiple ways to call this method.
 	 *
 	 *	A variety of method calling techniques are provided:
 	 *
@@ -849,7 +1126,7 @@ class Sql implements \ArrayAccess
 	public function into($stmt = null, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= 'INTO ' . $tbl_name;
+			$this->sql .= self::$translations['INTO'] . $stmt;
 			return $this;
 		}
 		if (is_array($params[0]))
@@ -883,7 +1160,7 @@ class Sql implements \ArrayAccess
 						}
 						else {
 							throw new \BadMethodCallException('Invalid type `' . gettype($value) .
-								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+								'` sent to SQL()->INTO("' . $stmt . '", ...) statement; only numeric, string and null values are supported!');
 						}
 					}
 					$params = $cols;
@@ -899,7 +1176,7 @@ class Sql implements \ArrayAccess
 			else if (is_array($params[1]))
 			{
 				if (count($params) !== 2) {
-					throw new \Exception('When the first two parameters supplied to SQL()->INTO("' . $tbl_name .
+					throw new \Exception('When the first two parameters supplied to SQL()->INTO("' . $stmt .
 							'", ...) statements are arrays, no other parameters are necessary!');
 				}
 				$cols	=	$params[0];
@@ -907,7 +1184,7 @@ class Sql implements \ArrayAccess
 				if (count($cols) !== count($values)) {
 					throw new \Exception('Mismatching number of columns and values: count of $columns array = ' .
 							count($cols) . ' and count of $values array = ' . count($values) .
-							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $tbl_name . '", ...) statement');
+							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $stmt . '", ...) statement');
 				}
 				foreach ($cols as $index => $col)
 				{
@@ -931,7 +1208,7 @@ class Sql implements \ArrayAccess
 						}
 						else {
 							throw new \Exception('Invalid type `' . gettype($value) .
-								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+								'` sent to SQL()->INTO("' . $stmt . '", ...) statement; only numeric, string and null values are supported!');
 						}
 					}
 				}
@@ -944,7 +1221,7 @@ class Sql implements \ArrayAccess
 				if (count($cols) !== count($values)) {
 					throw new \Exception('Mismatching number of columns and values: count of $columns array = ' .
 							count($cols) . ' and count of $values = ' . count($values) .
-							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $tbl_name . '", ...) statement');
+							' (' . count($cols) . ' vs ' . count($values) . ') supplied to SQL()->INTO("' . $stmt . '", ...) statement');
 
 				}
 				foreach ($cols as $index => $col)
@@ -969,7 +1246,7 @@ class Sql implements \ArrayAccess
 						}
 						else {
 							throw new \Exception('Invalid type `' . gettype($value) .
-								'` sent to SQL()->INTO("' . $tbl_name . '", ...) statement; only numeric, string and null values are supported!');
+								'` sent to SQL()->INTO("' . $stmt . '", ...) statement; only numeric, string and null values are supported!');
 						}
 					}
 				}
@@ -992,19 +1269,33 @@ class Sql implements \ArrayAccess
 					count($params)) . ' more value(s)');
 			}
 			*/
-		//	$this->sql .= 'INTO ' . $tbl_name .
+		//	$this->sql .= 'INTO ' . $stmt .
 		//					( ! empty($params)	?	' (' . implode(', ', $params) . ')' : null) .
 		//					( ! empty($values)	?	' VALUES (' . implode(', ', $values) . ')' : null);
-			$this->sql .= 'INTO ' . $tbl_name . ' (' . implode(', ', $params) . ') ' . (isset($values) ? 'VALUES (' . implode(', ', $values) . ')' : null);
+			$this->sql .= 'INTO ' . $stmt . ' (' . implode(', ', $params) . ') ' . (isset($values) ? 'VALUES (' . implode(', ', $values) . ')' : null);
 			return $this;
 		}
 		//	syntax: ->INTO('users (col1, col2, dated) VALUES (?, ?, @)', $value1, $value2, 'CURDATE()')
-		return $this->prepare('INTO ' . $tbl_name, ...$params);
+		return $this->prepare('INTO ' . $stmt, ...$params);
 	}
+
+
+	/**************************************************************************/
+	/**                                VALUES                                **/
+	/**************************************************************************/
 
 
 	/**
 	 *	Generates an SQL `VALUES` statement
+	 *
+	 *	Example:
+	 *
+	 *		sql()->insertInto('users', ['id', 'created', 'name'])
+	 *		     ->values('?, ?, @', 5, 'Trevor', 'NOW()');
+	 *
+	 *	Output:
+	 *
+	 *		INSERT INTO users (id, name, created) VALUES (5, "Trevor", NOW())
 	 *
 	 *	Samples:
 	 *	https://dev.mysql.com/doc/refman/5.7/en/insert.html
@@ -1112,6 +1403,10 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**************************************************************************/
+	/**                                  SET                                 **/
+	/**************************************************************************/
+
 	/**
 	 *	Generates an SQL `SET` statement
 	 *
@@ -1212,6 +1507,9 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+	/**************************************************************************/
+	/**                                EXPLAIN                               **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `EXPLAIN` statement
@@ -1235,6 +1533,9 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['EXPLAIN'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                                SELECT                                **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL 'SELECT' statement
@@ -1266,6 +1567,76 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**
+	 *	Generates an SQL 'SELECT DISTINCT' statement
+	 *
+	 *	This function will join/implode a list of columns/fields
+	 *
+	 *	eg. `$sql = sql()->selectDistinct('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *
+	 *	@param  string ...$cols Column list will be imploded with ', '
+	 *
+	 *	@return $this
+	 */
+	public function selectDistinct(...$cols)
+	{
+		$this->sql .= self::$translations['SELECT'] . self::$translations['DISTINCT'] . implode(', ', $cols);
+		return $this;
+	}
+
+	/**
+	 *	Generates an SQL 'SELECT DISTINCT' statement
+	 *
+	 *	This function will join/implode a list of columns/fields
+	 *
+	 *	@alias selectDistinct()
+	 *
+	 *	This function is the 'snake case' alias of selectDistinct()
+	 *
+	 *	Examples:
+	 *
+	 *		`->select_distinct('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *		`->SELECT_DISTINCT('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *
+	 *	@param  string ...$cols Column list will be imploded with ', '
+	 *
+	 *	@return $this
+	 */
+	public function select_distinct(...$cols)
+	{
+		$this->sql .= self::$translations['SELECT'] . self::$translations['DISTINCT'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an SQL `SELECT $modifier ...` statement
+	 *
+	 *	Adds a custom `SELECT` modifier such as DISTINCT, SQL_CACHE etc.
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string      $modifier
+	 *                      An SQL `INSERT` statement modifier to place between the `INSERT`
+	 *                      and `INTO` clause; such as `HIGH_PRIORITY` or `IGNORE`
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function selectWithModifier($modifier, ...$cols)
+	{
+		$this->sql .= self::$translations['SELECT'] . $modifier . ' ' . implode(', ', $cols);
+		return $this;
+	}
+
+	/**************************************************************************/
+	/**                                 FROM                                 **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `FROM` statement
@@ -1309,6 +1680,10 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['FROM'] . $stmt, ...$params);
 	}
 
+
+	/**************************************************************************/
+	/**                                 JOIN                                 **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `JOIN` statement
@@ -1445,6 +1820,9 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                              LEFT JOIN                               **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `LEFT JOIN` statement
@@ -1566,6 +1944,10 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                              RIGHT JOIN                              **/
+	/**************************************************************************/
+
 	/**
 	 *	Generates an SQL `RIGHT JOIN` statement
 	 *
@@ -1686,6 +2068,10 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                              INNER JOIN                              **/
+	/**************************************************************************/
+
 	/**
 	 *	Generates an SQL `INNER JOIN` statement
 	 *
@@ -1745,6 +2131,10 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
+
+	/**************************************************************************/
+	/**                              OUTER JOIN                              **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `OUTER JOIN` statement
@@ -1806,6 +2196,10 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                              CROSS JOIN                              **/
+	/**************************************************************************/
+
 	/**
 	 *	Generates an SQL `CROSS JOIN` statement
 	 *
@@ -1866,6 +2260,10 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                             STRAIGHT_JOIN                            **/
+	/**************************************************************************/
+
 	/**
 	 *	Generates an SQL `STRAIGHT_JOIN` statement
 	 *
@@ -1925,6 +2323,10 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
+
+	/**************************************************************************/
+	/**                             NATURAL JOIN                             **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `NATURAL JOIN` statement
@@ -1987,6 +2389,9 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**************************************************************************/
+	/**                                USING                                 **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `USING` statement
@@ -2008,6 +2413,10 @@ class Sql implements \ArrayAccess
 		$this->sql .= self::$translations['USING'] . '(' . implode(', ', $fields) . ')';
 		return $this;
 	}
+
+	/**************************************************************************/
+	/**                                ON                                    **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `ON` statement
@@ -2035,6 +2444,10 @@ class Sql implements \ArrayAccess
 
 
 
+
+	/**************************************************************************/
+	/**                                WHERE                                 **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `WHERE` statement
@@ -2088,6 +2501,9 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['WHERE'] . $stmt, ...$params);
 	}
 
+	/**************************************************************************/
+	/**                                 IN                                   **/
+	/**************************************************************************/
 
 	/**
 	 *	Generates an SQL `IN` statement
@@ -2137,38 +2553,15 @@ class Sql implements \ArrayAccess
 	}
 
 
-	/**
-	 *	Clamp values between a $min and $max range
-	 *
-	 *	$value can also be a database field name
-	 *	All values are rendered without quotes or escapes
-	 *	$min and $max can be database field names
-	 *
-	 *	Example:
-	 *		->clamp('price', $min, $max)
-	 *
-	 *	Samples:
-	 *		max($min, min($max, $current));
-	 *
-	 *	@param  int|string  $value  Value, column or field name
-	 *	@param  int|string  $min    Min value or field name
-	 *	@param  int|string  $max    Max value or field name
-	 *	@param  string|null $as     Optionally print an `AS` clause
-	 *
-	 *	@return	$this
-	 */
-	public function clamp($value, $min, $max, $as = null)
-	{
-		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ')' . ($as === null ? null : ' AS ' . $as);
-		return $this;
-	}
+	/**************************************************************************/
+	/**                                UNION                                 **/
+	/**************************************************************************/
 
 
 	/**
 	 *	Generates an SQL `UNION` statement
 	 *
-	 *	Generates a `WHERE` statement with convenient `prepare()` syntax (optional)
-	 *
+	 *	Generates a `UNION` statement with convenient `prepare()` syntax (optional)
 	 *
 	 *	Example:
 	 *		->UNION()
@@ -2197,54 +2590,22 @@ class Sql implements \ArrayAccess
 	}
 
 
+	/**************************************************************************/
+	/**                               ORDER BY                               **/
+	/**************************************************************************/
+
+
 	/**
 	 *	Generates an SQL `ORDER BY` statement
 	 *
 	 *	Example:
 	 *
-	 *		`echo sql()->order_by('dated DESC', 'name')`
-	 *		`ORDER BY (dated DESC, name)`
+	 *		`->orderBy('dated DESC, name')`
+	 *	or
+	 *		`->orderBy('dated DESC', 'name')`
 	 *
-	 *	@param  string       ...$cols
+	 *	Output:
 	 *
-	 *	@return	$this
-	 */
-	public function order_by(...$cols)
-	{
-		$this->sql .= self::$translations['ORDER_BY'];
-		$comma = null;
-		foreach ($cols as $arg)
-		{
-			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
-				$this->sql .= $arg;
-				$comma = ', ';
-			}
-			else
-			{
-				switch (trim(strtoupper($arg)))
-				{
-					case 'DESC':
-					case 'ASC':
-						//	skip adding commas for `DESC` and `ASC`
-						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
-						$this->sql .= ' ' . trim($arg);
-						break;
-					default:
-						$this->sql .= $comma . $arg;
-				}
-			}
-		}
-		return $this;
-	}
-	/**
-	 *	Generates an SQL `ORDER BY` statement
-	 *
-	 *	@alias
-	 *
-	 *	Example:
-	 *
-	 *		`echo sql()->orderBy('dated DESC', 'name')`
 	 *		`ORDER BY (dated DESC, name)`
 	 *
 	 *	@param  string       ...$cols
@@ -2258,7 +2619,7 @@ class Sql implements \ArrayAccess
 		foreach ($cols as $arg)
 		{
 			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
+			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
 				$this->sql .= $arg;
 				$comma = ', ';
 			}
@@ -2270,7 +2631,7 @@ class Sql implements \ArrayAccess
 					case 'ASC':
 						//	skip adding commas for `DESC` and `ASC`
 						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
-						$this->sql .= ' ' . trim($arg);
+						$this->sql .= ' ' . $arg;
 						break;
 					default:
 						$this->sql .= $comma . $arg;
@@ -2279,10 +2640,70 @@ class Sql implements \ArrayAccess
 		}
 		return $this;
 	}
+
+
 	/**
 	 *	Generates an SQL `ORDER BY` statement
 	 *
-	 *	@alias order_by()
+	 *	@alias orderBy()
+	 *
+	 *	This is the 'snake case' equivalent of orderBy()
+	 *	Can also be used in ALL CAPS eg. `->ORDER_BY(...)`
+	 *
+	 *	Example:
+	 *
+	 *		`->order_by('dated DESC, name')`
+	 *		`->ORDER_BY('dated DESC, name')`
+	 *
+	 *	or
+	 *
+	 *		`->order_by('dated DESC', 'name')`
+	 *		`->ORDER_BY('dated DESC', 'name')`
+	 *
+	 *	Output:
+	 *
+	 *		`ORDER BY (dated DESC, name)`
+	 *
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function order_by(...$cols)
+	{
+		$this->sql .= self::$translations['ORDER_BY'];
+		$comma = null;
+		foreach ($cols as $arg)
+		{
+			if ($comma === null)
+			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
+				$this->sql .= $arg;
+				$comma = ', ';
+			}
+			else
+			{
+				switch (trim(strtoupper($arg)))
+				{
+					case 'DESC':
+					case 'ASC':
+						//	skip adding commas for `DESC` and `ASC`
+						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
+						$this->sql .= ' ' . $arg;
+						break;
+					default:
+						$this->sql .= $comma . $arg;
+				}
+			}
+		}
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an SQL `ORDER BY` statement
+	 *
+	 *	@alias orderBy()
+	 *
+	 *	This is the shorthand equivalent of `orderBy()` and `order_by()` for convenience!
 	 *
 	 *	Example:
 	 *
@@ -2300,7 +2721,7 @@ class Sql implements \ArrayAccess
 		foreach ($cols as $arg)
 		{
 			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, and no strtoupper() conversion
+			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
 				$this->sql .= $arg;
 				$comma = ', ';
 			}
@@ -2312,7 +2733,7 @@ class Sql implements \ArrayAccess
 					case 'ASC':
 						//	skip adding commas for `DESC` and `ASC`
 						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
-						$this->sql .= ' ' . trim($arg);
+						$this->sql .= ' ' . $arg;
 						break;
 					default:
 						$this->sql .= $comma . $arg;
@@ -2321,6 +2742,12 @@ class Sql implements \ArrayAccess
 		}
 		return $this;
 	}
+
+
+	/**************************************************************************/
+	/**                                 LIMIT                                **/
+	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `LIMIT` statement
@@ -2332,11 +2759,9 @@ class Sql implements \ArrayAccess
 	 *		LIMIT 10 OFFSET 5
 	 *	
 	 *	Example:
-	 *		.LIMIT(5)
-	 *		.LIMIT(10, 5)
-	 *		.LIMIT(5)->OFFSET(10)
-	 *
-	 *	Samples:
+	 *		->LIMIT(5)
+	 *		->LIMIT(10, 5)
+	 *		->LIMIT(5)->OFFSET(10)
 	 *
 	 *	@param  int       $v1
 	 *	@param  int       $v2
@@ -2349,8 +2774,46 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**
-	 *	Generates an SQL `OFFSET` statement
+	 *	Generates an SQL `LIMIT` statement
+	 *
+	 *	This is the shorthand equivalent of `limit()` for convenience!
+	 *
+	 *	@alias limit()
+	 *
+	 *	LIMIT syntax has 2 variations:
+	 *		[LIMIT {[offset,] row_count | row_count OFFSET offset}]
+	 *		LIMIT 5
+	 *		LIMIT 5, 10
+	 *		LIMIT 10 OFFSET 5
+	 *	
+	 *	Example:
+	 *		->LIMIT(5)
+	 *		->LIMIT(10, 5)
+	 *		->LIMIT(5)->OFFSET(10)
+	 *
+	 *	@param  int       $v1
+	 *	@param  int       $v2
+	 *
+	 *	@return	$this
+	 */
+	public function l($v1, $v2 = null)
+	{
+		$this->sql .= self::$translations['LIMIT'] . $v1 . ($v2 === null ? null : ', ' . $v2);
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an (uncommon) SQL `OFFSET` statement
+	 *
+	 *	This generates an `OFFSET`, used in conjuntion with `LIMIT`
+	 *
+	 *	This statement has limited use/application because `LIMIT 5, 10`
+	 *	is more convenient and shorter than `LIMIT 10 OFFSET 5`
+	 *
+	 *	However, the shortened version might not be supported on all databases
 	 *
 	 *	LIMIT syntax has 2 variations:
 	 *		[LIMIT {[offset,] row_count | row_count OFFSET offset}]
@@ -2375,15 +2838,24 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+
+	/**************************************************************************/
+	/**                              sprintf()                               **/
+	/**************************************************************************/
+
+
 	/**
 	 *	`sprintf()` wrapper
 	 *
-	 *	Wrapper for executing an sprintf() statement, and writing
-	 *		the result directly to the internal $sql string
+	 *	Wrapper for executing an `sprintf()` statement, and writing
+	 *		the result directly to the internal `$sql` string buffer
+	 *
+	 *	Warning: Values here are passed directly to `sprintf()` without any
+	 *		other escaping or quoting, it's a direct call!
 	 *
 	 *	Example:
 	 *
-	 *		`echo sql()->sprintf('SELECT * FROM users WHERE id = %d', $id)`
+	 *		`->sprintf('SELECT * FROM users WHERE id = %d', $id)`
 	 *		`SELECT * FROM users WHERE id = 5`
 	 *
 	 *	@param  string       $format The format string is composed of zero or more directives
@@ -2392,12 +2864,48 @@ class Sql implements \ArrayAccess
 	 *
 	 *	@return	$this
 	 */
-	public function sprintf($format, ...$args)			//	http://php.net/manual/en/function.sprintf.php
+	public function sprintf($format, ...$args)	//	http://php.net/manual/en/function.sprintf.php
 	{
-		$this->sql .= sprintf(...$args);		//	TODO: Detect `?` and parse the string first ???
+		$this->sql .= sprintf($format, ...$args);
 		return $this;
 	}
 
+
+	/**************************************************************************/
+	/**                              clamp()                                 **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Custom `clamp` function; clamps values between a $min and $max range
+	 *
+	 *	$value can also be a database field name
+	 *	All values are appended without quotes or escapes
+	 *	$min and $max can be database field names
+	 *
+	 *	Example:
+	 *		->clamp('price', $min, $max)
+	 *
+	 *	Samples:
+	 *		max($min, min($max, $current));
+	 *
+	 *	@param  int|string  $value  Value, column or field name
+	 *	@param  int|string  $min    Min value or field name
+	 *	@param  int|string  $max    Max value or field name
+	 *	@param  string|null $as     (optional) print an `AS` clause
+	 *
+	 *	@return	$this
+	 */
+	public function clamp($value, $min, $max, $as = null)
+	{
+		$this->sql .= 'MIN(MAX(' . $value . ', ' . $min . '), ' . $max . ')' . ($as === null ? null : ' AS ' . $as);
+		return $this;
+	}
+
+
+	/**************************************************************************/
+	/**                              prepare()                               **/
+	/**************************************************************************/
 
 	/**
 	 *	Prepare a given input string with given parameters
@@ -2849,41 +3357,150 @@ class Sql implements \ArrayAccess
 */
 
 
+	/**
+	 *	Escape a string for use in a query
+	 *
+	 *	This function will 'escape' an ASCII or Multibyte string
+	 *	Internally the function uses mb_ereg_replace('[\'\"\n\r\0]', '\\\0', $string)
+	 *
+	 *	This function escapes exactly the same characters as `mysqli::real_escape_string`
+	 *	`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`	ctl-Z = dec:26 hex:1A
+	 *
+	 *	Note: This function is Multibyte-aware; typically UTF-8 but depends on your `mb_internal_encoding()`
+	 *
+	 *	Notes on `mysqli::real_escape_string`
+	 *	@link	http://php.net/manual/en/mysqli.real-escape-string.php#46339
+	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
+	 *
+	 *	Note: This function is independent of your database connection!
+	 *	So make sure your database connection and mb_* (Multibyte) extention are using the same encoding
+	 *	Setting both the connection and `mb_internal_encoding()` to UTF-8 is recommended!
+	 *
+	 *	WARNING: This is NOT the same as `PDO::quote`! This is more like mysqli::real_escape_string + quotes!
+	 *	`PDO` adds the weird `''` syntax to strings
+	 *
+	 *	@param  string $string The string you want to escape and quote
+	 *
+	 *	@return string
+	 */
+	public static function escape($string)
+	{
+	//	return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string);	//	includes % and _ because they have special meaning in MySQL LIKE statements!
+		return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string);	//	27 = ' 22 = " 5C = \ 1A = ctl-Z 00 = \0 (NUL) 0A = \n 0D = \r
+	//	return preg_replace('~[\x00\x0A\x0D\x1A\x22\x27\x5C]~u', '\\\$0', $string);	preg_replace() equivalent, they differ in their `backreference` syntax!
+	}
 
-    /**
-     *	Appends text directly to the internal $sql string
-     *
-     *	This function implements special (non-standard) handling of arrays
-     *		and is not meant to be called directly!
-     *
-     *	This non-standard functionality is purely for syntactic sugar
-     *
-     *	By implementing this function, we allow users to 'write'
-     *		directly to the input string, returning $this for method chaining
-     *
-     *	This effectively makes EVERY array lookup/index valid
+	/**
+	 *	Quote a string for use in a query
+	 *
+	 *	This function will 'quote' AND 'escape' an ASCII or Multibyte string
+	 *	Internally the function executes something like mb_ereg_replace('[\'\"\n\r\0]', '\\\0', $string)
+	 *
+	 *	This function escapes exactly the same characters as `mysqli::real_escape_string`
+	 *	`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`	ctl-Z = dec:26 hex:1A
+	 *
+	 *	Note: This function is Multibyte-aware; typically UTF-8 but depends on your `mb_internal_encoding()`
+	 *
+	 *	Notes on `mysqli::real_escape_string`
+	 *	@link	http://php.net/manual/en/mysqli.real-escape-string.php#46339
+	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
+	 *
+	 *	Note: This function is independent of your database connection!
+	 *	So make sure your database connection and mb_* (Multibyte) extention are using the same encoding
+	 *	Setting both the connection and `mb_internal_encoding()` to UTF-8 is recommended!
+	 *
+	 *	WARNING: This is NOT the same as `PDO::quote`! This is more like mysqli::real_escape_string + quotes!
+	 *	`PDO` adds the weird `''` syntax to strings
+	 *
+	 *	@param  string $string The string you want to escape and quote
+	 *
+	 *	@return string
+	 */
+	public static function quote($string)
+	{
+	//	return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string) . self::$quot;
+		return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string) . self::$quot;
+	//	$this->sql .= '"' . ($escape ? self::$conn->real_escape_string(self::utf8($value)) : $value) . '"';
+	//	return $this;
+	}
+
+
+	/**
+	 *	Removes unecessary formatting (like \t\r\n) from all statements
+	 *
+	 *	This statement effectively executes a:
+	 *		`preg_replace('/\s+/', ' ', ...)` on the internal reserved keywords
+	 *
+	 *	This is useful for generating statements for execution on the console.
+	 *
+	 *	Warning: This is a destructive statement, it applies to ALL statements
+	 *	constructed after this call, and there is NO reversing this effect!
+	 *
+	 *	@return void
+	 */
+	public static function singleLineStatements()
+	{
+		self::$translations = array_map(function ($string) { return preg_replace('/\s+/', ' ', $string); }, self::$translations );
+	}
+
+
+	/**
+	 *	Converts all internal SQL statements like `SELECT` to lowercase `select`
+	 *
+	 *	This statement effectively executes a:
+	 *		`strtolower(...)` on the internal reserved keywords
+	 *
+	 *	This is just a convenient function for those that prefer lowercase SQL statements
+	 *
+	 *	Warning: This is a destructive statement, it applies to ALL statements
+	 *	constructed after this call, and there is NO reversing this effect!
+	 *
+	 *	@return void
+	 */
+	public static function lowerCaseStatements()
+	{
+		self::$translations = array_map('strtolower', self::$translations );
+	}
+
+
+	/**************************************************************************/
+	/**                      ArrayAccess Interface                           **/
+	/**************************************************************************/
+
+	/**
+	 *	Appends text directly without transformation to the internal $sql string
+	 *
+	 *	This function implements special (non-standard) handling of arrays
+	 *		and is not meant to be called directly!
+	 *
+	 *	This non-standard functionality is purely for syntactic sugar
+	 *
+	 *	By implementing this function, we allow users to 'write'
+	 *		directly to the input string, returning $this for method chaining
+	 *
+	 *	This effectively makes EVERY array lookup/index valid
 	 *		because the return value is $this
-     *
-     *	Strings added are NOT encoded or escaped, but simply appended
-     *
-     *	Special handling is provided for `null`, which will append `NULL`
-     *
-     *	Example:
-     *
-     *		`echo sql()['Hello World'];`
-     *		`// Hello World`
-     *
-     *	Implementation of ArrayAccess::offsetGet()
-     *
-     *	@link http://php.net/manual/en/arrayaccess.offsetget.php
-     *
-     *	@param string|null $sql This SQL text you would like to append
-     *
-     *	@return $this
-     */
+	 *
+	 *	Strings added are NOT encoded or escaped, but simply appended
+	 *
+	 *	Special handling is provided for `null`, which will append `NULL`
+	 *
+	 *	Example:
+	 *
+	 *		`echo sql()['Hello World'];`
+	 *		`// Hello World`
+	 *
+	 *	Implementation of ArrayAccess::offsetGet()
+	 *
+	 *	@link http://php.net/manual/en/arrayaccess.offsetget.php
+	 *
+	 *	@param string|null $sql This SQL text you would like to append
+	 *
+	 *	@return $this
+	 */
 	public function offsetGet($sql)
 	{
-		$this->sql .= is_null($sql) ? 'NULL' : $sql;
+		$this->sql .= $sql;
 		return $this;
 	}
 

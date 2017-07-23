@@ -208,23 +208,36 @@ if ( ! function_exists('mb_ltrim')) {
 	}
 }
 
-if ( ! function_exists('mb_sanitize')) {
+if ( ! function_exists('utf8_sanitize')) {
 	/**
-	 *	Multibyte-aware string sanitizer
+	 *	UTF-8 string sanitizer
 	 *
-	 *	Strips invalid, private and unused code groups from a string;
-	 *		but leaves `\s`.
-	 *	Among other things, this will strip the `\0` (NUL) terminator
-	 *		from strings which is also tripped by `trim()`
-	 *	Should be safe to use as a general purpose sanitizer for user input
+	 *	Anything that would cause `preg_replace()` (with the `/u` flag) or `mb_ereg_replace()`
+	 *	to return a `null` value is regarded as `irregular` / non-standard UTF-8 input, and should be 'sanitized'.
 	 *
-	 *	This function can be used with mb_trim() to produce a `softer` version
-	 *		of mb_pack(), which trims leading and trailing whitespace,
-	 *		but leaves `\s` characters intact; those characters that are commonly
-	 *		used to format or layout an ASCII text file such as \t\n\r
-	 *	While `mb_pack()` will condense whitespace, this function will leave it.
+	 *	The current method of using `mb_convert_encoding()` internally
+	 *	effectively 'neutralizes' invalid sequences from causing harm.
 	 *
-	 *	eg. `$string = mb_sanitize(mb_trim($string));`
+	 *	Demonstrating that both `preg_replace()` and `mb_ereg_replace()` return a `null` value
+	 *	on invalid sequences can easily be demonstrated with the following:
+	 *
+	 *	Using the 'symfony/var-dumper' function:
+	 *
+	 *		dump(preg_replace('/\t/u', 'X', "\t"));
+	 *		dump(preg_replace('/\t/u', 'X', "\t\xe2\x28\xa1"));		//	"\xe2\x28\xa1" is invalid UTF-8
+	 *
+	 *		dump(mb_ereg_replace('\t', 'X', "\t"));
+	 *		dump(mb_ereg_replace('\t', 'X', "\t\xe2\x28\xa1"));
+	 *
+	 *	Output:
+	 *
+	 *		"X"
+	 *		null
+	 *
+	 *		"X"
+	 *		null
+	 *
+	 *	@link https://stackoverflow.com/questions/1401317/remove-non-utf8-characters-from-string
 	 *
      *	@author Trevor Herselman <therselman@gmail.com>
 	 *
@@ -232,9 +245,70 @@ if ( ! function_exists('mb_sanitize')) {
 	 *	@param  string|true $mask Custom character mask or true to use a trim() compatible mask
 	 *	@return string
 	 */
-	function mb_sanitize($str, $mask = '(?!\s)\p{C}')
+	function utf8_sanitize($value, $from_enc = 'UTF-8')
 	{
-		return mb_ereg_replace('[' . $mask . ']', null, $str);
+		return mb_convert_encoding($value , 'UTF-8', $from_enc);
+	}
+
+
+	/**
+	 *	UTF-8 array sanitizer
+	 *
+	 *	'sanitizes' an array, including multi-dimentional arrays!
+	 *
+	 *	@see utf8_sanitize()
+	 *
+	 *	Because user input, especially from forms can cause issues,
+	 *	as it's not common practice to check `preg_replace()` or `mb_ereg_replace()`
+	 *	for a `null` value on return,
+	 *	which can cause unforeseen issues or even security vulnerabilities;
+	 *	I would recommend the following before dealing with user input:
+	 *
+	 *	`$_GET  = utf8_sanitize_array($_GET);`
+	 *	`$_POST = utf8_sanitize_array($_POST);`
+	 *
+	 *	`$_COOKIE = utf8_sanitize_array($_COOKIE);` // (optional)
+	 *
+	 *	Immagine a bot/spider posting invalid binary sequences in your forms,
+	 *	causing an SQL query to fail or generate invalid sequences or expose critical data;
+	 *	because a `preg_*(/../u)` sequence failed and sent a `NULL` value to the database;
+	 *	you wouldn't even know about it because it's hard to test for invalid UTF-8 sequences.
+	 *	And you wouldn't normally test if preg_replace() result == null then ...
+	 *
+     *	@author Trevor Herselman <therselman@gmail.com>
+	 *
+	 *	@param  string      $arr  String to sanitize
+	 *	@param  string|true $mask Custom character mask or true to use a trim() compatible mask
+	 *	@return string
+	 */
+	function utf8_sanitize_array($arr, $from_enc = 'UTF-8')
+	{
+		foreach($arr as $key => $value) {
+			if (is_string($value)) {
+				$arr[$key] = mb_convert_encoding($value , 'UTF-8', $from_enc);
+			}
+			else if (is_array($value)) {
+				$arr[$key] = utf8_sanitize_array($value, $from_enc);
+			}
+		}
+		return $arr;
+	}
+}
+
+if ( ! function_exists('mb_normalize')) {
+	/**
+	 *	Multibyte-aware string normalizer
+	 *
+	 *
+     *	@author Trevor Herselman <therselman@gmail.com>
+	 *
+	 *	@param  string      $str  String to trim
+	 *	@param  string|true $mask Custom character mask or true to use a trim() compatible mask
+	 *	@return string
+	 */
+	function mb_normalize($str, $mask = '(?!\s)\p{C}')
+	{
+		return mb_ereg_replace($mask, null, $str);
 	}
 }
 
@@ -269,6 +343,18 @@ if ( ! function_exists('mb_pack')) {
 		return	mb_ereg_replace('(?! )[\p{Z}\s]+', ' ',
 				mb_ereg_replace('^[\p{Z}\s]+|(?!\s)\p{C}|[\p{Z}\s]+$', null, $str));
 	}
+/*
+	public static function mb_pack(string $str)
+	{
+		static $patterns     =	null;
+		static $replacements =	null;
+		if ($patterns === null) {	//	`caching` the arrays construction in-case mb_pack() is called again!
+			$patterns        =	['/(?!\s)\p{C}/u', '/^[\p{Z}\s]+|[\p{Z}\s]+$/u', '/(?! )[\p{Z}\s]+/u'];
+			$replacements    =	[null, null, ' '];	//	null == ''
+		}
+		return preg_replace($patterns, $replacements, $str);
+	}
+*/
 }
 
 
