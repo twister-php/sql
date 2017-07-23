@@ -661,26 +661,7 @@ class Sql implements \ArrayAccess
 	}
 
 	/**
-	 *	CALL Stored Procudure - shorthand for `call()`
-	 *
-	 *	@alias call()
-	 *
-	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
-	 *
-	 *	@param  mixed  ...$params  Parameters required for the stored procedure
-	 *
-	 *	@return	$this
-	 */
-	public function sp($sp_name = null, ...$params)
-	{
-		if (strpos($sp_name, '(') === false) {
-			return $this->prepare('CALL ' . $sp_name, ...$params);
-		}
-		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
-	}
-
-	/**
-	 *	CALL Stored Procudure - shorthand for `call()`
+	 *	CALL Stored `
 	 *
 	 *	@alias call()
 	 *
@@ -697,6 +678,26 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
 	}
+
+	/**
+	 *	CALL Stored Procudure - shorthand for `storedProc()`
+	 *
+	 *	@alias storedProc()
+	 *
+	 *	@param  string $sp_name Stored procedure name, or pre-prepared string
+	 *
+	 *	@param  mixed  ...$params  Parameters required for the stored procedure
+	 *
+	 *	@return	$this
+	 */
+	public function sp($sp_name = null, ...$params)
+	{
+		if (strpos($sp_name, '(') === false) {
+			return $this->prepare('CALL ' . $sp_name, ...$params);
+		}
+		return $this->prepare('CALL ' . $sp_name . '(' . (count($params) > 0 ? '?' . str_repeat(', ?', count($params) - 1) : null) . ')', ...$params);
+	}
+
 
 
 	/**
@@ -2421,7 +2422,7 @@ class Sql implements \ArrayAccess
 			$params_conversion = true;							//	basically, this value is to support :json_encode, when there is only ONE value passed, then $params become our value, and not $params[0]!
 		}
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|\?|@[^a-zA-Z]?|\[.*\]|%([a-z][_a-z]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
-							function ($matches) use (&$count, $pattern, &$params)
+							function ($matches) use (&$count, $stmt, &$params)
 							{
 //dump($matches);
 								$match = $matches[0];
@@ -2434,11 +2435,11 @@ class Sql implements \ArrayAccess
 										$value = current($params);
 										if ($value === false && key($params) === null) {
 											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-												') supplied to SQL->prepare(`' . $pattern .
-												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
-												(	substr_count($pattern, '?') + substr_count($pattern, '@') -
-													substr_count($pattern, '??') - substr_count($pattern, '@@') -
-													substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+												') supplied to SQL->prepare(`' . $stmt .
+												'`) pattern! Please check the number of `?` and `@` values in the statement pattern; possibly requiring ' .
+												(	substr_count($stmt, '?') + substr_count($stmt, '@') -
+													substr_count($stmt, '??') - substr_count($stmt, '@@') -
+													substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
 												count($params)) . ' more value(s)');
 										}
 										next($params);
@@ -2461,11 +2462,11 @@ class Sql implements \ArrayAccess
 										$value = current($params);
 										if ($value === false && key($params) === null) {
 											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-												') supplied to SQL->prepare(`' . $pattern .
+												') supplied to SQL->prepare(`' . $stmt .
 												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
-												(	substr_count($pattern, '?') + substr_count($pattern, '@') -
-													substr_count($pattern, '??') - substr_count($pattern, '@@') -
-													substr_count($pattern, '\\?') - substr_count($pattern, '\\@') -
+												(	substr_count($stmt, '?') + substr_count($stmt, '@') -
+													substr_count($stmt, '??') - substr_count($stmt, '@@') -
+													substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
 												count($params)) . ' more value(s)');
 										}
 										next($params);
@@ -2478,7 +2479,7 @@ class Sql implements \ArrayAccess
 
 										prev($params);	//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . key($params) . ' passed to SQL->prepare(`' . $pattern .
+														'` given at index ' . key($params) . ' passed to SQL->prepare(`' . $stmt .
 														'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `@` (raw output) statements!');
 
 								//	case '%':
@@ -2491,7 +2492,7 @@ class Sql implements \ArrayAccess
 										$index = key($params);			//	key($params) returns NULL for the last entry, which produces -1 when we get the index, so we must backtrack!
 										if ($value === false && $index === null) {
 											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-												') supplied to SQL->prepare(`' . $pattern .
+												') supplied to SQL->prepare(`' . $stmt .
 												'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern!');
 										}
 										$next = next($params);
@@ -2598,7 +2599,7 @@ class Sql implements \ArrayAccess
 
 												if ( ! is_string($value)) {
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $stmt .
 																	'`) pattern, only string values are allowed for %s statements!');
 												}
 
@@ -2675,7 +2676,7 @@ class Sql implements \ArrayAccess
 														$range = explode(':', $range);
 														if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1])) {
 															throw new \InvalidArgumentException("Invalid syntax detected for `%{$command}` statement in `{$matches[0]}`
-																			given at index {$index} for SQL->prepare(`{$pattern}`) pattern;
+																			given at index {$index} for SQL->prepare(`{$stmt}`) pattern;
 																			`%{$command}` requires valid numeric values. eg. %{$command}:10 or %{$command}:8:50");
 														}
 														$min = $range[0];
@@ -2685,7 +2686,7 @@ class Sql implements \ArrayAccess
 													$strlen = mb_strlen($value);
 													if ($min && $strlen < $min) {
 															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in
-																			`{$matches[0]}` given at index {$index} for SQL->prepare(`{$pattern}`) pattern;
+																			`{$matches[0]}` given at index {$index} for SQL->prepare(`{$stmt}`) pattern;
 																			`{$matches[0]}` requires a string to be a minimum {$min} characters in length; input string has only {$strlen} of {$min} characters");
 													}
 													if ( $max && $strlen > $max) {
@@ -2695,7 +2696,7 @@ class Sql implements \ArrayAccess
 														}
 														else {
 															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in `{$matches[0]}`
-																			given at index {$index} for SQL->prepare(`{$pattern}`) pattern; `{$matches[0]}` requires a string to be maximum `{$max}`
+																			given at index {$index} for SQL->prepare(`{$stmt}`) pattern; `{$matches[0]}` requires a string to be maximum `{$max}`
 																			size, and cropping is not enabled! To enable auto-cropping specify: `{$command}:{$min}:{$max}:crop`");
 														}
 													}
@@ -2731,7 +2732,7 @@ class Sql implements \ArrayAccess
 														preg_match('~:clamp:(?:([-+]?[0-9]*\.?[0-9]*):)?([-+]?[0-9]*\.?[0-9]*)~', $modifiers, $range);
 														if (empty($range)) {
 															throw new \InvalidArgumentException("Invalid %{$command}:clamp syntax `{$matches[0]}`
-																		detected for call to SQL->prepare(`{$pattern}`) at index {$index};
+																		detected for call to SQL->prepare(`{$stmt}`) at index {$index};
 																		%{$command}:clamp requires a numeric range: eg. %{$command}:clamp:10 or %{$command}:clamp:1:10");
 														}
 														$value = min(max($value, is_numeric($range[1]) ? $range[1] : 0), is_numeric($range[2]) ? $range[2] : PHP_INT_MAX);
@@ -2740,14 +2741,14 @@ class Sql implements \ArrayAccess
 												}
 
 												throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																'` given at index ' . $index . ' passed in SQL->prepare(`' . $stmt .
 																'`) pattern, only numeric data types (integer and float) are allowed for %d and %f statements!');
 
 											case 'clamp';
 
 												if ( ! is_numeric($value)) {
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $pattern .
+																	'` given at index ' . $index . ' passed in SQL->prepare(`' . $stmt .
 																	'`) pattern, only numeric data types (integer and float) are allowed for %clamp statements!');
 												}
 
@@ -2771,7 +2772,7 @@ class Sql implements \ArrayAccess
 
 												if (empty($range)) {
 													throw new \InvalidArgumentException('Invalid %clamp syntax `' . $matches[0] .
-																'` detected for call to SQL->prepare(`' . $pattern .
+																'` detected for call to SQL->prepare(`' . $stmt .
 																'`) at index ' . $index . '; %clamp requires a numeric range: eg. %clamp:1:10');
 												}
 												$range = ltrim($range[0], ':');
@@ -2781,7 +2782,7 @@ class Sql implements \ArrayAccess
 													$range = explode(':', $range);
 													if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1])) {
 														throw new \InvalidArgumentException('Invalid syntax detected for %clamp statement in `' . $matches[0] .
-																		'` given at index ' . $index . ' for SQL->prepare(`' . $pattern .
+																		'` given at index ' . $index . ' for SQL->prepare(`' . $stmt .
 																		'`) pattern; %clamp requires valid numeric values. eg. %clamp:0.0:1.0 or %clamp:1:100 or %clamp::100 or %clamp:-10:10');
 													}
 													$value = min(max($value, $range[0]), $range[1]);
@@ -2800,11 +2801,11 @@ class Sql implements \ArrayAccess
 								}
 
 //								throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
-							}, $pattern);
+							}, $stmt);
 		if ($count !== count($params)) {
 			throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-				') supplied to SQL->prepare(`' . $pattern .
-				'`) pattern! Explecting ' . $count . ' for this pattern!');
+				') supplied to SQL->prepare(`' . $stmt .
+				'`) statement pattern! Explecting ' . $count . ' for this pattern!');
 		}
 	}
 /*
