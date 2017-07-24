@@ -19,7 +19,7 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 
 ## Description
 
-Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). It's **database and framework neutral** (no database connection used, no external/framework dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know or care about what part of the query you are working on), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). It **supports ALL databases** (no database connection used, write the query for your database/driver) and **ALL frameworks** (no framework or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know or care about what part of the query you are working on), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ### Speed and Safety
 
