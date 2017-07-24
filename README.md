@@ -184,7 +184,7 @@ WHERE id IN (1, 2, 3) OR id IN (6, 7, 8)
 
 #### Text filters:
 
-eg. pack (merge internal whitespace) & trim
+eg. trim, pack (merge internal whitespace) & crop to 20 characters
 
 ```php
 echo sql('SET description = %s:pack:trim:crop:20', "Hello     World's   Greatest");
