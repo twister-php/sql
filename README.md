@@ -22,7 +22,7 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([])',
 		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3]);
 ```
-No escaping, no quotes, no array hanling/imploding and no concatenations ...
+No escaping, no quotes, no array hanling and no concatenations ...
 
 Output:
 ```sql
@@ -32,13 +32,27 @@ SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR
 
 ## Description
 
-Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). Designed to be 100% Multibyte-aware (**UTF-8**, depending on your mb\_\* extention, all functions use mb\_\* internally), **supports ALL databases** (no database connection used, write the query for your database/driver) and **ALL frameworks** (no framework or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+Raw SQL Query Builder is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php), all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ## History
 
 I got the initial inspiration for this code when reading about the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html); and it's dedicated to the few; but proud developers that love the power and flexibility of writing native SQL queries! With great power ...
 
 It was originally designed to bridge the gap between ORM query builders and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**', but keeping the syntax as close to SQL as possible.
+
+
+### Speed and Safety
+
+This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
+
+### To simplify the complex
+
+It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
+
+This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
+
+So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years.
+
 
 ## Install
 
@@ -78,23 +92,16 @@ Hello "World"
 ### Hello SQL World
 
 ```php
-echo sql('SELECT * FROM users WHERE id = ?', "5");
+echo sql('SELECT ?, ?, ?, @', 1, "2", 'Hello World', 'NOW()');
 ```
 ```
-SELECT * FROM users WHERE id = 5
+SELECT 1, 2, "Hello World", NOW()
 ```
-`is_numeric()` values are not escaped
+Numeric values are not quoted (even when they are in strings)
 
+Exactly the same escaping rules as [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php) apply.
 
-```php
-echo sql('SELECT * FROM users WHERE name = ?', "Trevor's");
-```
-```
-SELECT * FROM users WHERE name = "Trevor\'s"
-```
-Exactly the same escaping rules as [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php)
-
-
+#### More Examples
 
 ```php
 echo sql('?, ?, ?, ?, ?, ?, ?', 4, '5', "Trevor's", 'NOW()', true, false, null);
@@ -103,8 +110,6 @@ echo sql('?, ?, ?, ?, ?, ?, ?', 4, '5', "Trevor's", 'NOW()', true, false, null);
 4, 5, "Trevor\'s", "NOW()", 1, 0, NULL, 
 ```
 "NOW()" is an SQL function that will not be executed, use `@` for raw output strings
-
-
 
 ```php
 echo sql('@, @, @, @, @, @, @', 4, "5", "Trevor's", 'NOW()', true, false, null);
@@ -149,14 +154,14 @@ WHERE id IN (1, 2, 3)
 echo sql('WHERE name IN ([?])', ['joe', 'john', 'james']);
 ```
 ```sql
-WHERE id IN ("joe", "john", "james")
+WHERE name IN ("joe", "john", "james")
 ```
 
 ```php
-echo sql('WHERE id = :id OR name = :name OR dob = :dob:raw AND failure = ?', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()'], 'not an option');
+echo sql('WHERE id = :id OR name = :name OR dob = :dob:raw', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()']);
 ```
 ```sql
-WHERE id = 5 OR name = "Trevor" OR dob = NOW() AND failure = "not an option"
+WHERE id = 5 OR name = "Trevor" OR dob = NOW()
 ```
 
 #### Range:
@@ -177,50 +182,6 @@ echo sql('SET description = %s:pack:trim:20', "Hello     World's   Greatest");
 ```
 ```sql
 SET description = "Hello World\'s Greate"
-```
-
-
-### Speed and Safety
-
-This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
-
-### To simplify the complex
-
-It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
-
-This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping' and 'quoting' strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
-
-So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; or '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' becomes a problem in your ORM; or you need to write custom queries against some or all of this data, then you will truly realise how much time and stress this library can save you.
-
-# A taste of things to come
-
-
-
-```php
-$sql = SQL('?', '"Hello World"');	//	?  quoted + escaped
-// '"\"Hello World\""'
-
-$sql = Sql('?', 4);			//	?  auto-detects numeric, null and string
-// '4'
-
-$sql = sql('?', null);
-// 'NULL'
-```
-
-```php
-$sql = SQL('@', '"Hello World"');	//	@  literals
-
-// '"Hello World"'
-
-
-$sql = Sql('@', 'Hello World');		//	@  no quotes or escaping
-
-// 'Hello World'
-
-
-$sql = sql('@', 'CURDATE()');		//	@  useful for function calls
-
-// 'CURDATE()'
 ```
 
 # Beginners guide
@@ -252,17 +213,19 @@ class Sql
 		//	processing `?`, `@`, escaping, quoting etc.
 	}
 }
-
+```
+```php
 echo sql()->select('*')
           ->from('users u')
 	  ->where('u.id = ?', 5);
+```
+```sql
 SELECT * FROM users u WHERE u.id = 5
 ```
 
-
 # Multiple calling conventions
 
-The code supports camelCase, snake_case and UPPER_CASE syntax; as well as short form syntax:
+The code supports camelCase, snake_case and UPPER_CASE syntax; as well as a short form syntax:
 
 
 ### Constructor
@@ -275,9 +238,14 @@ $sql = new Sql();
 $sql = new SQL();
 ```
 
-### sql() helper/wrapper function
+### Convenient `sql()` function
 
 ```php
+function sql($stmt = null, ...$params)
+{
+	return new Twister\Sql($stmt, ...$params);
+}
+
 $sql = sql();
 $sql = Sql();
 $sql = SQL();
