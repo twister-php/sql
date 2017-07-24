@@ -144,19 +144,19 @@
                                 <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-615111551"></a>
+                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-397630497"></a>
                                 <a href="../namespaces/default.html" style="margin-left: 30px; padding-left: 0">\</a>
             </div>
-            <div id="namespace-615111551" class="accordion-body collapse in">
+            <div id="namespace-397630497" class="accordion-body collapse in">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-885783634"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-443889516"></a>
                                 <a href="../namespaces/Twister.html" style="margin-left: 30px; padding-left: 0">Twister</a>
             </div>
-            <div id="namespace-885783634" class="accordion-body collapse ">
+            <div id="namespace-443889516" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -565,66 +565,64 @@ but operates very much like <code>sprintf()</code> or <code>PDO::prepare()</code
 <pre><code>@ = raw data placeholder - no escaping or quotes
 ? = type is auto detected, null = 'NULL', bool = 0/1, strings are escaped &amp; quoted
 
-`$sql = sql();`
-`$sql = sql('@', $raw);`                        //  @ = raw output - no escaping or quotes
-`$sql = sql('?', $mixed);`                      //  ? = strings are escaped &amp; quoted
-`$sql = sql('Hello @', 'World');`               //  'Hello World'
-`$sql = sql('Hello ?', 'World');`               //  'Hello "World"'
-`$sql = sql('age &gt;= @', 18);`                   //  age &gt;= 18
-`$sql = sql('age &gt;= ?', 18);`                   //  age &gt;= 18
-`$sql = sql('age &gt;= ?', '18');`                 //  age &gt;= 18  (is_numeric('18') === true)
-`$sql = sql('age IS ?', null);`                 //  age IS NULL
-`$sql = sql('SELECT * FROM users');`
-`$sql = sql('SELECT * FROM users WHERE id = ?', $id);`
-`$sql = sql('SELECT @', 'CURDATE()');`          //  SELECT CURDATE()    - @ = raw output
-`$sql = sql('SELECT ?', 'CURDATE()');`          //  SELECT "CURDATE()"  - ? = incorrectly escaped</code></pre>
+$sql = sql();
+$sql = sql('@', $raw);                          //  @ = raw output - no escaping or quotes
+$sql = sql('?', $mixed);                        //  ? = strings are escaped &amp; quoted
+$sql = sql('Hello @', 'World');                 //  'Hello World'
+$sql = sql('Hello ?', 'World');                 //  'Hello "World"'
+$sql = sql('age &gt;= @', 18);                     //  age &gt;= 18
+$sql = sql('age &gt;= ?', 18);                     //  age &gt;= 18
+$sql = sql('age &gt;= ?', '18');                   //  age &gt;= 18  (is_numeric('18') === true)
+$sql = sql('age IS ?', null);                   //  age IS NULL
+$sql = sql('SELECT * FROM users');
+$sql = sql('SELECT * FROM users WHERE id = ?', $id);
+$sql = sql('SELECT @', 'CURDATE()');            //  SELECT CURDATE()    - @ = raw output
+$sql = sql('SELECT ?', 'CURDATE()');            //  SELECT "CURDATE()"  - ? = incorrectly escaped</code></pre>
 <p>Examples with output:</p>
-<pre><code>`$sql = sql();`
-`echo $sql;`                            //  `sql()` returns nothing until given commands
-``
+<pre><code>$sql = sql();
+echo $sql;                                      //  `sql()` returns nothing until given commands
 
-`echo sql();`                           //  `sql()` starts as an empty string
-``
+echo sql();                                     //  `sql()` starts as an empty string
 
-`echo sql('Hello @', 'World');`         //  @ = raw value, no escapes or quotes
-`Hello World`
+echo sql('Hello @', 'World');                   //  @ = raw value, no escapes or quotes
+Hello World
 
-`echo sql('Hello ?', 'World\'s');`      //  ? = escaped and quoted
+echo sql('Hello ?', 'World\'s');                //  ? = escaped and quoted
 or
-`echo sql('Hello ?', "World's");`       //  ? = escaped and quoted
-`Hello "World\'s"`
+echo sql('Hello ?', "World's");                 //  ? = escaped and quoted
+Hello "World\'s"
 
-`echo sql('age &gt;= @', 18);`             //  @ = raw value, no escapes or quotes
-`age &gt;= 18`
+echo sql('age &gt;= @', 18);                       //  @ = raw value, no escapes or quotes
+age &gt;= 18
 
-`echo sql('age &gt;= ?', 18);`             //  is_numeric(18) === true
-`age &gt;= 18`
+echo sql('age &gt;= ?', 18);                       //  is_numeric(18) === true
+age &gt;= 18
 
-`echo sql('age &gt;= ?', '18');`           //  is_numeric('18') === true
-`age &gt;= 18`
+echo sql('age &gt;= ?', '18');                     //  is_numeric('18') === true
+age &gt;= 18
 
-`echo sql('name IS @', null);`          //  @ null = ''
-`name IS `
+echo sql('name IS @', null);                    //  @ null = ''
+name IS
 
-`echo sql('name IS ?', null);`          //  ? null = 'NULL'
-`name IS NULL `
+echo sql('name IS ?', null);                    //  ? null = 'NULL'
+name IS NULL
 
-`echo sql('dated = @', 'CURDATE()');`   //  @ = raw value, no escapes or quotes
-`date = CURDATE()`
+echo sql('dated = @', 'CURDATE()');             //  @ = raw value, no escapes or quotes
+date = CURDATE()
 
-`echo sql('dated = ?', 'CURDATE()');`   //  ? = escaped and quoted
-`date = "CURDATE()"`
+echo sql('dated = ?', 'CURDATE()');             //  ? = escaped and quoted
+date = "CURDATE()"
 
-`echo sql('SELECT * FROM users');`
-`SELECT * FROM users`
+echo sql('SELECT * FROM users');
+SELECT * FROM users
 
-`$id = 5;`
-`echo sql('SELECT * FROM users WHERE id = ?', $id);`
-`SELECT * FROM users WHERE id = 5`
+$id = 5;
+echo sql('SELECT * FROM users WHERE id = ?', $id);
+SELECT * FROM users WHERE id = 5
 
-`$name = "Trevor's Revenge";`
-`echo sql('SELECT * FROM users WHERE name = ?', $name);`
-`SELECT * FROM users WHERE name = "Trevor\'s Revenge"`  //  UTF-8 aware escapes</code></pre>
+$name = "Trevor's Revenge";
+echo sql('SELECT * FROM users WHERE name = ?', $name);
+SELECT * FROM users WHERE name = "Trevor\'s Revenge"    //  UTF-8 aware escapes</code></pre>
 
                                     <h4>Parameters</h4>
                     <table class="table table-condensed table-hover">
@@ -5301,7 +5299,7 @@ because the return value is $this</p>
                 <section class="span10 offset1">
                     <hr />
                     Documentation is powered by <a href="http://www.phpdoc.org/">phpDocumentor </a> and authored
-                    on July 25th, 2017 at 01:35.
+                    on July 25th, 2017 at 01:39.
                 </section>
             </section>
         </section>

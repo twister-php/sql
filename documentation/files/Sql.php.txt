@@ -504,68 +504,66 @@ class Sql implements \ArrayAccess
 	 *	    @ = raw data placeholder - no escaping or quotes
 	 *		? = type is auto detected, null = 'NULL', bool = 0/1, strings are escaped & quoted
 	 *
-	 *		`$sql = sql();`
-	 *		`$sql = sql('@', $raw);`                        //	@ = raw output - no escaping or quotes
-	 *		`$sql = sql('?', $mixed);`                      //	? = strings are escaped & quoted
-	 *		`$sql = sql('Hello @', 'World');`               //	'Hello World'
-	 *		`$sql = sql('Hello ?', 'World');`               //	'Hello "World"'
-	 *		`$sql = sql('age >= @', 18);`                   //	age >= 18
-	 *		`$sql = sql('age >= ?', 18);`                   //	age >= 18
-	 *		`$sql = sql('age >= ?', '18');`                 //	age >= 18  (is_numeric('18') === true)
-	 *		`$sql = sql('age IS ?', null);`                 //	age IS NULL
-	 *		`$sql = sql('SELECT * FROM users');`
-	 *		`$sql = sql('SELECT * FROM users WHERE id = ?', $id);`
-	 *		`$sql = sql('SELECT @', 'CURDATE()');`          //	SELECT CURDATE()    - @ = raw output
-	 *		`$sql = sql('SELECT ?', 'CURDATE()');`          //	SELECT "CURDATE()"	- ? = incorrectly escaped
+	 *		$sql = sql();
+	 *		$sql = sql('@', $raw);                          //	@ = raw output - no escaping or quotes
+	 *		$sql = sql('?', $mixed);                        //	? = strings are escaped & quoted
+	 *		$sql = sql('Hello @', 'World');                 //	'Hello World'
+	 *		$sql = sql('Hello ?', 'World');                 //	'Hello "World"'
+	 *		$sql = sql('age >= @', 18);                     //	age >= 18
+	 *		$sql = sql('age >= ?', 18);                     //	age >= 18
+	 *		$sql = sql('age >= ?', '18');                   //	age >= 18  (is_numeric('18') === true)
+	 *		$sql = sql('age IS ?', null);                   //	age IS NULL
+	 *		$sql = sql('SELECT * FROM users');
+	 *		$sql = sql('SELECT * FROM users WHERE id = ?', $id);
+	 *		$sql = sql('SELECT @', 'CURDATE()');            //	SELECT CURDATE()    - @ = raw output
+	 *		$sql = sql('SELECT ?', 'CURDATE()');            //	SELECT "CURDATE()"	- ? = incorrectly escaped
 	 *
 	 *	Examples with output:
 	 *
-	 *		`$sql = sql();`
-	 *		`echo $sql;`                            //	`sql()` returns nothing until given commands
-	 *		``
+	 *		$sql = sql();
+	 *		echo $sql;                                      //	`sql()` returns nothing until given commands
 	 *
-	 *		`echo sql();`                           //	`sql()` starts as an empty string
-	 *		``
+	 *		echo sql();                                     //	`sql()` starts as an empty string
 	 *
-	 *		`echo sql('Hello @', 'World');`         //	@ = raw value, no escapes or quotes
-	 *		`Hello World`
+	 *		echo sql('Hello @', 'World');                   //	@ = raw value, no escapes or quotes
+	 *		Hello World
 	 *
-	 *		`echo sql('Hello ?', 'World\'s');`      //	? = escaped and quoted
+	 *		echo sql('Hello ?', 'World\'s');                //	? = escaped and quoted
 	 *		or
-	 *		`echo sql('Hello ?', "World's");`       //	? = escaped and quoted
-	 *		`Hello "World\'s"`
+	 *		echo sql('Hello ?', "World's");                 //	? = escaped and quoted
+	 *		Hello "World\'s"
 	 *
-	 *		`echo sql('age >= @', 18);`             //	@ = raw value, no escapes or quotes
-	 *		`age >= 18`
+	 *		echo sql('age >= @', 18);                       //	@ = raw value, no escapes or quotes
+	 *		age >= 18
 	 *
-	 *		`echo sql('age >= ?', 18);`             //	is_numeric(18) === true
-	 *		`age >= 18`
+	 *		echo sql('age >= ?', 18);                       //	is_numeric(18) === true
+	 *		age >= 18
 	 *
-	 *		`echo sql('age >= ?', '18');`           //	is_numeric('18') === true
-	 *		`age >= 18`
+	 *		echo sql('age >= ?', '18');                     //	is_numeric('18') === true
+	 *		age >= 18
 	 *
-	 *		`echo sql('name IS @', null);`          //	@ null = ''
-	 *		`name IS `
+	 *		echo sql('name IS @', null);                    //	@ null = ''
+	 *		name IS 
 	 *
-	 *		`echo sql('name IS ?', null);`          //	? null = 'NULL'
-	 *		`name IS NULL `
+	 *		echo sql('name IS ?', null);                    //	? null = 'NULL'
+	 *		name IS NULL 
 	 *
-	 *		`echo sql('dated = @', 'CURDATE()');`   //	@ = raw value, no escapes or quotes
-	 *		`date = CURDATE()`
+	 *		echo sql('dated = @', 'CURDATE()');             //	@ = raw value, no escapes or quotes
+	 *		date = CURDATE()
 	 *
-	 *		`echo sql('dated = ?', 'CURDATE()');`   //	? = escaped and quoted
-	 *		`date = "CURDATE()"`
+	 *		echo sql('dated = ?', 'CURDATE()');             //	? = escaped and quoted
+	 *		date = "CURDATE()"
 	 *
-	 *		`echo sql('SELECT * FROM users');`
-	 *		`SELECT * FROM users`
+	 *		echo sql('SELECT * FROM users');
+	 *		SELECT * FROM users
 	 *
-	 *		`$id = 5;`
-	 *		`echo sql('SELECT * FROM users WHERE id = ?', $id);`
-	 *		`SELECT * FROM users WHERE id = 5`
+	 *		$id = 5;
+	 *		echo sql('SELECT * FROM users WHERE id = ?', $id);
+	 *		SELECT * FROM users WHERE id = 5
 	 *
-	 *		`$name = "Trevor's Revenge";`
-	 *		`echo sql('SELECT * FROM users WHERE name = ?', $name);`
-	 *		`SELECT * FROM users WHERE name = "Trevor\'s Revenge"`	//	UTF-8 aware escapes
+	 *		$name = "Trevor's Revenge";
+	 *		echo sql('SELECT * FROM users WHERE name = ?', $name);
+	 *		SELECT * FROM users WHERE name = "Trevor\'s Revenge"	//	UTF-8 aware escapes
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
