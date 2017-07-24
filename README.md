@@ -101,21 +101,21 @@ Queries include additional whitespace for formatting and display purposes, which
 #### Arrays:
 
 ```php
-echo sql('WHERE id IN ([])', [1, 2, 3])
+echo sql('WHERE id IN ([])', [1, 2, 3]);
 ```
 ```sql
 WHERE id IN (1, 2, 3)
 ```
 
 ```php
-echo sql('WHERE name IN ([?])', ['joe', 'john', 'james'])
+echo sql('WHERE name IN ([?])', ['joe', 'john', 'james']);
 ```
 ```sql
 WHERE id IN ("joe", "john", "james")
 ```
 
 ```php
-echo sql('WHERE id = :id OR name = :name OR dob = :dob:raw AND failure = ?', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()'], 'not an option')
+echo sql('WHERE id = :id OR name = :name OR dob = :dob:raw AND failure = ?', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()'], 'not an option');
 ```
 ```sql
 WHERE id = 5 OR name = "Trevor" OR dob = NOW() AND failure = "not an option"
