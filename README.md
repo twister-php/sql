@@ -15,7 +15,19 @@ It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part
 
 This is not an ORM or replacement for an ORM, it's the tool you use when you need to create a raw SQL query string with the convenience of placeholders. It doesn't 'prepare' or 'execute' your queries exactly like `PDO::prepare` does; but it does support the familiar syntax of using `?` or `:id` as placeholders. It also supports a subset of `sprintf`'s `%s` / `%d` syntax.
 
-In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, even replaing column names eg. `sql('WHERE @ = ?', 'name', 'Trevor')` becomes `WHERE name = "Trevor"`; and it can auto-implode arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, even replacing column or table names as well auto-`implode()` arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+
+
+```php
+echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([])', 'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3]);
+```
+No escaping, no quotes, no array hanling/imploding and no concatenations ...
+
+Output:
+```sql
+SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR id IN (1, 2, 3)
+```
+
 
 ## Description
 
