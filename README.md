@@ -249,7 +249,7 @@ SELECT * FROM users u WHERE u.id = 5
 
 # Multiple calling conventions
 
-The code support camelCase, snake_case and UPPER_CASE syntax; as well as short form syntax:
+The code supports camelCase, snake_case and UPPER_CASE syntax; as well as short form syntax:
 
 
 ### Constructor
@@ -276,7 +276,7 @@ $sql = SQL();
 ->select('col1', 'col2', 'col3')
 ->from('table t')
 ->join('table2 t2 ON ... = ?', $var)
-->leftJoin('table3 t3 ON ...?', $var)
+->leftJoin('table3 t3 ON ... = ?', $var)
 ->where('foo = ?', 'bar')
 ->groupBy('t.col1', 't2.col2')
 ->orderBy('t.col1 DESC')
@@ -301,13 +301,13 @@ $sql = SQL();
 ->select('col1', 'col2', 'col3')
 ->from('table t')
 ->join('table2 t2 ON ... = ?', $var)
-->left_join('table3 t3 ON ...?', $var)
+->left_join('table3 t3 ON ... = ?', $var)
 ->where('foo = ?', 'bar')
 ->group_by('t.col1', 't2.col2')
 ->order_by('t.col1 DESC')
 ->limit(5, 10);
 
-// others
+// more
 
 ->select_distinct(..)
 ->insert(..)
@@ -319,18 +319,20 @@ $sql = SQL();
 ->having(..)
 ->union(..)
 ```
+
 ### UPPER_CASE
+
 ```php
 ->SELECT('col1', 'col2', 'col3')
 ->FROM('table t')
 ->JOIN('table2 t2 ON ... = ?', $var)
-->LEFT_JOIN('table3 t3 ON ...?', $var)
+->LEFT_JOIN('table3 t3 ON ... = ?', $var)
 ->WHERE('foo = ?', 'bar')
 ->GROUP_BY('t.col1', 't2.col2')
 ->ORDER_BY('t.col1 DESC')
 ->LIMIT(5, 10);
 
-// others
+// more
 
 ->SELECT_DISTINCT(..)
 ->INSERT(..)
@@ -342,16 +344,29 @@ $sql = SQL();
 ->HAVING(..)
 ->UNION(..)
 ```
-### short
+
+### short syntax
+
 ```php
-->s('col1', 'col2', 'col3')		//	s = SELECT
-->f('table t')				//	f = FROM
-->j('table2 t2 ON ... = ?', $var)	//	j = JOIN
+->s('col1', 'col2', 'col3')		//	s  = SELECT
+->f('table t')				//	f  = FROM
+->j('table2 t2 ON ... = ?', $var)	//	j  = JOIN
 ->lj('table3 t3 ON ...?', $var)         //	lj = LEFT JOIN
-->w('foo = ?', 'bar')			//	w = WHERE
+->w('foo = ?', 'bar')			//	w  = WHERE
 ->gb('t.col1', 't2.col2')		//	gb = GROUP BY
 ->ob('t.col1 DESC')			//	ob = ORDER BY
-->l(5, 10);				//	l = LIMIT
+->l(5, 10);				//	l  = LIMIT
+
+
+// others
+
+->sd(..)				//	sd = SELECT DISTINCT
+->i(..)					//	i  = INSERT
+->ii(..)				//	ii = INSERT INTO
+->v(..)					//	v  = VALUES
+->d(..)					//	d  = DELETE
+->df(..)				//	df = DELETE FROM
+->h(..)					//	h  = HAVING
 ```
 
 
