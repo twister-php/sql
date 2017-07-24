@@ -27,7 +27,7 @@
 namespace Twister;
 
 /**
- *	Raw SQL Query String Builder
+ *	Raw SQL Query Builder
  *
  *	@author      Trevor Herselman <therselman@gmail.com>
  *	@copyright   Copyright (c) 2017 Trevor Herselman
@@ -1351,6 +1351,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(' VALUES (' . $stmt . ')', ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `VALUES` statement - shorthand for `values()`
 	 *
@@ -1406,6 +1408,7 @@ class Sql implements \ArrayAccess
 	/**************************************************************************/
 	/**                                  SET                                 **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `SET` statement
@@ -1507,9 +1510,11 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**************************************************************************/
 	/**                                EXPLAIN                               **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `EXPLAIN` statement
@@ -1533,9 +1538,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['EXPLAIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                                SELECT                                **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL 'SELECT' statement
@@ -1583,6 +1590,7 @@ class Sql implements \ArrayAccess
 		$this->sql .= self::$translations['SELECT'] . self::$translations['DISTINCT'] . implode(', ', $cols);
 		return $this;
 	}
+
 
 	/**
 	 *	Generates an SQL 'SELECT DISTINCT' statement
@@ -1634,9 +1642,11 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**************************************************************************/
 	/**                                 FROM                                 **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `FROM` statement
@@ -1657,6 +1667,7 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['FROM'] . $stmt, ...$params);
 	}
+
 
 	/**
 	 *	Generates an SQL `FROM` statement - shorthand for `from()`
@@ -1685,6 +1696,7 @@ class Sql implements \ArrayAccess
 	/**                                 JOIN                                 **/
 	/**************************************************************************/
 
+
 	/**
 	 *	Generates an SQL `JOIN` statement
 	 *
@@ -1704,6 +1716,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `JOIN` statement - shorthand for `join()`
 	 *
@@ -1725,6 +1739,7 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $stmt, ...$params);
 	}
+
 
 	/**
 	 *	Generates an SQL `JOIN $table ON` statement
@@ -1749,6 +1764,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `JOIN $table ON` statement - shorthand for `join_on()`
 	 *
@@ -1773,6 +1790,7 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
 
+
 	/**
 	 *	Generates an SQL `JOIN $table ON` statement
 	 *
@@ -1796,6 +1814,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `JOIN $table ON` statement - shorthand for `joinOn()`
 	 *
@@ -1820,9 +1840,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['JOIN'] . $table . self::$translations['ON'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                              LEFT JOIN                               **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `LEFT JOIN` statement
@@ -1843,6 +1865,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `LEFT JOIN` statement
 	 *
@@ -1862,6 +1886,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `LEFT JOIN` statement
 	 *
@@ -1884,6 +1910,7 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['LEFT_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**
 	 *	Generates an SQL `LEFT OUTER JOIN` statement
 	 *
@@ -1903,6 +1930,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `LEFT OUTER JOIN` statement
 	 *
@@ -1922,6 +1951,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `LEFT OUTER JOIN` statement
 	 *
@@ -1944,9 +1975,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['LEFT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                              RIGHT JOIN                              **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `RIGHT JOIN` statement
@@ -1967,6 +2000,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `RIGHT JOIN` statement
 	 *
@@ -1986,6 +2021,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `RIGHT JOIN` statement
 	 *
@@ -2008,6 +2045,7 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['RIGHT_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**
 	 *	Generates an SQL `RIGHT OUTER JOIN` statement
 	 *
@@ -2027,6 +2065,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `RIGHT OUTER JOIN` statement
 	 *
@@ -2046,6 +2086,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `RIGHT OUTER JOIN` statement
 	 *
@@ -2068,9 +2110,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['RIGHT_OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                              INNER JOIN                              **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `INNER JOIN` statement
@@ -2091,6 +2135,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `INNER JOIN` statement
 	 *
@@ -2110,6 +2156,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `INNER JOIN` statement
 	 *
@@ -2132,9 +2180,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['INNER_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                              OUTER JOIN                              **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `OUTER JOIN` statement
@@ -2155,6 +2205,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `OUTER JOIN` statement
 	 *
@@ -2174,6 +2226,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `OUTER JOIN` statement
 	 *
@@ -2196,9 +2250,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['OUTER_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                              CROSS JOIN                              **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `CROSS JOIN` statement
@@ -2219,6 +2275,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `CROSS JOIN` statement
 	 *
@@ -2238,6 +2296,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `CROSS JOIN` statement
 	 *
@@ -2260,9 +2320,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['CROSS_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                             STRAIGHT_JOIN                            **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `STRAIGHT_JOIN` statement
@@ -2283,6 +2345,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `STRAIGHT_JOIN` statement
 	 *
@@ -2302,6 +2366,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `STRAIGHT_JOIN` statement
 	 *
@@ -2324,9 +2390,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['STRAIGHT_JOIN'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                             NATURAL JOIN                             **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `NATURAL JOIN` statement
@@ -2347,6 +2415,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `NATURAL JOIN` statement
 	 *
@@ -2366,6 +2436,8 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['NATURAL_JOIN'] . $stmt, ...$params);
 	}
+
+
 	/**
 	 *	Generates an SQL `NATURAL JOIN` statement
 	 *
@@ -2393,6 +2465,7 @@ class Sql implements \ArrayAccess
 	/**                                USING                                 **/
 	/**************************************************************************/
 
+
 	/**
 	 *	Generates an SQL `USING` statement
 	 *
@@ -2414,9 +2487,11 @@ class Sql implements \ArrayAccess
 		return $this;
 	}
 
+
 	/**************************************************************************/
 	/**                                ON                                    **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `ON` statement
@@ -2441,8 +2516,6 @@ class Sql implements \ArrayAccess
 		}
 		return $this->prepare(self::$translations['ON'] . $stmt, ...$params);
 	}
-
-
 
 
 	/**************************************************************************/
@@ -2501,9 +2574,11 @@ class Sql implements \ArrayAccess
 		return $this->prepare(self::$translations['WHERE'] . $stmt, ...$params);
 	}
 
+
 	/**************************************************************************/
 	/**                                 IN                                   **/
 	/**************************************************************************/
+
 
 	/**
 	 *	Generates an SQL `IN` statement
@@ -2619,7 +2694,7 @@ class Sql implements \ArrayAccess
 		foreach ($cols as $arg)
 		{
 			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
+			{
 				$this->sql .= $arg;
 				$comma = ', ';
 			}
@@ -2629,7 +2704,7 @@ class Sql implements \ArrayAccess
 				{
 					case 'DESC':
 					case 'ASC':
-						//	skip adding commas for `DESC` and `ASC`
+						//	don't add commas for `DESC` and `ASC` (supporting ORM style syntax)
 						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
 						$this->sql .= ' ' . $arg;
 						break;
@@ -2675,7 +2750,7 @@ class Sql implements \ArrayAccess
 		foreach ($cols as $arg)
 		{
 			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
+			{
 				$this->sql .= $arg;
 				$comma = ', ';
 			}
@@ -2685,7 +2760,7 @@ class Sql implements \ArrayAccess
 				{
 					case 'DESC':
 					case 'ASC':
-						//	skip adding commas for `DESC` and `ASC`
+						//	don't add commas for `DESC` and `ASC` (supporting ORM style syntax)
 						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
 						$this->sql .= ' ' . $arg;
 						break;
@@ -2721,7 +2796,7 @@ class Sql implements \ArrayAccess
 		foreach ($cols as $arg)
 		{
 			if ($comma === null)
-			{	// faster test for ORDER BY with only one column, or only one value, without the strtoupper() conversion
+			{
 				$this->sql .= $arg;
 				$comma = ', ';
 			}
@@ -2731,7 +2806,7 @@ class Sql implements \ArrayAccess
 				{
 					case 'DESC':
 					case 'ASC':
-						//	skip adding commas for `DESC` and `ASC`
+						//	don't add commas for `DESC` and `ASC` (supporting ORM style syntax)
 						//	eg. ORDER_BY('price', 'DESC') => price DESC => and not => price, DESC
 						$this->sql .= ' ' . $arg;
 						break;
@@ -2930,26 +3005,9 @@ class Sql implements \ArrayAccess
 			$params = $params[0];								//	problem is when the first value is for :json_encode ... we can allow ONE decode ?
 			$params_conversion = true;							//	AKA compatibility mode - we need to know if we executed `compatibility mode` or not, one reason is to support :json_encode, when there is only ONE value passed, then $params become our value, and not $params[0]!
 		}
-		if (isset($stmt[0]) && is_string($stmt[0]) && isset($stmt[1]) && is_array($stmt[1])) {
-			//	I had the idea to pass ([$stmt, keys($params[0])], ...values($params[0])) ... could allow us to do a `key` lookup ... but abandoned the idea for now
-			$keys = $stmt[1];
-			$stmt = $stmt[0];
-		}
-		//	('IN (?)', [1, 2, 3])
-		//	('IN (?, ?, ?)', [1, 2, 3])
-		//	('IN (?, ?, ?)',  1, 2, 3)
-		//	('IN ([?])',  [1, 2, 3])
-		//	('IN ([])',  [1, 2, 3])
-		//	('IN ([], ?, ?)',  [1, 2, 3])
-		//	('%s:json_encode',  [1, 2, 3])
-		//	('[]:json_encode',  [1, 2, 3])
-		//	(':id, :name, :dated',  ['id' => 1, 'name' => 2, '@dated' => 'NOW()'])
-		//	(':id, :name, :dated',  [':id' => 1, ':name' => 2, ':dated' => 'NOW()'])
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|(?:\?|\d+)\.\.(?:\?|\d+)|\?|@[^a-zA-Z]?|[%:]([a-zA-Z0-9][a-zA-Z0-9_-]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|\[(.*)\]|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 							function ($matches) use (&$count, $stmt, &$params, &$params_conversion, &$keys)
 							{
-dump('Matches vvv');
-dump($matches);
 								$match = $matches[0];
 								switch ($match[0])
 								{
@@ -3078,7 +3136,7 @@ dump($matches);
 
 										/**
 										 *
-										 *	Creating a `sub-pattern` of code within the [...] syntax
+										 *	Creating a `sub-pattern` of code within the [...] array syntax
 										 *
 										 */
 										return (string) new self($matches[4], $array);
@@ -3098,7 +3156,7 @@ dump($matches);
 											if ($value === false && $index === null) {
 												throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
 													') supplied to Sql->prepare(`' . $stmt .
-													'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern!');
+													'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
 											}
 											$next = next($params);
 											//	detect `call(able)` method in $next and skip!
@@ -3121,7 +3179,7 @@ dump($matches);
 															if ($min === false && $index === null) {
 																throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
 																	') supplied to Sql->prepare(`' . $stmt .
-																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern!');
+																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
 															}
 															next($params);
 															$count++;
@@ -3132,7 +3190,7 @@ dump($matches);
 															if ($max === false && $index === null) {
 																throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
 																	') supplied to Sql->prepare(`' . $stmt .
-																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern!');
+																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
 															}
 															next($params);
 															$count++;
@@ -3400,7 +3458,6 @@ dump($matches);
 																			`{$matches[0]}` requires a string to be a minimum {$min} characters in length; input string has only {$strlen} of {$min} characters");
 													}
 													if ( $max && $strlen > $max) {
-//dump($normalized);
 														if (strpos($modifiers, ':crop') !== false) {
 															$value = mb_substr($value, 0, $max);
 														}
@@ -3520,45 +3577,6 @@ dump($matches);
 		}
 		return $this;
 	}
-/*
-		$this->sql .= PHP_EOL . 'WHERE ';
-		for(; key($args) !== null; next($args))
-		{
-			$arg = current($args);
-			if (mb_strpos($arg, '?') !== false) {
-				for ($offset = 0; ($pos = mb_strpos($arg, '?', $offset)) !== false; $offset = $pos + 1 ) {
-					$next = next($args);
-					$this->sql .= mb_substr($arg, $offset, $pos - $offset) . $this->sanitize($next);
-					$final = null;
-				}
-				$this->sql .= mb_substr($arg, $offset);
-			}
-			else {
-				// lookahead
-				$next = next($args);
-				if (is_array($next)) {
-					// $next member is an array of (hopefully) replacement values eg. ['id' => 5] for ':id'
-					$this->sql .= mb_ereg_replace_callback(':([a-z]+)',
-										function ($matches) use ($next)
-										{
-											if (isset($next[$matches[1]])) {
-												return $this->sanitize($next[$matches[1]]);
-											}
-											else if (isset($next['@' . $matches[1]])) {
-												return $next['@' . $matches[1]];
-											}
-											throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
-										}, $arg);
-				}
-				else {
-					$this->sql .= $arg;
-					prev($args);
-				}
-			}
-		}
-		$this->sql .= $final;
-		return $this;
-*/
 
 
 	/**
@@ -3589,9 +3607,7 @@ dump($matches);
 	 */
 	public static function escape($string)
 	{
-	//	return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string);	//	includes % and _ because they have special meaning in MySQL LIKE statements!
 		return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string);	//	27 = ' 22 = " 5C = \ 1A = ctl-Z 00 = \0 (NUL) 0A = \n 0D = \r
-	//	return preg_replace('~[\x00\x0A\x0D\x1A\x22\x27\x5C]~u', '\\\$0', $string);	preg_replace() equivalent, they differ in their `backreference` syntax!
 	}
 
 	/**
@@ -3622,10 +3638,7 @@ dump($matches);
 	 */
 	public static function quote($string)
 	{
-	//	return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x25\x27\x5C\x5F]', '\\\0', $string) . self::$quot;
 		return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string) . self::$quot;
-	//	$this->sql .= '"' . ($escape ? self::$conn->real_escape_string(self::utf8($value)) : $value) . '"';
-	//	return $this;
 	}
 
 
