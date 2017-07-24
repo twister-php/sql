@@ -15,23 +15,27 @@ It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part
 
 This is not an ORM or replacement for an ORM, it's the tool you use when you need to create a raw SQL query string with the convenience of placeholders. It doesn't 'prepare' or 'execute' your queries exactly like `PDO::prepare` does; but it does support the familiar syntax of using `?` or `:id` as placeholders. It also supports a subset of `sprintf`'s `%s` / `%d` syntax.
 
-In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, and it can auto-implode arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, even replaing column names eg. `sql('WHERE @ = ?', 'name', 'Trevor')` becomes `WHERE name = "Trevor"`; and it can auto-implode arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+
+## Description
+
+Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). It's **database and framework neutral** (no database connection used, no external/framework dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know or care about what part of the query you are working on), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ### Speed and Safety
 
-This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. In fact, it doesn't even need or use a database connection.
+This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
 
 ### Simplify the Complex
 
 It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
 
-This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries.
+This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping' and 'quoting' strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
 
-So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; and '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' in your ORM becomes a problem or you need to write custom queries against some or all of this data, then you will truly realise how much time and headaches this library can save you.
+So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; or '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' becomes a problem in your ORM; or you need to write custom queries against some or all of this data, then you will truly realise how much time and stress this library can save you.
 
-## A taste of things to come
+# A taste of things to come
 
-### Hello World
+## Hello World
 
 ```php
 echo sql('Hello @', 'World');
@@ -75,35 +79,3 @@ $sql = sql('@', 'CURDATE()');		//	@  useful for function calls
 
 // 'CURDATE()'
 ```
-
-
-
-### sprintf() limitations
-
-`sprintf` doesn't automatically quote or escape your strings, thus making it 
-
-### PDO::prepare
-
-`[PDO::prepare](http://php.net/manual/en/pdo.prepare.php)` is possibly the _best_ known tool to use in the industry for protecting your scripts from SQL injection. However, it has many limitations because it's based on an underlying concept of 'preparing' a statement to be executed multiple times, the underlying database is responsible for constructing a query plan for multiple executions. This limitation doesn't allow you to change field/column names, tables or more dynamic 'WHERE' clauses.
-
-My experience of 'preparing', 'binding' (optional) and 'executing' statements for multiple execution, has very limited use in realworld applications. It's more work than it's worth, because less than 5% of my queries are executed in a loop. Most queries are executed once off, so the only real benefit left is the protection from SQL injection.
-
-This library does NOT 'prepare' your statements, it simply returns a string like `sprintf`; and therefore allows ANYTHING to be changed, column, field or table names. Anything that can be replaced in a string like `sprintf` with `%s` 
-
-
-
-
-This class purely allows you to create a plain text string with the placeholders
-
-
-You don't need layers of 'abstraction' (where you can't even see the query being generated) to build safer or better SQL.
-Most ORM's 'abstract' the SQL commands away from you to 'make it safer', or 'more portable', or 'faster/better to write'.
-They just introduce hundreds of new/weird functions (like Laravel's `take()` instead of `limit()`), new librabries, hundreds of new classes, interfaces, traits, exceptions etc.
-
-It's the difference between "managed" and "unmanaged" code.
-
-Well, I like my 
-to make working with SQL strings easier, safer and faster; you need the right set of functionality!
-When we work with strings, we have functions like strlen(), strpos(), substr() etc. so we don't have to write those ourselves.
-When it comes to functions that help us write an SQL query, we only have the standard string functions to work with.
-This wrapper doesn't 
