@@ -40,19 +40,22 @@ Hello "World"
 ### Hello SQL World
 
 ```php
-echo sql('SELECT * FROM users WHERE id = ?', 5);
+echo sql('SELECT * FROM users WHERE id = ?', "5");
 ```
 ```
 SELECT * FROM users WHERE id = 5
 ```
+`is_numeric()` values are not escaped
 
 
 ```php
-echo sql('SELECT * FROM users WHERE name = ?', 'Trevor');
+echo sql('SELECT * FROM users WHERE name = ?', "Trevor's");
 ```
 ```
-SELECT * FROM users WHERE name = "Trevor"
+SELECT * FROM users WHERE name = "Trevor\'s"
 ```
+Exactly the same escaping rules as [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php)
+
 
 
 ```php
@@ -62,6 +65,7 @@ echo sql('?, ?, ?, ?, ?, ?, ?', 4, '5', "Trevor's", 'NOW()', true, false, null);
 4, 5, "Trevor\'s", "NOW()", 1, 0, NULL, 
 ```
 "NOW()" is an SQL function that will not be executed, use `@` for raw output strings
+
 
 
 ```php
