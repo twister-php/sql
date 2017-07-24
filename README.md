@@ -21,6 +21,31 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 
 Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). Designed to be 100% Multibyte-aware (**UTF-8**, depending on your mb\_\* extention, all functions use mb\_\* internally), **supports ALL databases** (no database connection used, write the query for your database/driver) and **ALL frameworks** (no framework or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
+## History
+
+I got the initial inspiration for this code when reading about the [MyBatis SQL Builder Class](http://www.mybatis.org/mybatis-3/statement-builders.html); and it's dedicated to the few; but proud developers that love the power and flexibility of writing native SQL queries! With great power ...
+
+It was originally designed to bridge the gap between ORM query builders and native SQL queries; by making use of a familiar ORM-style '**[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)**', but keeping the syntax as close to SQL as possible.
+
+## Install
+
+Composer
+```
+composer require twister/sql
+```
+manually
+```json
+/* composer.json */
+	"require": {
+		"php": ">=5.6",
+		"twister/sql": "*"
+	}
+```
+or from GIT
+```
+https://github.com/twister-php/sql
+```
+
 ### Hello World
 
 ```php
