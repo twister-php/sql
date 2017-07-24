@@ -1584,6 +1584,231 @@ class Sql implements \ArrayAccess
 
 
 	/**************************************************************************/
+	/**                             DELETE                                   **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Generates an SQL `DELETE` statement
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	eg. `->delete('FROM users ...', ...)`
+	 *	    `DELETE FROM users ...`
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function delete($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['DELETE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['DELETE'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `DELETE` statement - shorthand for `delete()`
+	 *
+	 *	@alias delete()
+	 *
+	 *	eg. `->d('FROM users ...', ...)`
+	 *	    `DELETE FROM users ...`
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function d($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['DELETE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['DELETE'] . $stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
+	/**                          DELETE FROM                                 **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Generates an SQL `DELETE FROM` statement
+	 *
+	 *	See {@see delete_from()} for 'snake_case' alternative
+	 *
+	 *	eg. `->deleteFrom('users ...', ...)`
+	 *	    `DELETE FROM users ...`
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function deleteFrom($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['DELETE_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['DELETE_FROM'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `DELETE FROM` statement
+	 *
+	 *	See {@see deleteFrom()} for 'camelCase' alternative
+	 *
+	 *	eg. `->delete_from('users ...', ...)`
+	 *	    `DELETE FROM users ...`
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function delete_from($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['DELETE_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['DELETE_FROM'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `DELETE FROM` statement - shorthand for `deleteFrom()`
+	 *
+	 *	This is exactly the same as calling `deleteFrom()` or `delete_from()`
+	 *	just conveniently shorter syntax
+	 *
+	 *	eg. `->df('users ...', ...)`
+	 *	    `DELETE FROM users ...`
+	 *
+	 *	@alias delete_from()
+	 *	@alias deleteFrom()
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function df($stmt, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['DELETE_FROM'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['DELETE_FROM'] . $stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
+	/**                             UPDATE                                   **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Generates an SQL `UPDATE` statement
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	eg. `->update('users ...', ...)`
+	 *	    `UPDATE users ...`
+	 *
+	 *	{@link https://dev.mysql.com/doc/refman/5.7/en/update.html}
+	 *
+	 *	MySQL syntax:
+	 *
+	 *		UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+	 *			SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+	 *			[WHERE where_condition]
+	 *			[ORDER BY ...]
+	 *			[LIMIT row_count]
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function update($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['UPDATE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['UPDATE'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generates an SQL `UPDATE` statement - shorthand for `update()`
+	 *
+	 *	@alias update()
+	 *
+	 *	eg. `->u('FROM users ...', ...)`
+	 *	    `UPDATE users ...`
+	 *
+	 *	{@link https://dev.mysql.com/doc/refman/5.7/en/update.html}
+	 *
+	 *	MySQL syntax:
+	 *
+	 *		UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+	 *			SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+	 *			[WHERE where_condition]
+	 *			[ORDER BY ...]
+	 *			[LIMIT row_count]
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function u($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['UPDATE'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['UPDATE'] . $stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
 	/**                                EXPLAIN                               **/
 	/**************************************************************************/
 
@@ -3307,7 +3532,6 @@ class Sql implements \ArrayAccess
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|(?:\?|\d+)\.\.(?:\?|\d+)|\[(.*?)\]|\?|@[^a-zA-Z]?|[%:]([a-zA-Z0-9][a-zA-Z0-9_-]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 					function ($matches) use (&$count, $stmt, &$params, &$params_conversion, &$keys)
 					{
-dump($matches);
 						$match = $matches[0];
 						switch ($match[0])
 						{

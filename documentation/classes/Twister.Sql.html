@@ -144,19 +144,19 @@
                                 <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-955366231"></a>
+                                    <a class="accordion-toggle " data-toggle="collapse" data-target="#namespace-615111551"></a>
                                 <a href="../namespaces/default.html" style="margin-left: 30px; padding-left: 0">\</a>
             </div>
-            <div id="namespace-955366231" class="accordion-body collapse in">
+            <div id="namespace-615111551" class="accordion-body collapse in">
                 <div class="accordion-inner">
 
                                                     <div class="accordion" style="margin-bottom: 0">
         <div class="accordion-group">
             <div class="accordion-heading">
-                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-1987878435"></a>
+                                    <a class="accordion-toggle collapsed" data-toggle="collapse" data-target="#namespace-885783634"></a>
                                 <a href="../namespaces/Twister.html" style="margin-left: 30px; padding-left: 0">Twister</a>
             </div>
-            <div id="namespace-1987878435" class="accordion-body collapse ">
+            <div id="namespace-885783634" class="accordion-body collapse ">
                 <div class="accordion-inner">
 
                     
@@ -229,6 +229,13 @@
                                                                     <a href="../classes/Twister.Sql.html#method_values" class="">values()</a><br />
                                                                     <a href="../classes/Twister.Sql.html#method_v" class="">v()</a><br />
                                                                     <a href="../classes/Twister.Sql.html#method_set" class="">set()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_delete" class="">delete()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_d" class="">d()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_deleteFrom" class="">deleteFrom()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_delete_from" class="">delete_from()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_df" class="">df()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_update" class="">update()</a><br />
+                                                                    <a href="../classes/Twister.Sql.html#method_u" class="">u()</a><br />
                                                                     <a href="../classes/Twister.Sql.html#method_explain" class="">explain()</a><br />
                                                                     <a href="../classes/Twister.Sql.html#method_select" class="">select()</a><br />
                                                                     <a href="../classes/Twister.Sql.html#method_s" class="">s()</a><br />
@@ -1670,6 +1677,346 @@ UPDATE [LOW_PRIORITY] [IGNORE] table_reference SET col_name1={expr1|DEFAULT} [, 
 Alternative 2: (['col1', 'col2', '@dated'], [$value1, $value2, 'CURDATE()'])            two arrays:         [columns], [values]
 Alternative 3: ('col1 = ?, col2 = ?, dated = @', $value1, $value2, 'CURDATE()')
 Alternative 4: (['col1 = ?', col2 = ?, dated = @', $value1, $value2, 'CURDATE()')   single array v2:    ['column', $value, 'column', $value]</p>
+                                                    </td>
+                    </tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_delete" name="method_delete" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">delete()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">delete(string|null  <span class="argument">$stmt = null</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `DELETE` statement</em></p>
+                <p>See \prepare() for optional syntax rules</p>
+<p>eg. <code>-&gt;delete('FROM users ...', ...)</code>
+<code>DELETE FROM users ...</code></p>
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_d" name="method_d" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">d()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">d(string|null  <span class="argument">$stmt = null</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `DELETE` statement - shorthand for `delete()`</em></p>
+                
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr>
+                        <th>
+                            alias
+                        </th>
+                        <td>
+                                                                                            <p>delete()</p>
+<p>eg. <code>-&gt;d('FROM users ...', ...)</code>
+<code>DELETE FROM users ...</code></p>
+                                                    </td>
+                    </tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_deleteFrom" name="method_deleteFrom" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">deleteFrom()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">deleteFrom(string|null  <span class="argument">$stmt</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `DELETE FROM` statement</em></p>
+                <p>See \delete_from() for 'snake_case' alternative</p>
+<p>eg. <code>-&gt;deleteFrom('users ...', ...)</code>
+<code>DELETE FROM users ...</code></p>
+<p>See \prepare() for optional syntax rules</p>
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_delete_from" name="method_delete_from" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">delete_from()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">delete_from(string|null  <span class="argument">$stmt</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `DELETE FROM` statement</em></p>
+                <p>See \deleteFrom() for 'camelCase' alternative</p>
+<p>eg. <code>-&gt;delete_from('users ...', ...)</code>
+<code>DELETE FROM users ...</code></p>
+<p>See \prepare() for optional syntax rules</p>
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_df" name="method_df" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">df()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">df(string|null  <span class="argument">$stmt</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `DELETE FROM` statement - shorthand for `deleteFrom()`</em></p>
+                <p>This is exactly the same as calling <code>deleteFrom()</code> or <code>delete_from()</code>
+just conveniently shorter syntax</p>
+<p>eg. <code>-&gt;df('users ...', ...)</code>
+<code>DELETE FROM users ...</code></p>
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr>
+                        <th>
+                            alias
+                        </th>
+                        <td>
+                                                                                            <p>delete_from()</p>
+                                                                                            <p>deleteFrom()</p>
+                                                    </td>
+                    </tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_update" name="method_update" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">update()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">update(string|null  <span class="argument">$stmt = null</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `UPDATE` statement</em></p>
+                <p>See \prepare() for optional syntax rules</p>
+<p>eg. <code>-&gt;update('users ...', ...)</code>
+<code>UPDATE users ...</code></p>
+<p><a href="https://dev.mysql.com/doc/refman/5.7/en/update.html"><a href="https://dev.mysql.com/doc/refman/5.7/en/update.html">https://dev.mysql.com/doc/refman/5.7/en/update.html</a></a></p>
+<p>MySQL syntax:</p>
+<pre><code>UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+    SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+    [WHERE where_condition]
+    [ORDER BY ...]
+    [LIMIT row_count]</code></pre>
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr><td colspan="2"><em>None found</em></td></tr>
+                            </table>
+        </aside>
+    </div>
+
+                                    <div class="row-fluid">
+        <div class="span8 content class">
+            <a id="method_u" name="method_u" class="anchor"></a>
+            <article class="method">
+                <h3 class="public ">u()</h3>
+                <a href="#source-view" role="button" class="pull-right btn" data-toggle="modal" style="font-size: 1.1em; padding: 9px 14px"><i class="icon-code"></i></a>
+                <pre class="signature" style="margin-right: 54px;">u(string|null  <span class="argument">$stmt = null</span>, mixed  <span class="argument">$params</span>) : $this</pre>
+                <p><em>Generates an SQL `UPDATE` statement - shorthand for `update()`</em></p>
+                
+
+                                    <h4>Parameters</h4>
+                    <table class="table table-condensed table-hover">
+                                                    <tr>
+                                <td>string|null</td>
+                                <td>$stmt </td>
+                                <td><p>(optional) Statement to <code>prepare()</code>;</p></td>
+                            </tr>
+                                                    <tr>
+                                <td>mixed</td>
+                                <td>$params </td>
+                                <td><p>(optional) Parameters associated with $stmt</p></td>
+                            </tr>
+                                            </table>
+                
+                
+                                    <h4>Returns</h4>
+                    $this
+                                    				
+                            </article>
+        </div>
+        <aside class="span4 detailsbar">
+            <h1><i class="icon-arrow-down"></i></h1>
+                                                            <dl>
+                                                                            </dl>
+            <h2>Tags</h2>
+            <table class="table table-condensed">
+                                    <tr>
+                        <th>
+                            alias
+                        </th>
+                        <td>
+                                                                                            <p>update()</p>
+<p>eg. <code>-&gt;u('FROM users ...', ...)</code>
+<code>UPDATE users ...</code></p>
+<p>{@link <a href="https://dev.mysql.com/doc/refman/5.7/en/update.html">https://dev.mysql.com/doc/refman/5.7/en/update.html</a>}</p>
+<p>MySQL syntax:</p>
+<pre><code>UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+    SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+    [WHERE where_condition]
+    [ORDER BY ...]
+    [LIMIT row_count]</code></pre>
                                                     </td>
                     </tr>
                             </table>
@@ -4954,7 +5301,7 @@ because the return value is $this</p>
                 <section class="span10 offset1">
                     <hr />
                     Documentation is powered by <a href="http://www.phpdoc.org/">phpDocumentor </a> and authored
-                    on July 24th, 2017 at 23:42.
+                    on July 25th, 2017 at 01:35.
                 </section>
             </section>
         </section>
