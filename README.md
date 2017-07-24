@@ -367,7 +367,6 @@ $sql = SQL();
 * Powerful 200 character Multibyte regular expression powers the replacement engine ([mb_ereg_replace_callback()](http://php.net/manual/en/function.mb-ereg-replace-callback.php) with a 600 line function)
 * ORM style '[Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
 * Intends to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements
-* Natural SQL language - queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable. No new keywords to learn, leverage your existing SQL knowledge
 * Any driver: execute queries against any driver that accepts natural SQL commands: PDO, MySQLi, pg\_\*, SQLLite etc.
 * Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
 * Any Query - any query with any complexity and any number of custom code can be expressed through SQLQB.
