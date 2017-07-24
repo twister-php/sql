@@ -20,7 +20,7 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 
 ```php
 echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([])',
-	'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3]);
+		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3]);
 ```
 No escaping, no quotes, no array hanling/imploding and no concatenations ...
 
