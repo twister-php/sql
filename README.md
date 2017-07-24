@@ -19,20 +19,20 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 
 
 ```php
-echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([])',
-		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3]);
+echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([]) AND created = @',
+		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3], 'NOW()');
 ```
 No escaping, no quotes, no array hanling and no concatenations ...
 
 Output:
 ```sql
-SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR id IN (1, 2, 3)
+SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR id IN (1, 2, 3) AND created = NOW()
 ```
 
 
 ## Description
 
-Raw SQL Query Builder is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php), all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+Raw SQL Query Builder is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ## History
 
@@ -73,6 +73,13 @@ or from GIT
 https://github.com/twister-php/sql
 ```
 
+Requires (similar to Laravel):
+```
+PHP 5.6+ (...$args syntax)
+Multibyte mb_* extention
+```
+
+
 ### Hello World
 
 ```php
@@ -97,7 +104,7 @@ echo sql('SELECT ?, ?, ?, @', 1, "2", 'Hello World', 'NOW()');
 ```
 SELECT 1, 2, "Hello World", NOW()
 ```
-Numeric values are not quoted (even when they are in strings)
+Note: 'numeric' values are not quoted (even when they are in strings)
 
 Exactly the same escaping rules as [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php) apply.
 
@@ -127,7 +134,8 @@ echo sql()->select('u.id', 'u.name', 'a.*')
           ->from('users u')
             ->leftJoin('accounts a ON a.user_id = u.id AND a.overdraft >= ?', 5000)
           ->where('a.account = ? OR u.name = ? OR a.id IN ([])', 'BST002', 'foobar', [1, 2, 3])
-          ->orderBy('u.name DESC');
+          ->orderBy('u.name DESC')
+	  ->limit(5, 10);
 ```
 ```sql
 SELECT u.id, u.name, a.*
@@ -135,6 +143,7 @@ FROM users u
   LEFT JOIN accounts a ON a.user_id = u.id AND a.overdraft >= 5000
 WHERE a.account = "BST002" OR u.name = "foobar" OR a.id IN (1, 2, 3)
 ORDER BY u.name DESC
+LIMIT 5, 10
 ```
 Queries include additional whitespace for formatting and display purposes, which can be removed by calling `Sql::singleLineStatements()`. SQL keywords can be made lower-case by calling `Sql::lowerCaseStatements()`
 
@@ -178,7 +187,7 @@ WHERE id IN (1, 2, 3) OR id IN (6, 7, 8)
 eg. pack (merge internal whitespace) & trim
 
 ```php
-echo sql('SET description = %s:pack:trim:20', "Hello     World's   Greatest");
+echo sql('SET description = %s:pack:trim:crop:20', "Hello     World's   Greatest");
 ```
 ```sql
 SET description = "Hello World\'s Greate"
