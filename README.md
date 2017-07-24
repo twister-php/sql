@@ -209,3 +209,155 @@ $sql = sql('@', 'CURDATE()');		//	@  useful for function calls
 
 // 'CURDATE()'
 ```
+
+# Beginners guide
+
+The general idea is very simple; when you call a function, it basically just appends the function name (eg. `select(...)`, `from(...)`, `where(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining AKA a '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
+
+#### pseudo-code
+
+```php
+class Sql
+{
+	function select(...$cols)
+	{
+		$this->sql .= 'SELECT ' . implode(', ', $cols);
+    		return $this;
+	}
+	function from(...$tables)
+	{
+		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $tables);
+		return $this;
+	}
+	function where($stmt, ...$params)
+	{
+		return $this->prepare(PHP_EOL . 'WHERE ', ...$params);
+	}
+	function prepare($stmt, ...$params)
+	{
+		//	the magic happens here
+		//	processing `?`, `@`, escaping, quoting etc.
+	}
+}
+
+echo sql()->select('*')
+          ->from('users u')
+	  ->where('u.id = ?', 5);
+SELECT * FROM users u WHERE u.id = 5
+```
+
+
+# Multiple calling conventions
+
+The code support camelCase, snake_case and UPPER_CASE syntax; as well as short form syntax:
+
+
+### Constructor
+
+```php
+use Twister;
+
+$sql = new sql();
+$sql = new Sql();
+$sql = new SQL();
+```
+
+### sql() helper/wrapper function
+
+```php
+$sql = sql();
+$sql = Sql();
+$sql = SQL();
+```
+
+### camelCase
+
+```php
+->select('col1', 'col2', 'col3')
+->from('table t')
+->join('table2 t2 ON ... = ?', $var)
+->leftJoin('table3 t3 ON ...?', $var)
+->where('foo = ?', 'bar')
+->groupBy('t.col1', 't2.col2')
+->orderBy('t.col1 DESC')
+->limit(5, 10);
+
+// others
+
+->selectDistinct(..)
+->insert(..)
+->insertInto(..)
+->values(..)
+->set(..)
+->delete(..)
+->deleteFrom(..)
+->having(..)
+->union(..)
+```
+
+### snake_case
+
+```php
+->select('col1', 'col2', 'col3')
+->from('table t')
+->join('table2 t2 ON ... = ?', $var)
+->left_join('table3 t3 ON ...?', $var)
+->where('foo = ?', 'bar')
+->group_by('t.col1', 't2.col2')
+->order_by('t.col1 DESC')
+->limit(5, 10);
+
+// others
+
+->select_distinct(..)
+->insert(..)
+->insert_into(..)
+->values(..)
+->set(..)
+->delete(..)
+->delete_from(..)
+->having(..)
+->union(..)
+```
+### UPPER_CASE
+```php
+->SELECT('col1', 'col2', 'col3')
+->FROM('table t')
+->JOIN('table2 t2 ON ... = ?', $var)
+->LEFT_JOIN('table3 t3 ON ...?', $var)
+->WHERE('foo = ?', 'bar')
+->GROUP_BY('t.col1', 't2.col2')
+->ORDER_BY('t.col1 DESC')
+->LIMIT(5, 10);
+
+// others
+
+->SELECT_DISTINCT(..)
+->INSERT(..)
+->INSERT_INTO(..)
+->VALUES(..)
+->SET(..)
+->DELETE(..)
+->DELETE_FROM(..)
+->HAVING(..)
+->UNION(..)
+```
+### short
+```php
+->s('col1', 'col2', 'col3')		//	s = SELECT
+->f('table t')				//	f = FROM
+->j('table2 t2 ON ... = ?', $var)	//	j = JOIN
+->lj('table3 t3 ON ...?', $var)         //	lj = LEFT JOIN
+->w('foo = ?', 'bar')			//	w = WHERE
+->gb('t.col1', 't2.col2')		//	gb = GROUP BY
+->ob('t.col1 DESC')			//	ob = ORDER BY
+->l(5, 10);				//	l = LIMIT
+```
+
+
+
+
+
+
+
+
