@@ -55,12 +55,24 @@ class Sql implements \ArrayAccess
 
 
 	/**
+	 *	Custom text modifiers eg. :dump, :log, 
+	 *
+	 *	This is an array of callback functions that handle custom modifiers.
+	 *
+	 *	This is a fully working feature, but not thoroughly documented because it's not likely to get much attention
+	 *
 	 *	@var callable[]|null
 	 */
 	protected static $modifiers	=	null;
 
 
 	/**
+	 *	Custom data types eg. %usetheforce, %created
+	 *
+	 *	This is an array of callback functions that handle custom data types.
+	 *
+	 *	This is a fully working feature, but not thoroughly documented because it's not likely to get much attention
+	 *
 	 *	@var callable[]|null
 	 */
 	protected static $types		=	null;
@@ -1741,14 +1753,10 @@ class Sql implements \ArrayAccess
 	 *	See {@see prepare()} for optional syntax rules
 	 *
 	 *	@param  string      $modifier
-	 *                      An SQL `INSERT` statement modifier to place between the `INSERT`
-	 *                      and `INTO` clause; such as `HIGH_PRIORITY` or `IGNORE`
+	 *                      An SQL `SELECT` statement modifier to place after the `SELECT`
+	 *                      statement; such as `DISTINCT` or `SQL_CACHE`
 	 *
-	 *	@param  string|null $stmt
-	 *                      (optional) Statement to `prepare()`;
-	 *
-	 *	@param  mixed       ...$params
-	 *                      (optional) Parameters associated with $stmt
+	 *	@param  string      ...$cols Column list will be imploded with ', '
 	 *
 	 *	@return	$this
 	 */
