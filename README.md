@@ -1,4 +1,4 @@
-# SQL
+# Raw SQL Query Builder
 Raw SQL Query Builder ~ the Swiss-army knife of raw SQL queries
 
 ## Introduction
@@ -379,7 +379,7 @@ $sql = SQL();
 * Completely database neutral and agnostic; but MySQL, PDO, Postgres and SQLite are the primary targets.
 * Minimal SQL abstraction
 
-## What is doesn't do:
+## What it doesn't do:
 
 * does NOT parse your string
 * does NOT validate your string
