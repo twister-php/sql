@@ -1635,6 +1635,36 @@ class Sql implements \ArrayAccess
 
 
 	/**
+	 *	Generates an SQL 'SELECT' statement
+	 *
+	 *	This function will join/implode a list of columns/fields
+	 *
+	 *	eg. `->s('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *
+	 *	Due to the greater convenience provided by this method,
+	 *		the `prepare()` syntax is not provided here
+	 *
+	 *	`prepare()`/`sprintf()` like functionality can be provided by using
+	 *		another Sql Query Object's constructor like this:
+	 *
+	 *	`$sql = sql()->s('u.id',
+	 *	                      // note how the next `sql()` call will be converted to a string
+	 *	                      sql('(SELECT ... WHERE a.id = @) AS foo', $id),
+	 *	                      'u.name')
+	 *	             ->f('users u');`
+	 *
+	 *	@param  string ...$cols Column list will be imploded with ', '
+	 *
+	 *	@return $this
+	 */
+	public function s(...$cols)
+	{
+		$this->sql .= self::$translations['SELECT'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**
 	 *	Generates an SQL 'SELECT DISTINCT' statement
 	 *
 	 *	This function will join/implode a list of columns/fields
@@ -1671,6 +1701,32 @@ class Sql implements \ArrayAccess
 	 *	@return $this
 	 */
 	public function select_distinct(...$cols)
+	{
+		$this->sql .= self::$translations['SELECT'] . self::$translations['DISTINCT'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an SQL 'SELECT DISTINCT' statement
+	 *
+	 *	This function will join/implode a list of columns/fields
+	 *
+	 *	@alias selectDistinct()
+	 *	@alias select_distinct()
+	 *
+	 *	This function is the short syntax version of selectDistinct()
+	 *
+	 *	Examples:
+	 *
+	 *		`->sd('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *		`->sd('u.id', 'u.name', 'u.foo', 'u.bar');
+	 *
+	 *	@param  string ...$cols Column list will be imploded with ', '
+	 *
+	 *	@return $this
+	 */
+	public function sd(...$cols)
 	{
 		$this->sql .= self::$translations['SELECT'] . self::$translations['DISTINCT'] . implode(', ', $cols);
 		return $this;
@@ -2579,6 +2635,47 @@ class Sql implements \ArrayAccess
 
 
 	/**************************************************************************/
+	/**                                UNION                                 **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Generates an SQL `UNION` statement
+	 *
+	 *	Generates a `UNION` statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	Example:
+	 *
+	 *		->union()
+	 *
+	 *		->union('SELECT * FROM users')
+	 *
+	 *		->union()
+	 *			->select('* FROM users')
+	 *
+	 *		->union()
+	 *			->select('*')
+	 *			->from('users') ...
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function union($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['UNION'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['UNION'] . $stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
 	/**                                WHERE                                 **/
 	/**************************************************************************/
 
@@ -2706,27 +2803,101 @@ class Sql implements \ArrayAccess
 
 
 	/**************************************************************************/
-	/**                                UNION                                 **/
+	/**                               GROUP BY                               **/
 	/**************************************************************************/
 
 
 	/**
-	 *	Generates an SQL `UNION` statement
-	 *
-	 *	Generates a `UNION` statement with convenient `prepare()` syntax (optional)
+	 *	Generates an SQL `GROUP BY` statement
 	 *
 	 *	Example:
 	 *
-	 *		->union()
+	 *		`->groupBy('dated, name')`
+	 *	or
+	 *		`->groupBy('dated', 'name')`
 	 *
-	 *		->union('SELECT * FROM users')
+	 *	Output:
 	 *
-	 *		->union()
-	 *			->select('* FROM users')
+	 *		`GROUP BY (dated, name)`
 	 *
-	 *		->union()
-	 *			->select('*')
-	 *			->from('users') ...
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function groupBy(...$cols)
+	{
+		$this->sql .= self::$translations['GROUP_BY'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an SQL `GROUP BY` statement
+	 *
+	 *	@alias groupBy()
+	 *
+	 *	This is the 'snake case' equivalent of groupBy()
+	 *	Can also be used in ALL CAPS eg. `->GROUP_BY(...)`
+	 *
+	 *	Example:
+	 *
+	 *		`->group_by('dated, name')`
+	 *		`->GROUP_BY('dated, name')`
+	 *
+	 *	or
+	 *
+	 *		`->group_by('dated', 'name')`
+	 *		`->GROUP_BY('dated', 'name')`
+	 *
+	 *	Output:
+	 *
+	 *		`GROUP BY (dated, name)`
+	 *
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function group_by(...$cols)
+	{
+		$this->sql .= self::$translations['GROUP_BY'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**
+	 *	Generates an SQL `GROUP BY` statement
+	 *
+	 *	@alias groupBy()
+	 *
+	 *	This is the shorthand equivalent of `groupBy()` and `group_by()` for convenience!
+	 *
+	 *	Example:
+	 *
+	 *		`->gb('dated, name')`
+	 *		`GROUP BY (dated, name)`
+	 *
+	 *	@param  string       ...$cols
+	 *
+	 *	@return	$this
+	 */
+	public function gb(...$cols)
+	{
+		$this->sql .= self::$translations['GROUP_BY'] . implode(', ', $cols);
+		return $this;
+	}
+
+
+	/**************************************************************************/
+	/**                                HAVING                                 **/
+	/**************************************************************************/
+
+
+	/**
+	 *	Generates an SQL `HAVING` statement
+	 *
+	 *	Generates a `HAVING` statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	See {@see \Sql::prepare()} for optional syntax rules
 	 *
 	 *	@param  string|null $stmt
 	 *                      (optional) Statement to `prepare()`;
@@ -2736,13 +2907,42 @@ class Sql implements \ArrayAccess
 	 *
 	 *	@return	$this
 	 */
-	public function union($stmt = null, ...$params)
+	public function having($stmt = null, ...$params)
 	{
 		if (empty($params)) {
-			$this->sql .= self::$translations['UNION'] . $stmt;
+			$this->sql .= self::$translations['HAVING'] . $stmt;
 			return $this;
 		}
-		return $this->prepare(self::$translations['UNION'] . $stmt, ...$params);
+		return $this->prepare(self::$translations['HAVING'] . $stmt, ...$params);
+	}
+
+
+	/**
+	 *	Generate an SQL `HAVING` statement - shorthand for `having()`
+	 *
+	 *	Generate a `HAVING` statement with convenient `prepare()` syntax (optional)
+	 *
+	 *	This is the same as `having()`, only shorthand form
+	 *
+	 *	@alias having()
+	 *
+	 *	See {@see \Sql::prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       $params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function h($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql .= self::$translations['HAVING'] . $stmt;
+			return $this;
+		}
+		return $this->prepare(self::$translations['HAVING'] . $stmt, ...$params);
 	}
 
 
@@ -3096,42 +3296,264 @@ class Sql implements \ArrayAccess
 			$params = $params[0];								//	problem is when the first value is for :json_encode ... we can allow ONE decode ?
 			$params_conversion = true;							//	AKA compatibility mode - we need to know if we executed `compatibility mode` or not, one reason is to support :json_encode, when there is only ONE value passed, then $params become our value, and not $params[0]!
 		}
-		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|(?:\?|\d+)\.\.(?:\?|\d+)|\?|@[^a-zA-Z]?|[%:]([a-zA-Z0-9][a-zA-Z0-9_-]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|\[(.*)\]|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
-							function ($matches) use (&$count, $stmt, &$params, &$params_conversion, &$keys)
-							{
-								$match = $matches[0];
-								switch ($match[0])
-								{
-									case '?':
-										if ($match === '??' || $match === '\\?')
-											return '?';
+		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|(?:\?|\d+)\.\.(?:\?|\d+)|\[(.*?)\]|\?|@[^a-zA-Z]?|[%:]([a-zA-Z0-9][a-zA-Z0-9_-]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
+					function ($matches) use (&$count, $stmt, &$params, &$params_conversion, &$keys)
+					{
+dump($matches);
+						$match = $matches[0];
+						switch ($match[0])
+						{
+							case '?':
+								if ($match === '??' || $match === '\\?')
+									return '?';
 
-										$value = current($params);
-										if ($value === false && key($params) === null) {
-											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-												') supplied to Sql->prepare(`' . $stmt .
-												'`) pattern! Please check the number of `?` and `@` values in the statement pattern; possibly requiring ' .
-												(	substr_count($stmt, '?') + substr_count($stmt, '@') -
-													substr_count($stmt, '??') - substr_count($stmt, '@@') -
-													substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
-												count($params)) . ' more value(s)');
+								$value = current($params);
+								if ($value === false && key($params) === null) {
+									throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+										') supplied to Sql->prepare(`' . $stmt .
+										'`) pattern! Please check the number of `?` and `@` values in the statement pattern; possibly requiring at least 1 or ' .
+										(	substr_count($stmt, '?') + substr_count($stmt, '@') -
+											substr_count($stmt, '??') - substr_count($stmt, '@@') -
+											substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
+										count($params)) . ' more value(s)');
+								}
+								next($params);
+								$count++;
+
+								if (is_numeric($value))	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
+								if (is_string($value))	return self::quote($value);
+								if (is_null($value))	return 'NULL';
+								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
+								if (is_array($value)) {								//	same code used in [?]
+									$comma = null;
+									$result = '';
+									foreach ($value as $v) {
+											 if (is_numeric($v)) $result .= $comma . $v;
+										else if (is_string($v))  $result .= $comma . self::quote($v);
+										else if (is_null($v))    $result .= $comma . 'NULL';
+										else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
+										else {
+											throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+															'` given in array passed to Sql->prepare(`' . $stmt .
+															'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
 										}
-										next($params);
-										$count++;
+										$comma = ', ';
+									}
+									return $result;
+								}
 
-										if (is_numeric($value))	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
-										if (is_string($value))	return self::quote($value);
-										if (is_null($value))	return 'NULL';
-										if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
-										if (is_array($value)) {								//	same code used in [?]
+								if (prev($params) === false && key($params) === null) end($params); // backtrack for key
+								throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+												'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
+												'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed in `?` statements!');
+
+							case '@':	//	similar to ?, but doesn't include "" around strings, ie. literal/raw string
+
+								if ($match === '@@' || $match === '\\@')
+									return '@';
+
+								$value = current($params);
+								if ($value === false && key($params) === null)
+								{
+									throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+										') supplied to Sql->prepare(`' . $stmt .
+										'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
+										(	substr_count($stmt, '?') + substr_count($stmt, '@') -
+											substr_count($stmt, '??') - substr_count($stmt, '@@') -
+											substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
+										count($params)) . ' more value(s)');
+								}
+								next($params);
+								$count++;
+
+								if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
+								if (is_numeric($value))	return (string) $value;
+								if (is_null($value))	return 'NULL';
+								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
+								if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
+
+								if (prev($params) === false && key($params) === null) end($params); // backtrack for key
+								throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+												'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
+												'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed in `@` (raw output) statements!');
+
+							case '[':
+
+								if (isset($params_conversion) && $params_conversion)	//	the first $param[0] WAS an array (as tested at the top) ... and there was only one value ...
+								{
+									$array	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
+								}
+								else
+								{
+									$array = current($params);
+									if ($array === false && key($params) === null)
+									{
+										throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+											') supplied to Sql->prepare(`' . $stmt .
+											'`) pattern! Please check the number of `?` and `@` values in the statement pattern; possibly requiring ' .
+											(	substr_count($stmt, '?') + substr_count($stmt, '@') -
+												substr_count($stmt, '??') - substr_count($stmt, '@@') -
+												substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
+											count($params)) . ' more value(s)');
+									}
+									next($params);
+									$count++;
+								}
+
+								if ( ! is_array($array))
+								{
+									if (prev($params) === false && key($params) === null) end($params); // backtrack for key
+									throw new \InvalidArgumentException('Invalid data type `' . (is_object($array) ? get_class($array) : gettype($array)) .
+													'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
+													'`) pattern, only arrays are allowed in `[]` statements!');
+								}
+
+								if ($match === '[]' || $match === '[@]')
+								{
+									return implode(', ', $array);	//	WARNING: This isn't testing NULL and bool!
+								}
+								else if ($match === '[?]')	//	same thing as `?` ... why use/support this? I guess because it's more explicit !?!? ... going to deprecate ? as an array placeholder!
+								{
+									//if (is_array($array)) {		//	same code as `?`
+										$comma = null;
+										$result = '';
+										foreach ($array as $v)
+										{
+												 if (is_numeric($v)) $result .= $comma . $v;
+											else if (is_string($v))  $result .= $comma . self::quote($v);
+											else if (is_null($v))    $result .= $comma . 'NULL';
+											else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
+											else
+											{
+												throw new \InvalidArgumentException('Invalid data type `' . (is_object($array) ? get_class($array) : gettype($array)) .
+																'` given in array passed to Sql->prepare(`' . $stmt .
+																'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
+											}
+											$comma = ', ';
+										}
+										return $result;
+									//}
+								}
+
+								/**
+								 *
+								 *	Creating a `sub-pattern` of code within the [...] array syntax
+								 *
+								 */
+								return (string) new self($matches[1], $array);
+
+							default:
+
+								$count++;
+
+								if ($match[0] === '%')
+								{
+									$command = $matches[2];
+									if ($command === '')	//	for '%%' && '\%', $match === $matches[0] === "%%" && $command === $matches[2] === ""
+										return '%';
+
+									$value = current($params);
+									$index = key($params);			// too complicated to backtrack (with prev(), key(), end() bla bla) in this handler like the others, just store the damn index!
+									if ($value === false && $index === null)
+									{
+										throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+											') supplied to Sql->prepare(`' . $stmt .
+											'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
+									}
+									$next = next($params);
+									//	detect `call(able)` method in $next and skip!
+									//	because some commands might accept a `callable` for error handling
+									if (is_callable($next))
+										next($params);	// skip the callable by moving to next parameter!
+								}
+								else
+								{
+									if (strpos($matches[0], '..', 1))
+									{
+										$range = explode('..', $matches[0]);
+										if (count($range) === 2)
+										{
+											$min = $range[0];
+											$max = $range[1];
+											if ((is_numeric($min) || $min === '?') && (is_numeric($max) || $max === '?'))
+											{
+												$count--;	//	we need to `re-calculate` the paramater count. Because this command can take 0..2 parameters
+												if ($min === '?')
+												{
+													$min = current($params);
+													$index = key($params);
+													if ($min === false && $index === null)
+													{
+														throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+															') supplied to Sql->prepare(`' . $stmt .
+															'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
+													}
+													next($params);
+													$count++;
+												}
+												if ($max === '?')
+												{
+													$max = current($params);
+													$index = key($params);
+													if ($max === false && $index === null)
+													{
+														throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
+															') supplied to Sql->prepare(`' . $stmt .
+															'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
+													}
+													next($params);
+													$count++;
+												}
+
+												if ( ! is_numeric($min) || ! is_numeric($max))
+												{
+													throw new \BadMethodCallException('Invalid parameters for range generator `' . $matches[0] . '` supplied to Sql->prepare(`' . $stmt .
+															'`) pattern! Please check that both values are numeric. Ranges can only include integers or `?`, eg. ?..?, 1..?, 1..10; ' .
+															(is_numeric($min) ? null : $min . ' value supplied as min;') . (is_numeric($max) ? null : $max . ' value supplied as max.'));
+												}
+
+												return implode(', ', range($min, $max));
+
+											} /*else {
+												throw new \BadMethodCallException('Invalid parameters for range generator `' . $matches[0] . '` supplied to Sql->prepare(`' . $stmt .
+														'`) pattern! Ranges can only include integers or `?`, eg. ?..?, 1..?, 1..10');
+												
+											}*/
+										}
+									}
+
+									/**
+									 *	This section of code is used to support the `PDO::prepare()` syntax
+									 *	eg. `->prepare('[:id]', ['id' => 555]);
+									 *	returns: "555"
+									 */
+									/**
+									 *	Doing an `isset()` test first because it's faster, but doesn't pass when the array value is null
+									 *	That's what the `array_key_exists()` test if for!
+									 */
+									if (isset($params[$key = $matches[2]]) || array_key_exists($key, $params) || isset($params[$key = $matches[0]]) || array_key_exists($key, $params))
+									{
+										$value = $params[$key];
+
+										if (is_numeric($value)) {
+											$command = 'd';
+										} else if (is_string($value)) {
+											$command = 's';
+										} else if (is_null($value)) {
+											return 'NULL';
+										} else if (is_bool($value)) {
+											return $value ? '1' : '0';		//	bool values return '' when false
+										} else if (is_array($value)) {		//	same code used in [?]
 											$comma = null;
 											$result = '';
-											foreach ($value as $v) {
-												     if (is_numeric($v)) $result .= $comma . $v;
+											foreach ($value as $v)
+											{
+													 if (is_numeric($v)) $result .= $comma . $v;
 												else if (is_string($v))  $result .= $comma . self::quote($v);
 												else if (is_null($v))    $result .= $comma . 'NULL';
 												else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
-												else {
+												else
+												{
 													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
 																	'` given in array passed to Sql->prepare(`' . $stmt .
 																	'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
@@ -3140,572 +3562,317 @@ class Sql implements \ArrayAccess
 											}
 											return $result;
 										}
-
-										if (prev($params) === false && key($params) === null) end($params); // backtrack for key
-										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
-														'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed in `?` statements!');
-
-									case '@':	//	similar to ?, but doesn't include "" around strings, ie. literal/raw string
-
-										if ($match === '@@' || $match === '\\@')
-											return '@';
-
-										$value = current($params);
-										if ($value === false && key($params) === null)
+										else
 										{
-											throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-												') supplied to Sql->prepare(`' . $stmt .
-												'`) pattern! Please check the number of `?` and `@` values in the pattern; possibly requiring ' .
-												(	substr_count($stmt, '?') + substr_count($stmt, '@') -
-													substr_count($stmt, '??') - substr_count($stmt, '@@') -
-													substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
-												count($params)) . ' more value(s)');
+											throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+															'` passed to Sql->prepare(`' . $stmt .
+															'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed!');
 										}
-										next($params);
-										$count++;
-
-										if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-										if (is_numeric($value))	return (string) $value;
-										if (is_null($value))	return 'NULL';
-										if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
-										if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
-
-										if (prev($params) === false && key($params) === null) end($params); // backtrack for key
-										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-														'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
-														'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed in `@` (raw output) statements!');
-
-									case '[':
-
-										if (isset($params_conversion) && $params_conversion)	//	the first $param[0] WAS an array (as tested at the top) ... and there was only one value ...
+									}
+									else
+									{
+										if (isset($params[$key = '@' . $matches[2]]) || array_key_exists($key, $params))	//	@id
 										{
-											$array	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
+											$value = $params[$key];
+
+											if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
+											if (is_numeric($value))	return (string) $value;
+											if (is_null($value))	return 'NULL';
+											if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
+											if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
+
+											throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+															'` passed to Sql->prepare(`' . $stmt .
+															'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed!');
 										}
 										else
 										{
-											$array = current($params);
-											if ($array === false && key($params) === null)
-											{
-												throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-													') supplied to Sql->prepare(`' . $stmt .
-													'`) pattern! Please check the number of `?` and `@` values in the statement pattern; possibly requiring ' .
-													(	substr_count($stmt, '?') + substr_count($stmt, '@') -
-														substr_count($stmt, '??') - substr_count($stmt, '@@') -
-														substr_count($stmt, '\\?') - substr_count($stmt, '\\@') -
-													count($params)) . ' more value(s)');
+											throw new \InvalidArgumentException('Invalid array index `' . $matches[0] . '` for Sql->prepare(`' . $stmt . '`) pattern!');
+										}
+									}
+								}
+
+
+								if ( ! empty($matches[4]))
+								{
+									$matches[4] = rtrim(ltrim($matches[4], '{'), '}');
+								}
+								$modifiers = $matches[3] . (empty($matches[4]) ? null : ':' . $matches[4]);
+
+								if (is_null($value))
+								{
+									//	working, but (future) support for regular expressions might create false positives
+									if (preg_match('~[\{:]n(ull(able)?)?([:\{\}]|$)~', $modifiers))
+									{
+										return 'NULL';
+									}
+									throw new \InvalidArgumentException('NULL value detected for a non-nullable field at index ' . $index . ' for command: `' . $matches[0] . '`');
+								}
+
+								if (isset(self::$modifiers[$command]))
+								{
+									if (call_user_func(self::$types[$command], $value, $modifiers, 'init'))
+									{
+										return $value;
+									}
+								}
+
+								if (isset(self::$types[$command]))
+								{
+								//	Cannot use call_user_func() with a value reference ... 2 different errors ... one when I try `&$value`
+								//	Parse error: syntax error, unexpected '&' in Sql.php on line ...
+								//	Warning: Parameter 1 to {closure}() expected to be a reference, value given in Sql.php on line ...
+								//	$result = call_user_func(self::$types[$command], $value, $modifiers);
+									$result = self::$types[$command]($value, $modifiers);
+									if (is_string($result))
+										return $result;
+								}
+
+								switch ($command)
+								{
+									case 'string':
+									case 'varchar':				//	varchar:trim:crop:8:100 etc. ... to enable `cropping` to the given sizes, without crop, we throw an exception when the size isn't right! and trim to trim it!
+									case 'char':				//	:normalize:pack:tidy:minify:compact ... pack the spaces !?!? and trim ...  `minify` could be used for JavaScript/CSS etc.
+									case 'text':				//	I think we should use `text` only to check for all the modifiers ... so we don't do so many tests for common %s values ... this is `text` transformations ...
+									case 's':
+
+										//	WARNING: We need to handle the special case of `prepare('%s:json_encode', ['v2', 'v2'])` ... where the first param is an array ...
+
+										//	empty string = NULL
+										if (strpos($modifiers, ':json') !== false)
+										{
+											if (isset($params_conversion) && $params_conversion) {	//	the first $param[0] WAS an array (as tested at the top) ... and there was only one value ...
+												$value	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
 											}
-											next($params);
-											$count++;
-										}
-
-										if ( ! is_array($array))
-										{
-											if (prev($params) === false && key($params) === null) end($params); // backtrack for key
-											throw new \InvalidArgumentException('Invalid data type `' . (is_object($array) ? get_class($array) : gettype($array)) .
-															'` given at index ' . key($params) . ' passed to Sql->prepare(`' . $stmt .
-															'`) pattern, only arrays are allowed in `[]` statements!');
-										}
-
-										if ($match === '[]' || $match === '[@]')
-										{
-											return implode(', ', $array);	//	WARNING: This isn't testing NULL and bool!
-										}
-										else if ($match === '[?]')	//	same thing as `?` ... why use/support this? I guess because it's more explicit !?!? ... going to deprecate ? as an array placeholder!
-										{
-											//if (is_array($array)) {		//	same code as `?`
-												$comma = null;
-												$result = '';
-												foreach ($array as $v)
-												{
-														 if (is_numeric($v)) $result .= $comma . $v;
-													else if (is_string($v))  $result .= $comma . self::quote($v);
-													else if (is_null($v))    $result .= $comma . 'NULL';
-													else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
-													else
-													{
-														throw new \InvalidArgumentException('Invalid data type `' . (is_object($array) ? get_class($array) : gettype($array)) .
-																		'` given in array passed to Sql->prepare(`' . $stmt .
-																		'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
+											if (is_array($value)) {
+												//	loop through the values and handle :trim :pack etc. on them
+												if (strpos($modifiers, ':pack') !== false) {
+													foreach ($value as $json_key => $json_value) {
+														if (is_string())
+															$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
+														else if (is_numeric())
+															$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
 													}
-													$comma = ', ';
 												}
-												return $result;
-											//}
-										}
-
-										/**
-										 *
-										 *	Creating a `sub-pattern` of code within the [...] array syntax
-										 *
-										 */
-										return (string) new self($matches[4], $array);
-
-									default:
-
-										$count++;
-
-										if ($match[0] === '%')
-										{
-											$command = $matches[1];
-											if ($command === '')	//	for '%%' && '\%', $match === $matches[0] === "%%" && $command === $matches[1] === ""
-												return '%';
-
-											$value = current($params);
-											$index = key($params);			// too complicated to backtrack (with prev(), key(), end() bla bla) in this handler like the others, just store the damn index!
-											if ($value === false && $index === null)
-											{
-												throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-													') supplied to Sql->prepare(`' . $stmt .
-													'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
-											}
-											$next = next($params);
-											//	detect `call(able)` method in $next and skip!
-											//	because some commands might accept a `callable` for error handling
-											if (is_callable($next))
-												next($params);	// skip the callable by moving to next parameter!
-										}
-										else
-										{
-											if (strpos($matches[0], '..', 1))
-											{
-												$range = explode('..', $matches[0]);
-												if (count($range) === 2)
-												{
-													$min = $range[0];
-													$max = $range[1];
-													if ((is_numeric($min) || $min === '?') && (is_numeric($max) || $max === '?'))
-													{
-														$count--;	//	we need to `re-calculate` the paramater count. Because this command can take 0..2 parameters
-														if ($min === '?')
-														{
-															$min = current($params);
-															$index = key($params);
-															if ($min === false && $index === null)
-															{
-																throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-																	') supplied to Sql->prepare(`' . $stmt .
-																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
-															}
-															next($params);
-															$count++;
-														}
-														if ($max === '?')
-														{
-															$max = current($params);
-															$index = key($params);
-															if ($max === false && $index === null)
-															{
-																throw new \BadMethodCallException('Invalid number of parameters (' . count($params) .
-																	') supplied to Sql->prepare(`' . $stmt .
-																	'`) pattern! Please check the number of `?`, `@` and `%` values in the pattern, expecting at least one more!');
-															}
-															next($params);
-															$count++;
-														}
-
-														if ( ! is_numeric($min) || ! is_numeric($max))
-														{
-															throw new \BadMethodCallException('Invalid parameters for range generator `' . $matches[0] . '` supplied to Sql->prepare(`' . $stmt .
-																	'`) pattern! Please check that both values are numeric. Ranges can only include integers or `?`, eg. ?..?, 1..?, 1..10; ' .
-																	(is_numeric($min) ? null : $min . ' value supplied as min;') . (is_numeric($max) ? null : $max . ' value supplied as max.'));
-														}
-
-														return implode(', ', range($min, $max));
-
-													} /*else {
-														throw new \BadMethodCallException('Invalid parameters for range generator `' . $matches[0] . '` supplied to Sql->prepare(`' . $stmt .
-																'`) pattern! Ranges can only include integers or `?`, eg. ?..?, 1..?, 1..10');
-														
-													}*/
-												}
-											}
-
-											/**
-											 *	This section of code is used to support the `PDO::prepare()` syntax
-											 *	eg. `->prepare('[:id]', ['id' => 555]);
-											 *	returns: "555"
-											 */
-											/**
-											 *	Doing an `isset()` test first because it's faster, but doesn't pass when the array value is null
-											 *	That's what the `array_key_exists()` test if for!
-											 */
-											if (isset($params[$key = $matches[1]]) || array_key_exists($key, $params) || isset($params[$key = $matches[0]]) || array_key_exists($key, $params))
-											{
-												$value = $params[$key];
-
-												if (is_numeric($value)) {
-													$command = 'd';
-												} else if (is_string($value)) {
-													$command = 's';
-												} else if (is_null($value)) {
-													return 'NULL';
-												} else if (is_bool($value)) {
-													return $value ? '1' : '0';		//	bool values return '' when false
-												} else if (is_array($value)) {		//	same code used in [?]
-													$comma = null;
-													$result = '';
-													foreach ($value as $v)
-													{
-															 if (is_numeric($v)) $result .= $comma . $v;
-														else if (is_string($v))  $result .= $comma . self::quote($v);
-														else if (is_null($v))    $result .= $comma . 'NULL';
-														else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
-														else
-														{
-															throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																			'` given in array passed to Sql->prepare(`' . $stmt .
-																			'`) pattern, only scalar (int, float, string, bool) and NULL values are allowed in `?` statements!');
-														}
-														$comma = ', ';
+												else if (strpos($modifiers, ':trim') !== false) {
+													foreach ($value as $json_key => $json_value) {
+														$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
 													}
-													return $result;
 												}
-												else
-												{
-													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` passed to Sql->prepare(`' . $stmt .
-																	'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed!');
+											}
+
+											//	ordered by most common
+											if (strpos($modifiers, ':jsonencode') !== false) {
+												$value = json_encode($value);
+											}
+											else if (strpos($modifiers, ':json_encode') !== false) {	//	`_` is giving problems in the regular expression! Dunno why!
+												$value = json_encode($value);
+											}
+											else if (strpos($modifiers, ':jsonify') !== false) {
+												$value = json_encode($value);
+											}
+											else if (strpos($modifiers, ':to_json') !== false) {
+												$value = json_encode($value);
+											}
+											else if (strpos($modifiers, ':json_decode') !== false) {	//	WARNING: only string values in :json_decode are valid! So it has limited application!
+												$value = json_decode($value);
+											}
+											else if (strpos($modifiers, ':from_json') !== false) {
+												$value = json_decode($value);
+											}
+											else if (strpos($modifiers, ':fromjson') !== false) {
+												$value = json_decode($value);
+											}
+										}
+
+										if ( ! is_string($value))
+										{
+											throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+															'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
+															'`) pattern, only string values are allowed for %s statements!');
+										}
+
+									//	$modifiers = array_flip(explode(':', $modifiers));	//	strpos() is probably still faster!
+
+										if (strpos($modifiers, ':pack') !== false) {
+											$value = trim(mb_ereg_replace('\s+', ' ', $value));
+										} else if (strpos($modifiers, ':trim') !== false) {
+											$value = trim($value);
+										}
+
+										//	empty string = NULL
+										if (strpos($modifiers, ':enull') !== false && empty($value)) {
+											return 'NULL';
+										}
+
+										if ($command === 'text') {	//	`text` only modifiers ... not necessarily the `text` data types, just extra `text` modifiers
+											if (strpos($modifiers, ':tolower') !== false || strpos($modifiers, ':lower') !== false || strpos($modifiers, ':lcase') !== false) {
+												$value = mb_strtolower($value);
+											}
+
+											if (strpos($modifiers, ':toupper') !== false || strpos($modifiers, ':upper') !== false || strpos($modifiers, ':ucase') !== false) {
+												$value = mb_strtoupper($value);
+											}
+
+											if (strpos($modifiers, ':ucfirst') !== false) {
+												$value = mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
+											}
+
+											if (strpos($modifiers, ':ucwords') !== false) {
+												$value = mb_convert_case($value, MB_CASE_TITLE);
+											}
+
+											if (strpos($modifiers, ':md5') !== false) {	//	don't :pack if you are hashing passwords!
+												$value = md5($value);
+											}
+
+											if (strpos($modifiers, ':sha') !== false) {
+												if (strpos($modifiers, ':sha1') !== false) {
+													$value = hash('sha1', $value);
+												} else if (strpos($modifiers, ':sha256') !== false) {
+													$value = hash('sha256', $value);
+												} else if (strpos($modifiers, ':sha384') !== false) {
+													$value = hash('sha384', $value);
+												} else if (strpos($modifiers, ':sha512') !== false) {
+													$value = hash('sha512', $value);
 												}
+											}
+										}
+
+										preg_match('~(?:(?::\d*)?:\d+)~', $modifiers, $range);
+										if ( ! empty($range))
+										{
+											$range = ltrim($range[0], ':');
+											if (is_numeric($range))
+											{
+												$min = 0;
+												$max = $range;
 											}
 											else
 											{
-												if (isset($params[$key = '@' . $matches[1]]) || array_key_exists($key, $params))	//	@id
+												$range = explode(':', $range);
+												if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1]))
 												{
-													$value = $params[$key];
+													throw new \InvalidArgumentException("Invalid syntax detected for `%{$command}` statement in `{$matches[0]}`
+																	given at index {$index} for Sql->prepare(`{$stmt}`) pattern;
+																	`%{$command}` requires valid numeric values. eg. %{$command}:10 or %{$command}:8:50");
+												}
+												$min = $range[0];
+												$max = $range[1];
+											}
 
-													if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-													if (is_numeric($value))	return (string) $value;
-													if (is_null($value))	return 'NULL';
-													if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
-													if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
-
-													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` passed to Sql->prepare(`' . $stmt .
-																	'`) pattern, only scalar (int, float, string, bool), NULL and single dimension arrays are allowed!');
+											$strlen = mb_strlen($value);
+											if ($min && $strlen < $min)
+											{
+													throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in
+																	`{$matches[0]}` given at index {$index} for Sql->prepare(`{$stmt}`) pattern;
+																	`{$matches[0]}` requires a string to be a minimum {$min} characters in length; input string has only {$strlen} of {$min} characters");
+											}
+											if ( $max && $strlen > $max) {
+												if (strpos($modifiers, ':crop') !== false)
+												{
+													$value = mb_substr($value, 0, $max);
 												}
 												else
 												{
-													throw new \InvalidArgumentException('Invalid array index `' . $matches[0] . '` for Sql->prepare(`' . $stmt . '`) pattern!');
+													throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in `{$matches[0]}`
+																	given at index {$index} for Sql->prepare(`{$stmt}`) pattern; `{$matches[0]}` requires a string to be maximum `{$max}`
+																	size, and cropping is not enabled! To enable auto-cropping specify: `{$command}:{$min}:{$max}:crop`");
 												}
 											}
 										}
 
-
-										if ( ! empty($matches[3]))
+										//	:raw = :noquot + :noescape
+										if (strpos($modifiers, ':raw') !== false)
 										{
-											$matches[3] = rtrim(ltrim($matches[3], '{'), '}');
+											return $value;
 										}
-										$modifiers = $matches[2] . (empty($matches[3]) ? null : ':' . $matches[3]);
 
-										if (is_null($value))
+										$noquot		= strpos($modifiers, ':noquot')	!== false;
+										$noescape	= strpos($modifiers, ':noescape')	!== false;
+									//	$utf8mb4	= strpos($modifiers, ':utf8mb4')	!== false || strpos($modifiers, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
+
+										return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($value)) . ($noquot ? null : self::$quot);
+									//	return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : self::$quot);
+
+
+									case 'd':
+									case 'f';
+									case 'e';
+									case 'float';
+									case 'id':
+									case 'int':
+									case 'byte':
+									case 'bit':
+									case 'integer':
+									case 'unsigned';
+
+										if (is_numeric($value))
 										{
-											//	working, but (future) support for regular expressions might create false positives
-											if (preg_match('~[\{:]n(ull(able)?)?([:\{\}]|$)~', $modifiers))
+											if (strpos($modifiers, ':clamp') !== false)
 											{
-												return 'NULL';
-											}
-											throw new \InvalidArgumentException('NULL value detected for a non-nullable field at index ' . $index . ' for command: `' . $matches[0] . '`');
-										}
-
-										if (isset(self::$modifiers[$command]))
-										{
-											if (call_user_func(self::$types[$command], $value, $modifiers, 'init'))
-											{
-												return $value;
-											}
-										}
-
-										if (isset(self::$types[$command]))
-										{
-										//	Cannot use call_user_func() with a value reference ... 2 different errors ... one when I try `&$value`
-										//	Parse error: syntax error, unexpected '&' in Sql.php on line ...
-										//	Warning: Parameter 1 to {closure}() expected to be a reference, value given in Sql.php on line ...
-										//	$result = call_user_func(self::$types[$command], $value, $modifiers);
-											$result = self::$types[$command]($value, $modifiers);
-											if (is_string($result))
-												return $result;
-										}
-
-										switch ($command)
-										{
-											case 'string':
-											case 'varchar':				//	varchar:trim:crop:8:100 etc. ... to enable `cropping` to the given sizes, without crop, we throw an exception when the size isn't right! and trim to trim it!
-											case 'char':				//	:normalize:pack:tidy:minify:compact ... pack the spaces !?!? and trim ...  `minify` could be used for JavaScript/CSS etc.
-											case 'text':				//	I think we should use `text` only to check for all the modifiers ... so we don't do so many tests for common %s values ... this is `text` transformations ...
-											case 's':
-
-												//	WARNING: We need to handle the special case of `prepare('%s:json_encode', ['v2', 'v2'])` ... where the first param is an array ...
-
-												//	empty string = NULL
-												if (strpos($modifiers, ':json') !== false)
-												{
-													if (isset($params_conversion) && $params_conversion) {	//	the first $param[0] WAS an array (as tested at the top) ... and there was only one value ...
-														$value	=	$params;								//	$params IS an array and IS our actual value, not the first value OF params!
-													}
-													if (is_array($value)) {
-														//	loop through the values and handle :trim :pack etc. on them
-														if (strpos($modifiers, ':pack') !== false) {
-															foreach ($value as $json_key => $json_value) {
-																if (is_string())
-																	$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
-																else if (is_numeric())
-																	$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
-															}
-														}
-														else if (strpos($modifiers, ':trim') !== false) {
-															foreach ($value as $json_key => $json_value) {
-																$json_value = trim(mb_ereg_replace('\s+', ' ', $value));
-															}
-														}
-													}
-
-													//	ordered by most common
-													if (strpos($modifiers, ':jsonencode') !== false) {
-														$value = json_encode($value);
-													}
-													else if (strpos($modifiers, ':json_encode') !== false) {	//	`_` is giving problems in the regular expression! Dunno why!
-														$value = json_encode($value);
-													}
-													else if (strpos($modifiers, ':jsonify') !== false) {
-														$value = json_encode($value);
-													}
-													else if (strpos($modifiers, ':to_json') !== false) {
-														$value = json_encode($value);
-													}
-													else if (strpos($modifiers, ':json_decode') !== false) {	//	WARNING: only string values in :json_decode are valid! So it has limited application!
-														$value = json_decode($value);
-													}
-													else if (strpos($modifiers, ':from_json') !== false) {
-														$value = json_decode($value);
-													}
-													else if (strpos($modifiers, ':fromjson') !== false) {
-														$value = json_decode($value);
-													}
-												}
-
-												if ( ! is_string($value))
-												{
-													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
-																	'`) pattern, only string values are allowed for %s statements!');
-												}
-
-											//	$modifiers = array_flip(explode(':', $modifiers));	//	strpos() is probably still faster!
-
-												if (strpos($modifiers, ':pack') !== false) {
-													$value = trim(mb_ereg_replace('\s+', ' ', $value));
-												} else if (strpos($modifiers, ':trim') !== false) {
-													$value = trim($value);
-												}
-
-												//	empty string = NULL
-												if (strpos($modifiers, ':enull') !== false && empty($value)) {
-													return 'NULL';
-												}
-
-												if ($command === 'text') {	//	`text` only modifiers ... not necessarily the `text` data types, just extra `text` modifiers
-													if (strpos($modifiers, ':tolower') !== false || strpos($modifiers, ':lower') !== false || strpos($modifiers, ':lcase') !== false) {
-														$value = mb_strtolower($value);
-													}
-
-													if (strpos($modifiers, ':toupper') !== false || strpos($modifiers, ':upper') !== false || strpos($modifiers, ':ucase') !== false) {
-														$value = mb_strtoupper($value);
-													}
-
-													if (strpos($modifiers, ':ucfirst') !== false) {
-														$value = mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
-													}
-
-													if (strpos($modifiers, ':ucwords') !== false) {
-														$value = mb_convert_case($value, MB_CASE_TITLE);
-													}
-
-													if (strpos($modifiers, ':md5') !== false) {	//	don't :pack if you are hashing passwords!
-														$value = md5($value);
-													}
-
-													if (strpos($modifiers, ':sha') !== false) {
-														if (strpos($modifiers, ':sha1') !== false) {
-															$value = hash('sha1', $value);
-														} else if (strpos($modifiers, ':sha256') !== false) {
-															$value = hash('sha256', $value);
-														} else if (strpos($modifiers, ':sha384') !== false) {
-															$value = hash('sha384', $value);
-														} else if (strpos($modifiers, ':sha512') !== false) {
-															$value = hash('sha512', $value);
-														}
-													}
-												}
-
-												preg_match('~(?:(?::\d*)?:\d+)~', $modifiers, $range);
-												/**
-												 *	"%varchar:1.9:-10."
-												 *		":1.9:-10"
-												 *
-												 *	"%varchar:-9.9:-1:n"
-												 *		":-9.9:-1"
-												 *
-												 *	"%varchar:.0:n"
-												 *		":.0"
-												 *
-												 *	"%varchar:1.0:0"
-												 *		":1.0:0"
-												 *
-												 *	"%varchar:n::10"
-												 *		"::10"
-												 */
-												if ( ! empty($range))
-												{
-													$range = ltrim($range[0], ':');
-													if (is_numeric($range))
-													{
-														$min = 0;
-														$max = $range;
-													}
-													else
-													{
-														$range = explode(':', $range);
-														if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1]))
-														{
-															throw new \InvalidArgumentException("Invalid syntax detected for `%{$command}` statement in `{$matches[0]}`
-																			given at index {$index} for Sql->prepare(`{$stmt}`) pattern;
-																			`%{$command}` requires valid numeric values. eg. %{$command}:10 or %{$command}:8:50");
-														}
-														$min = $range[0];
-														$max = $range[1];
-													}
-
-													$strlen = mb_strlen($value);
-													if ($min && $strlen < $min)
-													{
-															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in
-																			`{$matches[0]}` given at index {$index} for Sql->prepare(`{$stmt}`) pattern;
-																			`{$matches[0]}` requires a string to be a minimum {$min} characters in length; input string has only {$strlen} of {$min} characters");
-													}
-													if ( $max && $strlen > $max) {
-														if (strpos($modifiers, ':crop') !== false)
-														{
-															$value = mb_substr($value, 0, $max);
-														}
-														else
-														{
-															throw new \InvalidArgumentException("Invalid string length detected for `%{$command}` statement in `{$matches[0]}`
-																			given at index {$index} for Sql->prepare(`{$stmt}`) pattern; `{$matches[0]}` requires a string to be maximum `{$max}`
-																			size, and cropping is not enabled! To enable auto-cropping specify: `{$command}:{$min}:{$max}:crop`");
-														}
-													}
-												}
-
-												//	:raw = :noquot + :noescape
-												if (strpos($modifiers, ':raw') !== false)
-												{
-													return $value;
-												}
-
-												$noquot		= strpos($modifiers, ':noquot')	!== false;
-												$noescape	= strpos($modifiers, ':noescape')	!== false;
-											//	$utf8mb4	= strpos($modifiers, ':utf8mb4')	!== false || strpos($modifiers, ':noclean') !== false;	// to NOT strip 4-byte UTF-8 characters (MySQL has issues with them and utf8 columns, must use utf8mb4 table/column and connection, or MySQL will throw errors)
-
-												return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($value)) . ($noquot ? null : self::$quot);
-											//	return ($noquot ? null : self::$quot) . ($noescape ? $value : self::escape($utf8mb4 ? $value : self::utf8($value))) . ($noquot ? null : self::$quot);
-
-
-											case 'd':
-											case 'f';
-											case 'e';
-											case 'float';
-											case 'id':
-											case 'int':
-											case 'byte':
-											case 'bit':
-											case 'integer':
-											case 'unsigned';
-
-												if (is_numeric($value))
-												{
-													if (strpos($modifiers, ':clamp') !== false)
-													{
-														preg_match('~:clamp:(?:([-+]?[0-9]*\.?[0-9]*):)?([-+]?[0-9]*\.?[0-9]*)~', $modifiers, $range);
-														if (empty($range))
-														{
-															throw new \InvalidArgumentException("Invalid %{$command}:clamp syntax `{$matches[0]}`
-																		detected for call to Sql->prepare(`{$stmt}`) at index {$index};
-																		%{$command}:clamp requires a numeric range: eg. %{$command}:clamp:10 or %{$command}:clamp:1:10");
-														}
-														$value = min(max($value, is_numeric($range[1]) ? $range[1] : 0), is_numeric($range[2]) ? $range[2] : PHP_INT_MAX);
-													}
-													return $value;
-												}
-
-												throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
-																'`) pattern, only numeric data types (integer and float) are allowed for %d and %f statements!');
-
-											case 'clamp';
-
-												if ( ! is_numeric($value))
-												{
-													throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
-																	'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
-																	'`) pattern, only numeric data types (integer and float) are allowed for %clamp statements!');
-												}
-
-												preg_match('~(?:(?::[-+]?[0-9]*\.?[0-9]*)?:[-+]?[0-9]*\.?[0-9]+)~', $modifiers, $range);
-												/**
-												 *	"%clamp:1.9:-10."
-												 *		":1.9:-10"
-												 *
-												 *	"%clamp:-9.9:-1:n"
-												 *		":-9.9:-1"
-												 *
-												 *	"%clamp:.0:n"
-												 *		":.0"
-												 *
-												 *	"%clamp:1.0:0"
-												 *		":1.0:0"
-												 *
-												 *	"%clamp:n::10"
-												 *		"::10"
-												 */
-
+												preg_match('~:clamp:(?:([-+]?[0-9]*\.?[0-9]*):)?([-+]?[0-9]*\.?[0-9]*)~', $modifiers, $range);
 												if (empty($range))
 												{
-													throw new \InvalidArgumentException('Invalid %clamp syntax `' . $matches[0] .
-																'` detected for call to Sql->prepare(`' . $stmt .
-																'`) at index ' . $index . '; %clamp requires a numeric range: eg. %clamp:1:10');
+													throw new \InvalidArgumentException("Invalid %{$command}:clamp syntax `{$matches[0]}`
+																detected for call to Sql->prepare(`{$stmt}`) at index {$index};
+																%{$command}:clamp requires a numeric range: eg. %{$command}:clamp:10 or %{$command}:clamp:1:10");
 												}
-												$range = ltrim($range[0], ':');
-												if (is_numeric($range))
-												{
-													$value = min(max($value, 0), $range);
-												}
-												else
-												{
-													$range = explode(':', $range);
-													if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1]))
-													{
-														throw new \InvalidArgumentException('Invalid syntax detected for %clamp statement in `' . $matches[0] .
-																		'` given at index ' . $index . ' for Sql->prepare(`' . $stmt .
-																		'`) pattern; %clamp requires valid numeric values. eg. %clamp:0.0:1.0 or %clamp:1:100 or %clamp::100 or %clamp:-10:10');
-													}
-													$value = min(max($value, $range[0]), $range[1]);
-												}
-
-												return $value;
-
-											case 'bool':
-											case 'boolean':
-
-											case 'date':
-											case 'datetime';
-											case 'timestamp';
+												$value = min(max($value, is_numeric($range[1]) ? $range[1] : 0), is_numeric($range[2]) ? $range[2] : PHP_INT_MAX);
+											}
+											return $value;
 										}
-										return $value;
-								}
 
-//								throw new \Exception("Unable to find index `{$matches[1]}` in " . var_export($next, true) . ' for WHILE() statement');
-							}, $stmt);
+										throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+														'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
+														'`) pattern, only numeric data types (integer and float) are allowed for %d and %f statements!');
+
+									case 'clamp';
+
+										if ( ! is_numeric($value))
+										{
+											throw new \InvalidArgumentException('Invalid data type `' . (is_object($value) ? get_class($value) : gettype($value)) .
+															'` given at index ' . $index . ' passed in Sql->prepare(`' . $stmt .
+															'`) pattern, only numeric data types (integer and float) are allowed for %clamp statements!');
+										}
+
+										preg_match('~(?:(?::[-+]?[0-9]*\.?[0-9]*)?:[-+]?[0-9]*\.?[0-9]+)~', $modifiers, $range);
+
+										if (empty($range))
+										{
+											throw new \InvalidArgumentException('Invalid %clamp syntax `' . $matches[0] .
+														'` detected for call to Sql->prepare(`' . $stmt .
+														'`) at index ' . $index . '; %clamp requires a numeric range: eg. %clamp:1:10');
+										}
+										$range = ltrim($range[0], ':');
+										if (is_numeric($range))
+										{
+											$value = min(max($value, 0), $range);
+										}
+										else
+										{
+											$range = explode(':', $range);
+											if ( count($range) !== 2 || ! empty($range[0]) && ! is_numeric($range[0]) || ! empty($range[1]) && ! is_numeric($range[1]))
+											{
+												throw new \InvalidArgumentException('Invalid syntax detected for %clamp statement in `' . $matches[0] .
+																'` given at index ' . $index . ' for Sql->prepare(`' . $stmt .
+																'`) pattern; %clamp requires valid numeric values. eg. %clamp:0.0:1.0 or %clamp:1:100 or %clamp::100 or %clamp:-10:10');
+											}
+											$value = min(max($value, $range[0]), $range[1]);
+										}
+
+										return $value;
+
+									case 'bool':
+									case 'boolean':
+
+									case 'date':
+									case 'datetime';
+									case 'timestamp';
+								}
+								return $value;
+						}
+					}, $stmt);
 
 		if ($count !== count($params) && ! isset($params_conversion))
 		{
