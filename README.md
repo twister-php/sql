@@ -15,14 +15,14 @@ It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part
 
 This is not an ORM or replacement for an ORM, it's the tool you use when you need to create a raw SQL query string with the convenience of placeholders. It doesn't 'prepare' or 'execute' your queries exactly like `PDO::prepare` does; but it does support the familiar syntax of using `?` or `:id` as placeholders. It also supports a subset of `sprintf`'s `%s` / `%d` syntax.
 
-In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, even replacing column or table names as well auto-`implode()` arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, even replacing column or table names as well as auto-`implode()`ing arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
 
 
 ```php
 echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([]) AND created = @',
 		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3], 'NOW()');
 ```
-No escaping, no quotes, no array hanling and no concatenations ...
+No need for escaping, no quotes, no array hanling and no concatenations ...
 
 Output:
 ```sql
