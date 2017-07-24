@@ -73,9 +73,9 @@ or from GIT
 https://github.com/twister-php/sql
 ```
 
-Requires (similar to Laravel):
+Requirements (similar to Laravel):
 ```
-PHP 5.6+ (...$args syntax)
+PHP 5.6+ (for ...$args syntax)
 Multibyte mb_* extention
 ```
 
