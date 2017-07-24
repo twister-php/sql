@@ -9,7 +9,7 @@ However, what tools do you have when working with the plain text strings of raw/
 
 ## The One Ring to rule them all, One Ring to bind them
 
-Introducing the '[Raw SQL Query Builder](https://github.com/twister-php/sql)'; combining all the functionality of having placeholders like `?`, `:id`, `%s`, `%d`; with an ORM style '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' (methods `return $this` for method-chaining) and much more.
+Introducing the '[Raw SQL Query Builder](https://github.com/twister-php/sql)' (SQLQB); combining all the functionality of having placeholders like `?`, `:id`, `%s`, `%d`; with an ORM style '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' (methods `return $this` for method-chaining) and much more.
 
 It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part where you have to concatenate, 'escape', 'quote', 'prepare' and 'bind' values in a raw SQL query string.
 
@@ -32,7 +32,7 @@ SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR
 
 ## Description
 
-Raw SQL Query Builder is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+SQLQB is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ## History
 
@@ -360,9 +360,62 @@ $sql = SQL();
 ```
 
 
+# Features:
+
+* One single file: no other classes, interfaces, traits or custom exceptions
+* 4,000+ lines of code and full documentation
+* Powerful 200 character Multibyte regular expression powers the replacement engine ([mb_ereg_replace_callback()](http://php.net/manual/en/function.mb-ereg-replace-callback.php) with a 600 line function)
+* ORM style '[Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
+* Intends to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements
+* Natural SQL language - queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable. No new keywords to learn, leverage your existing SQL knowledge
+* Any driver: execute queries against any driver that accepts natural SQL commands: PDO, MySQLi, pg\_\*, SQLLite etc.
+* Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
+* Any Query - any query with any complexity and any number of custom code can be expressed through SQLQB.
+* PHP 5.6+ (makes extensive use of the [...$arg syntax](http://php.net/manual/en/functions.arguments.php#functions.variable-arg-list.new))
+* No external dependencies except (mb\_\*) extention. Use SQLQB in any PHP application or framework.
+* Multiple function call / code styles supported, SELECT() or select(), leftJoin(), left_join() or LEFT_JOIN()
+* Global wrapper function `$sql = sql();` instead of calling `$sql = new Twister\Sql();`
+* Makes extensive use of PHP Magic Methods (\_\_toString(), \_\_get(), \_\_invoke(), \_\_call())
+* Adds a small amount of additional whitespace to format your queries for display
+* Completely database neutral and agnostic; but MySQL, PDO, Postgres and SQLite are the primary targets.
+* Minimal SQL abstraction
+
+## What is doesn't do:
+
+* does NOT parse your string
+* does NOT validate your string
+* does NOT verify your string
+* does NOT error check the syntax
+* does NOT build valid SQL statements for you
+* does NOT guarantee your string/query is safe from SQL injections
+* does NOT protect you from the big bad wolf called SQL injections
+* does NOT hold your hand or make coffee
+* does NOT treat SQL like an abomination
+* does NOT treat you like an SQL child
+* does NOT try to abstract raw/native SQL from you, just gives you the tool to write it faster
+* does NOT try to replace writing raw/native SQL
+* does NOT re-order or change the natural order of SQL statements
+* does NOT change the name or meaning of traditional SQL statements (eg. `->limit(10)` is `->take(10)` in Eloquent)
+* does NOT use reflection or annotations
+* does NOT re-structure/re-format/re-align/re-arrange your statement
+* does NOT do input/parameter validation/verification, other than simple string escaping
+* does NOT check that column types match the database schema
+* does NOT use any schema/model/entity/mapping/config/YAML/XML/temporary/cache files
+* does NOT store an abstract SQL statement interface internally, everything it builds is visible
+* does NOT have any outside dependencies, only ONE single file, PHP 5.6+ and mb\_\*
+* does NOT add any other classes (except Sql), no interfaces, no traits, no new exception classes etc.
 
 
+# Conclusion
 
+My goal is to enable you (and me) to write SQL queries faster, safer and more readable than old-school concatenations.
 
+They might not execute faster, especially when the regular expression engine kicks in, but the amount of time you will save, and coming back to your code in a few months or years later and immediately understand it is invaluable! Code readability should come first in most situations.
 
+I believe this code and solution is unique in the world; as there simply is NO other library/class out there with the same capabilities and feature set. Very few libraries help you write raw SQL queries faster.
 
+I hope you enjoy this effort, it has taken me many weeks (hundreds of hours) of my free time to write this code and documentation.
+
+I'd love to hear from anyone else making use of the code! Features, suggestions, praise, questions, comments and thanks are welcome!
+
+Trevor out...
