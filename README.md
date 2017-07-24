@@ -369,7 +369,7 @@ $sql = SQL();
 * Intends to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements
 * Any driver: execute queries against any driver that accepts natural SQL commands: PDO, MySQLi, pg\_\*, SQLLite etc.
 * Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
-* Any Query - any query with any complexity and any number of custom code can be expressed through SQLQB.
+* Any query with any complexity and any number of custom commands can be expressed through SQLQB.
 * PHP 5.6+ (makes extensive use of the [...$arg syntax](http://php.net/manual/en/functions.arguments.php#functions.variable-arg-list.new))
 * No external dependencies except (mb\_\*) extention. Use SQLQB in any PHP application or framework.
 * Multiple function call / code styles supported, SELECT() or select(), leftJoin(), left_join() or LEFT_JOIN()
@@ -391,7 +391,7 @@ $sql = SQL();
 * does NOT hold your hand or make coffee
 * does NOT treat SQL like an abomination
 * does NOT treat you like an SQL child
-* does NOT try to abstract raw/native SQL from you, just gives you the tool to write it faster
+* does NOT try to abstract raw/native SQL from you, just gives you the tools to write it faster
 * does NOT try to replace writing raw/native SQL
 * does NOT re-order or change the natural order of SQL statements
 * does NOT change the name or meaning of traditional SQL statements (eg. `->limit(10)` is `->take(10)` in Eloquent)
@@ -409,9 +409,9 @@ $sql = SQL();
 
 My goal is to enable you (and me) to write SQL queries faster, safer and more readable than old-school concatenations.
 
-They might not execute faster, especially when the regular expression engine kicks in, but the amount of time you will save, and coming back to your code in a few months or years later and immediately understand it is invaluable! Code readability should come first in most situations.
+They might not execute faster, especially when the regular expression engine kicks in, but the amount of time you will save, and coming back to your code in a few months or years later and immediately being able to read and understand it is invaluable! Code readability should come first in most situations, especially large queries.
 
-I believe this code and solution is unique in the world; as there simply is NO other library/class out there with the same capabilities and feature set. Very few libraries help you write raw SQL queries faster.
+I believe this code and solution is unique; as I haven't found anything like it before; there simply are NO other libraries out there with the same capabilities and feature set; and very few help you write raw SQL queries faster.
 
 I hope you enjoy this effort, it has taken me many weeks (hundreds of hours) of my free time to write this code and documentation.
 
