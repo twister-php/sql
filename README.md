@@ -9,13 +9,25 @@ However, what tools do you have when working with the plain text strings of raw/
 
 ## The One Ring to rule them all, One Ring to bind them
 
-Introducing the '[Raw SQL Query Builder](https://github.com/twister-php/sql)'; combining all that functionality and more.
+Introducing the '[Raw SQL Query Builder](https://github.com/twister-php/sql)'; combining all the functionality of having placeholders like `?`, `:id`, `%s`, `%d`; with an ORM style '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' and much more.
 
-It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part where you have to concatenate, 'escape', 'prepare' and 'bind' values in a raw plain text SQL query.
+It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part where you have to concatenate, 'escape', 'quote', 'prepare' and 'bind' values in a raw SQL query string.
 
-This is not an ORM or replacement for an ORM, it's the tool you use when you have to create a raw SQL query string. It doesn't 'prepare' or 'execute' your queries like [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) does, but it does help you build the raw SQL string like `sprintf` with `%s` / `%d` or [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) with `?` or `:id` placeholders; but safer than `sprintf` and easier and more flexible than [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) (eg. `PDO::prepare` doesn't allow dynamic table, column, field names or dynamic `JOIN` / `WHERE` clauses).
+This is not an ORM or replacement for an ORM, it's the tool you use when you need to create a raw SQL query string with the convenience of placeholders. It doesn't 'prepare' or 'execute' your queries exactly like `PDO::prepare` does; but it does support the familiar syntax of using `?` or `:id` as placeholders. It also supports a subset of `sprintf`'s `%s` / `%d` syntax.
 
-It allows anything that can be changed in text with `sprintf`; column, field or table names, dynamic `WHERE` statements, dynamic table joins etc. This library just allows you to add a powerful 'replacement' engine on your raw SQL queries, that combines 'prepare', 'quote', 'escape', 'sanitize', 'clamp' integers, range checks etc.
+In addition, it supports inserting 'raw' strings (without quotes or escapes) with `@`; eg. `sql('dated = @', 'NOW()')`, and it can auto-implode arrays with `[]` eg. `sql('WHERE id IN ([])', $array')`
+
+### Speed and Safety
+
+This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. In fact, it doesn't even need or use a database connection.
+
+### Simplify the Complex
+
+It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
+
+This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries.
+
+So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; and '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' in your ORM becomes a problem or you need to write custom queries against some or all of this data, then you will truly realise how much time and headaches this library can save you.
 
 ## A taste of things to come
 
