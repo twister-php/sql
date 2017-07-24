@@ -5,7 +5,7 @@ Raw SQL Query Builder ~ the swiss-army knife of raw SQL queries
 
 We already have some great tools when working with managed or abstracted database layers like ORM's and Doctrine DBAL. And most ORM's allow you to write and execute raw SQL queries when you require greater/custom flexibility or functionality they don't provide.
 
-However, what tools do you have when working with the plain text strings of raw/native SQL queries? You have lots of string concatenations, `[implode()](http://php.net/manual/en/function.implode.php)`, `[PDO::prepare](http://php.net/manual/en/pdo.prepare.php)`, `[PDO::quote](http://php.net/manual/en/pdo.quote.php)`, `[sprintf](http://php.net/manual/en/function.sprintf.php)` for the brave, `[mysqli::real_escape_string](http://php.net/manual/en/mysqli.real-escape-string.php)` because the first version wasn't real enough or the name long enough.
+However, what tools do you have when working with the plain text strings of raw/native SQL queries? You have lots of string concatenations, [`implode()`](http://php.net/manual/en/function.implode.php), [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php), [`PDO::quote`](http://php.net/manual/en/pdo.quote.php), [`sprintf`](http://php.net/manual/en/function.sprintf.php) for the brave, [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php) because the first version wasn't real enough or the name long enough.
 
 ## The One Ring to rule them all, One Ring to bind them
 
@@ -13,7 +13,7 @@ Introducing the '[Raw SQL Query Builder](https://github.com/twister-php/sql)'; c
 
 It's the glue that sits between `$sql = '...';` and `$db->query($sql)`. The part where you have to concatenate, 'escape', 'prepare' and 'bind' values in a raw plain text SQL query.
 
-This is not an ORM or replacement for an ORM, it's the tool you use when you have to create a raw SQL query string. It doesn't 'prepare' or 'execute' your queries like `[PDO::prepare](http://php.net/manual/en/pdo.prepare.php)` does, but it does help you build the raw SQL string like `sprintf` with `%s` / `%d` or `[PDO::prepare](http://php.net/manual/en/pdo.prepare.php)` with `?` or `:id` placeholders; but safer than `sprintf` and easier and more flexible than `[PDO::prepare](http://php.net/manual/en/pdo.prepare.php)` (eg. `PDO::prepare` doesn't allow dynamic table, column, field names or dynamic `JOIN` / `WHERE` clauses).
+This is not an ORM or replacement for an ORM, it's the tool you use when you have to create a raw SQL query string. It doesn't 'prepare' or 'execute' your queries like [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) does, but it does help you build the raw SQL string like `sprintf` with `%s` / `%d` or [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) with `?` or `:id` placeholders; but safer than `sprintf` and easier and more flexible than [`PDO::prepare`](http://php.net/manual/en/pdo.prepare.php) (eg. `PDO::prepare` doesn't allow dynamic table, column, field names or dynamic `JOIN` / `WHERE` clauses).
 
 It allows anything that can be changed in text with `sprintf`; column, field or table names, dynamic `WHERE` statements, dynamic table joins etc. This library just allows you to add a powerful 'replacement' engine on your raw SQL queries, that combines 'prepare', 'quote', 'escape', 'sanitize', 'clamp' integers, range checks etc.
 
