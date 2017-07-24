@@ -3307,7 +3307,6 @@ class Sql implements \ArrayAccess
 		$this->sql .= mb_ereg_replace_callback('\?\?|\\?|\\\%|%%|\\@|@@|(?:\?|\d+)\.\.(?:\?|\d+)|\[(.*?)\]|\?|@[^a-zA-Z]?|[%:]([a-zA-Z0-9][a-zA-Z0-9_-]*)(\:[a-z0-9\.\-:]*)*(\{[^\{\}]+\})?|%sn?(?::?\d+)?|%d|%u(?:\d+)?|%f|%h|%H|%x|%X',
 					function ($matches) use (&$count, $stmt, &$params, &$params_conversion, &$keys)
 					{
-dump($matches);
 						$match = $matches[0];
 						switch ($match[0])
 						{
