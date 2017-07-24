@@ -83,15 +83,14 @@ echo sql('@, @, @, @, @, @, @', 4, "5", "Trevor's", 'NOW()', true, false, null);
 echo sql()->select('u.id', 'u.name', 'a.*')
           ->from('users u')
             ->leftJoin('accounts a ON a.user_id = u.id AND a.overdraft >= ?', 5000)
-          ->where('a.account = ? OR a.name = ?', 'BST002', 'foobar')
-            ->or('u.name = ?', 'Trevor')
+          ->where('a.account = ? OR u.name = ? OR a.id IN ([])', 'BST002', 'foobar', [1, 2, 3])
           ->orderBy('u.name DESC');
 ```
 ```sql
-EXPLAIN SELECT u.id, u.name, a.*
+SELECT u.id, u.name, a.*
 FROM users u
   LEFT JOIN accounts a ON a.user_id = u.id AND a.overdraft >= 5000
-WHERE a.account = "BST002" OR a.name = "foobar" OR u.name = "Trevor"
+WHERE a.account = "BST002" OR u.name = "foobar" OR a.id IN (1, 2, 3)
 ORDER BY u.name DESC
 ```
 Queries include additional whitespace for formatting and display purposes, which can be removed by calling `Sql::singleLineStatements()`. SQL keywords can be made lower-case by calling `Sql::lowerCaseStatements()`
