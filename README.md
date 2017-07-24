@@ -120,13 +120,15 @@ WHERE id = 5 or name = "Trevor" or dob = NOW()
 #### Range:
 
 ```php
-echo sql('WHERE id IN (1..?)', 3);
+echo sql('WHERE id IN (1..?) OR id IN (?..?)', 3, 6, 8);
 ```
 ```sql
-WHERE id IN (1, 2, 3)
+WHERE id IN (1, 2, 3) OR id IN (6, 7, 8)
 ```
 
 #### Text filters:
+
+eg. pack (merge internal whitespace) & trim
 
 ```php
 echo sql('SET description = %s:pack:trim:20', "Hello     World's   Greatest");
@@ -134,8 +136,6 @@ echo sql('SET description = %s:pack:trim:20', "Hello     World's   Greatest");
 ```sql
 SET description = "Hello World\'s Greate"
 ```
-
-
 
 
 ### Speed and Safety
