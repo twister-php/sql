@@ -80,20 +80,21 @@ echo sql('@, @, @, @, @, @, @', 4, "5", "Trevor's", 'NOW()', true, false, null);
 ### Fluent Style
 
 ```php
-echo sql()->select('*')
+echo sql()->select('u.id', 'u.name', 'a.*')
           ->from('users u')
-            ->leftJoin('accounts a ON a.user_id = u.id AND a.overdraft >= ?', $overdraft)
-          ->where('a.account = ?', $account)
-          ->orderBy('u.name');
+            ->leftJoin('accounts a ON a.user_id = u.id AND a.overdraft >= ?', 5000)
+          ->where('a.account = ? OR a.name = ?', 'BST002', 'foobar')
+            ->or('u.name = ?', 'Trevor')
+          ->orderBy('u.name DESC');
 ```
 ```sql
-SELECT *
+EXPLAIN SELECT u.id, u.name, a.*
 FROM users u
   LEFT JOIN accounts a ON a.user_id = u.id AND a.overdraft >= 5000
-WHERE a.account = "BST002"
-ORDER BY u.name
+WHERE a.account = "BST002" OR a.name = "foobar" OR u.name = "Trevor"
+ORDER BY u.name DESC
 ```
-Queries includes additional whitespace for formatting purposes, this can be removed by calling 
+Queries include additional whitespace for formatting and display purposes, which can be removed by calling `Sql::singleLineStatements()`. SQL keywords can be made lower-case by calling `Sql::lowerCaseStatements()`
 
 
 ### Other features
@@ -115,10 +116,10 @@ WHERE id IN ("joe", "john", "james")
 ```
 
 ```php
-echo sql('WHERE id = :id or name = :name or dob = :dob:raw', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()'])
+echo sql('WHERE id = :id OR name = :name OR dob = :dob:raw AND failure = ?', ['id' => 5, 'name' => 'Trevor', 'dob' => 'NOW()'], 'not an option')
 ```
 ```sql
-WHERE id = 5 or name = "Trevor" or dob = NOW()
+WHERE id = 5 OR name = "Trevor" OR dob = NOW() AND failure = "not an option"
 ```
 
 #### Range:
@@ -149,8 +150,6 @@ This library is not designed for speed of execution or to be 100% safe from SQL 
 ### To simplify the complex
 
 It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
-
-The ultimate goal was to simply complex queries, where you have multiple string escapes and quoting etc.
 
 This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping' and 'quoting' strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
 
