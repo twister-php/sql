@@ -21,21 +21,7 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 
 Raw SQL Query Builder is essentially just **a glorified string wrapper** with countless ways to do the same thing (supports multiple naming conventions, both snake_case and camelCase function names). It **supports ALL databases** (no database connection used, write the query for your database/driver) and **ALL frameworks** (no framework or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
-### Speed and Safety
-
-This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
-
-### Simplify the Complex
-
-It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
-
-This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping' and 'quoting' strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
-
-So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; or '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' becomes a problem in your ORM; or you need to write custom queries against some or all of this data, then you will truly realise how much time and stress this library can save you.
-
-# A taste of things to come
-
-## Hello World
+### Hello World
 
 ```php
 echo sql('Hello @', 'World');
@@ -50,6 +36,54 @@ echo sql('Hello ?', 'World');
 ```
 Hello "World"
 ```
+
+### Hello SQL World
+
+```php
+echo sql('SELECT * FROM users WHERE id = ?', 5);
+```
+```
+SELECT * FROM users WHERE id = 5
+```
+
+```php
+echo sql('SELECT * FROM users WHERE name = ?', 'Trevor');
+```
+```
+SELECT * FROM users WHERE name = "Trevor"
+```
+
+### Fluent Style
+
+```php
+echo sql()->select('*')
+          ->from('users u')
+            ->leftJoin('accounts a ON a.user_id = u.id AND a.overdraft >= ?', $overdraft)
+          ->where('a.account = ?', $account)
+          ->orderBy('u.name');
+```
+```sql
+SELECT *
+FROM users u
+  LEFT JOIN accounts a ON a.user_id = u.id AND a.overdraft >= 5000
+WHERE a.account = "BST002"
+ORDER BY u.name
+```
+Queries includes additional whitespace for formatting purposes, this can be removed by calling 
+
+### Speed and Safety
+
+This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
+
+### Simplify the Complex
+
+It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
+
+This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping' and 'quoting' strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
+
+So when you find yourself dealing with a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; or '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)' becomes a problem in your ORM; or you need to write custom queries against some or all of this data, then you will truly realise how much time and stress this library can save you.
+
+# A taste of things to come
 
 
 
