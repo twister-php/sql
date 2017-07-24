@@ -1,5 +1,5 @@
 # SQL
-Raw SQL Query Builder ~ the swiss-army knife of raw SQL queries
+Raw SQL Query Builder ~ the Swiss-army knife of raw SQL queries
 
 ## Introduction
 
