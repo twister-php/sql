@@ -366,7 +366,7 @@ $sql = SQL();
 
 PDO will support `??` as a literal `?` in future editions; as proposed by the PDO standard for PHP 7.2 [here](https://wiki.php.net/rfc/pdo_escape_placeholders)
 
-This class already supports `??` for a literal `?` in your code, as well as `@@` for a literal `@`
+This class also supports `??` for a literal `?` in your code, as well as `@@` and `%%` for literal `@` and `%`
 
 # Features:
 
