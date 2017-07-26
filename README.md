@@ -54,6 +54,7 @@ This library really starts to shine when your SQL query gets larger and more com
 So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years.
 
 
+
 ## Install
 
 Composer
@@ -359,6 +360,13 @@ $sql = SQL();
 ->h(..)					//	h  = HAVING
 ```
 
+# Addendum
+
+## Literal ? and @
+
+PDO will support `??` as a literal `?` in future editions; as proposed by the PDO standard for PHP 7.2 [here](https://wiki.php.net/rfc/pdo_escape_placeholders)
+
+This class already supports `??` for a literal `?` in your code, as well as `@@` for a literal `@`
 
 # Features:
 
