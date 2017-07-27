@@ -49,7 +49,7 @@ This library is not designed for speed of execution or to be 100000% safe from S
 
 This class isn't particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
 
-But it really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do. All the complexity and tedious work of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
+But it really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benefit; that is what it was designed to do. All the complexity and tedious work of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
 
 So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields as I have; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years makes it a joy to use.
 
@@ -482,7 +482,7 @@ This class also supports `??` for a literal `?` in your code, as well as `@@` an
 * Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
 * Any query with any complexity and any number of custom commands can be expressed through SQLQB.
 * PHP 5.6+ (makes extensive use of the [...$arg syntax](http://php.net/manual/en/functions.arguments.php#functions.variable-arg-list.new))
-* No external dependencies except (mb\_\*) extention. Use SQLQB in any PHP application or framework.
+* No external dependencies except (mb\_\*) extension. Use SQLQB in any PHP application or framework.
 * Multiple function call / code styles supported, SELECT() or select(), leftJoin(), left_join() or LEFT_JOIN()
 * Simple global wrapper function `$sql = sql();` instead of calling `$sql = new Twister\Sql();`
 * Makes extensive use of PHP Magic Methods (\_\_toString(), \_\_get(), \_\_invoke(), \_\_call())
