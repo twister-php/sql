@@ -22,7 +22,7 @@ In addition, it supports inserting 'raw' strings (without quotes or escapes) wit
 echo sql('SELECT * FROM @ WHERE @ = ? OR name IN ([?]) OR id IN ([]) AND created = @',
 		'users', 'name', 'Trevor', ['Tom', 'Dick', 'Harry'], [1, 2, 3], 'NOW()');
 ```
-No need for escaping, no quotes, no array hanling and no concatenations ...
+No need for escaping, no quotes, no array handling and no concatenations ...
 
 Output:
 ```sql
@@ -32,7 +32,7 @@ SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR
 
 ## Description
 
-SQLQB is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (database connection is optional, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+SQLQB is essentially just **a glorified string wrapper** targeting SQL query strings with multiple ways to do the same thing, depending on your personal preference or coding style (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (database connection is optional, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ## History
 
@@ -53,9 +53,9 @@ But it really starts to shine when your SQL query gets larger and more complex; 
 
 So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields as I have; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years makes it a joy to use.
 
-### Limitations of real prepared statements
+### Limitations of 'real' prepared statements
 
-One of the limitations is that you cannot do this: `WHERE ? = ?` which you can in this class, another limitation is working with NULL values. Also, you cannot use dynamic column/table/field names, such as `SELECT ? FROM ?`, all of which you can with this class.
+One of the limitations is that you cannot do this: `WHERE ? = ?` which you can in this class, another limitation is that you basically cannot use NULL values (there are workarounds). Also, you cannot use dynamic column/table/field names, such as `SELECT ? FROM ?`, all of which you can with this class; anything you can do in your `$db->query($sql)` you can do here!
 
 ## Install
 
@@ -79,7 +79,7 @@ https://github.com/twister-php/sql
 Requirements (similar to Laravel):
 ```
 PHP 5.6+ (for ...$args syntax)
-Multibyte mb_* extention
+Multibyte mb_* extension
 ```
 
 
@@ -108,8 +108,6 @@ echo sql('SELECT ?, ?, ?, @', 1, "2", 'Hello World', 'NOW()');
 SELECT 1, 2, "Hello World", NOW()
 ```
 Note: 'numeric' values are not quoted (even when they are in strings)
-
-Exactly the same escaping rules as [`mysqli::real_escape_string`](http://php.net/manual/en/mysqli.real-escape-string.php) apply.
 
 #### More Examples
 
@@ -198,7 +196,11 @@ SET description = "Hello World\'s Greate"
 
 # Beginners guide
 
-The general idea is very simple; when you call a function, it basically just appends the function name (eg. `select(...)`, `from(...)`, `where(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining AKA a '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
+There are two main ways to write your queries; either use the constructor like an `sprintf` function (eg. `sql('?', $value)`), or use the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' (method chaining) by calling `sql()->select(...)->from(...)->where(...)` etc.
+
+### fluent interface
+
+The general idea of is very simple; when you call a function, it essentially just appends the function/statement name (eg. `select(...)`, `from(...)`, `where(...)`) (with some extra whitespace) to the internal `$sql` string variable, and returns `$this` for method chaining.
 
 #### pseudo-code
 
@@ -215,6 +217,10 @@ class Sql
 		$this->sql .= PHP_EOL . 'FROM ' . implode(', ', $tables);
 		return $this;
 	}
+	function leftJoin($stmt, ...$params)
+	{
+		return $this->prepare(PHP_EOL . 'LEFT JOIN ', ...$params);
+	}
 	function where($stmt, ...$params)
 	{
 		return $this->prepare(PHP_EOL . 'WHERE ', ...$params);
@@ -229,11 +235,17 @@ class Sql
 ```php
 echo sql()->select('*')
           ->from('users u')
+	    ->leftJoin('accounts a ON a.user_id = u.id')
 	  ->where('u.id = ?', 5);
 ```
 ```sql
-SELECT * FROM users u WHERE u.id = 5
+SELECT *
+FROM users u
+LEFT JOIN accounts a ON a.user_id = u.id
+WHERE u.id = 5
 ```
+
+Some functions like `leftJoin` and `where` support the `prepare`/`sprintf` style with variable args, while other like the `select` and `from` are more conveniently coded to just `implode` your values.
 
 # Multiple calling conventions
 
@@ -248,6 +260,10 @@ use Twister;
 $sql = new sql();
 $sql = new Sql();
 $sql = new SQL();
+
+// or
+
+$sql = new \Twister\Sql();
 ```
 
 ### Convenient `sql()` function
@@ -275,7 +291,7 @@ $sql = SQL();
 ->orderBy('t.col1 DESC')
 ->limit(5, 10);
 
-// others
+// other common functions
 
 ->selectDistinct(..)
 ->insert(..)
@@ -300,7 +316,7 @@ $sql = SQL();
 ->order_by('t.col1 DESC')
 ->limit(5, 10);
 
-// more
+// other common functions
 
 ->select_distinct(..)
 ->insert(..)
@@ -325,7 +341,7 @@ $sql = SQL();
 ->ORDER_BY('t.col1 DESC')
 ->LIMIT(5, 10);
 
-// more
+// other common functions
 
 ->SELECT_DISTINCT(..)
 ->INSERT(..)
@@ -350,8 +366,7 @@ $sql = SQL();
 ->ob('t.col1 DESC')			//	ob = ORDER BY
 ->l(5, 10);				//	l  = LIMIT
 
-
-// others
+// other common functions
 
 ->sd(..)				//	sd = SELECT DISTINCT
 ->i(..)					//	i  = INSERT
@@ -366,7 +381,7 @@ $sql = SQL();
 
 ## Setting the connection
 
-The connection only needs to be set ONCE for ALL the sql() objects you create. You do NOT need a new connection, you just give your normal connection object to the class; and it will extract what it needs and build an internal 'driver'. The connection is stored in a static class variable, so ALL instances of the class share the same connection.
+The connection only needs to be set ONCE for ALL the `sql()` objects you create. You do NOT need a new connection, you just give your normal connection object to the class; and it will extract what it needs and build an internal 'driver'. The connection is stored in a static class variable, so ALL instances of the class share the same connection.
 
 The connection type is automatically detected: either a PDO, MySQLi or SQLite3 object, or PostgreSQL/MySQL resource connection.
 
@@ -376,13 +391,11 @@ It will be necessary to set the connection to take full advantage of all the fea
 \Twister\Sql::setConnection($conn);
 ```
 
-Once the connection is set, the class (and all the sql() instances you will create afterwards) will use the internal 'driver'. The driver is customized automatically based on your connection type and will use your connection to 'escape' and 'quote' strings, and execute your queries if you want. Executing queries with the class is entirely optional!
+Once the connection is set, the class (and all the `sql()` instances you create afterwards) will use your connection to 'escape' and 'quote' strings, and you have the ability to execute your queries directly from the class if you want. Executing queries with the class is entirely optional, but very convenient!
 
 ### query(), exec(), fetchAll(), lookup()
 
-This class features a very thin, light-weight and convenient `query` library/wrapper.
-
-There are 4 functions you can call directly from the `sql` object relating to the connection. All connection types have been unified.
+There are 4 very light-weight functions you can call directly from the `sql` object. All connection types have been unified.
 
 #### fetchAll()
 
@@ -393,6 +406,20 @@ $array = sql('SELECT ...')->fetchAll();
 Returns an array containing all of the result set rows as an associated array.
 
 Based on [`PDOStatement::fetchAll`](http://php.net/manual/en/pdostatement.fetchall.php)
+
+PDO code sample
+```php
+function ($sql) use ($conn)
+{
+	$recset = $conn->query($sql);
+	if ( ! $recset) {
+		throw new \Exception('PSO::query() error: ' . $conn->errorInfo()[2]);
+	}
+	$result = $recset->fetchAll(\PDO::FETCH_ASSOC);
+	$recset->closeCursor();
+	return $result;
+};
+```
 
 #### lookup()
 
