@@ -376,7 +376,7 @@ It will be necessary to set the connection to take full advantage of all the fea
 \Twister\Sql::setConnection($conn);
 ```
 
-Once the connection is set, the class (and all the sql() instances you will create afterwards) will use the internal 'driver'. This driver will use your connection to 'escape' and 'quote' strings, and execute your queries if you want. Executing queries with the class is entirely optional!
+Once the connection is set, the class (and all the sql() instances you will create afterwards) will use the internal 'driver'. The driver is customized automatically based on your connection type and will use your connection to 'escape' and 'quote' strings, and execute your queries if you want. Executing queries with the class is entirely optional!
 
 ### query(), exec(), fetchAll(), lookup()
 
