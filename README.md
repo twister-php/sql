@@ -102,12 +102,13 @@ Hello "World"
 ### Hello SQL World
 
 ```php
-echo sql('SELECT ?, ?, ?, @', 1, "2", 'Hello World', 'NOW()');
+echo sql('SELECT ?, ?, ?, ?, @', 1, "2", null, 'Hello World', 'NOW()');
 ```
 ```
-SELECT 1, 2, "Hello World", NOW()
+SELECT 1, 2, NULL, "Hello World", NOW()
 ```
-Note: 'numeric' values (like the "2" above) are not quoted (even when they are in strings)
+Note: 'numeric' values (like the "2" above) are not quoted (even when they are string values).
+PHP `null` values become SQL `NULL` values.
 
 #### More Examples
 
