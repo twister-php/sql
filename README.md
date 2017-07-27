@@ -32,7 +32,7 @@ SELECT * FROM users WHERE name = "Trevor" OR name IN ("Tom", "Dick", "Harry") OR
 
 ## Description
 
-SQLQB is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (no database connection is used, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
+SQLQB is essentially just **a glorified string wrapper** targeting SQL with countless ways to do the same thing (supports multiple naming conventions, has camelCase and snake_case function names, or you can write statements in the constructor). Designed to be 100% Multibyte-capable (**UTF-8**, depending on your [mb_internal_encoding()](http://php.net/manual/en/function.mb-internal-encoding.php) setting, all functions use mb\_\* internally), **supports ANY database** (database connection is optional, it's just a string concatenator, write the query for your database/driver your own way) and **supports ANY framework** (no framework required or external dependencies), **light-weight** (one variable) but **feature rich**, **stateless** (doesn't know anything about the query, doesn't parse or validate the query), write in **native SQL language** with **zero learning curve** (only knowledge of SQL syntax) and functionality that is targeted to **rapidly write, design, test, build, develop and prototype** raw/native SQL query strings. You can build **entire SQL queries** or **partial SQL fragments** or even **non-SQL strings**.
 
 ## History
 
@@ -43,15 +43,15 @@ It was originally designed to bridge the gap between ORM query builders and nati
 
 ### Speed and Safety
 
-This library is not designed for speed of execution or to be 100% safe from SQL injection, that task is left up to you. It will 'quote' and 'escape' your strings, but it doesn't 'manage' the query or connection, it doesn't do syntax checking, syntax parsing, query/syntax validation etc. It doesn't even have a database connection, it just concatenates strings with convenient placeholders that auto-detect the data type.
+This library is not designed for speed of execution or to be 100000% safe from SQL injections, it WILL however do a better job than manually escaping strings; but only real 'prepared statements' offer protection from SQL injections, however they add a lot more complexity and many restrictions. In reality, it's almost impossible to write an entire website using only real/true prepared statements, so you'll invariably have to write many statements 'unprepared'; this class lets you write those statements safer! It will 'quote' and 'escape' strings, detect the correct data type to use; but it doesn't do syntax checking, syntax parsing, query/syntax validation etc. The main task is to replace your placeholders with the corresponding data, with the ability to auto-detect the data type.
 
 ### To simplify the complex
 
 It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
 
-This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all that complexity of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
+This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all the complexity and tedious work of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
 
-So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years.
+So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields as I have; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years makes it a joy to use.
 
 
 
@@ -371,21 +371,21 @@ This class also supports `??` for a literal `?` in your code, as well as `@@` an
 # Features:
 
 * One single file: no other classes, interfaces, traits or custom exceptions
-* 4,000+ lines of code and full documentation
+* 5,000+ lines of code (including comments) with full documentation
 * Powerful 200 character Multibyte regular expression powers the replacement engine ([mb_ereg_replace_callback()](http://php.net/manual/en/function.mb-ereg-replace-callback.php) with a 600 line function)
 * ORM style '[Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)'
 * Intends to bridge the gap between the '[fluent interface](https://en.wikipedia.org/wiki/Fluent_interface)' of ORM's and raw/native SQL statements
-* Any driver: execute queries against any driver that accepts natural SQL commands: PDO, MySQLi, pg\_\*, SQLLite etc.
 * Queries are built in natural SQL string concatenation order, just appending to the internal `$sql` string variable
 * Any query with any complexity and any number of custom commands can be expressed through SQLQB.
 * PHP 5.6+ (makes extensive use of the [...$arg syntax](http://php.net/manual/en/functions.arguments.php#functions.variable-arg-list.new))
 * No external dependencies except (mb\_\*) extention. Use SQLQB in any PHP application or framework.
 * Multiple function call / code styles supported, SELECT() or select(), leftJoin(), left_join() or LEFT_JOIN()
-* Global wrapper function `$sql = sql();` instead of calling `$sql = new Twister\Sql();`
+* Simple global wrapper function `$sql = sql();` instead of calling `$sql = new Twister\Sql();`
 * Makes extensive use of PHP Magic Methods (\_\_toString(), \_\_get(), \_\_invoke(), \_\_call())
 * Adds a small amount of additional whitespace to format your queries for display
-* Completely database neutral and agnostic; but MySQL, PDO, Postgres and SQLite are the primary targets.
 * Minimal SQL abstraction
+* Completely database neutral and agnostic; but PDO, MySQLi, PostgreSQL and SQLite are the primary targets.
+* Built-in drivers for PDO, MySQLi, PostgreSQL, SQLite and MySQL (old). The driver is embedded, not separate classes.
 
 ## What it doesn't do:
 
@@ -393,31 +393,26 @@ This class also supports `??` for a literal `?` in your code, as well as `@@` an
 * does NOT validate your string
 * does NOT verify your string
 * does NOT error check the syntax
-* does NOT build valid SQL statements for you
-* does NOT guarantee your string/query is safe from SQL injections
-* does NOT protect you from the big bad wolf called SQL injections
-* does NOT hold your hand or make coffee
-* does NOT treat SQL like an abomination
-* does NOT treat you like an SQL child
-* does NOT try to abstract raw/native SQL from you, just gives you the tools to write it faster
+* does NOT try to abstract raw/native SQL from you, just gives you the tools to write it faster and safer
 * does NOT try to replace writing raw/native SQL
 * does NOT re-order or change the natural order of SQL statements
-* does NOT change the name or meaning of traditional SQL statements (eg. `->limit(10)` is `->take(10)` in Eloquent)
+* does NOT change the name, meaning or intention of traditional SQL statements
 * does NOT use reflection or annotations
-* does NOT re-structure/re-format/re-align/re-arrange your statement
-* does NOT do input/parameter validation/verification, other than simple string escaping
+* does NOT re-structure/re-format/re-align/re-arrange your statement (except adding some whitespace for readability)
+* does NOT do input/parameter validation/verification, other than string escaping
 * does NOT check that column types match the database schema
 * does NOT use any schema/model/entity/mapping/config/YAML/XML/temporary/cache files
 * does NOT store an abstract SQL statement interface internally, everything it builds is visible
 * does NOT have any outside dependencies, only ONE single file, PHP 5.6+ and mb\_\*
 * does NOT add any other classes (except Sql), no interfaces, no traits, no new exception classes etc.
+* does NOT guarantee your string/query is safe from SQL injections (like true 'prepared statements'); **However**, it's still a lot safer than writing raw/native/traditional SQL strings
 
 
 # Conclusion
 
 My goal is to enable you (and me) to write SQL queries faster, safer and more readable than old-school concatenations.
 
-They might not execute faster, especially when the regular expression engine kicks in, but the amount of time you will save, and coming back to your code in a few months or years later and immediately being able to read and understand it is invaluable! Code readability should come first in most situations, especially large queries.
+They might not execute faster, especially when the regular expression engine kicks in, but the amount of time you will save, and coming back to your code in a few months or years later and immediately being able to read and understand it is invaluable! Code readability should come first in most situations, especially large queries/projects.
 
 I believe this code and solution is unique; as I haven't found anything like it before; there simply are NO other libraries out there with the same capabilities and feature set; and very few help you write raw SQL queries faster.
 
