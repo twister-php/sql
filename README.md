@@ -43,17 +43,19 @@ It was originally designed to bridge the gap between ORM query builders and nati
 
 ### Speed and Safety
 
-This library is not designed for speed of execution or to be 100000% safe from SQL injections, it WILL however do a better job than manually escaping strings; but only real 'prepared statements' offer protection from SQL injections, however they add a lot more complexity and many restrictions. In reality, it's almost impossible to write an entire website using only real/true prepared statements, so you'll invariably have to write many statements 'unprepared'; this class lets you write those statements safer! It will 'quote' and 'escape' strings, detect the correct data type to use; but it doesn't do syntax checking, syntax parsing, query/syntax validation etc. The main task is to replace your placeholders with the corresponding data, with the ability to auto-detect the data type.
+This library is not designed for speed of execution or to be 100000% safe from SQL injections, it WILL however do a better job than manually escaping strings yourself; but only real 'prepared statements' offer protection from SQL injections; however they add a lot more complexity and many restrictions. In reality, it's almost impossible to write an entire website using only real/true prepared statements, so you'll invariably have to write many 'unprepared' statements; and that is where this class can help you; by writing safer 'unprepared' statements! It will 'quote' and 'escape' strings, detect the correct data type to use; but it doesn't do syntax checking, syntax parsing, query/syntax validation etc. The main task is to replace your placeholders with the corresponding data, with the ability to auto-detect the data type.
 
 ### To simplify the complex
 
-It's not particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
+This class isn't particularly useful or necessary for small/static queries like `'SELECT * FROM users WHERE id = ' . $id;`
 
-This library really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do, to simplify the complexity of medium to large queries; all the complexity and tedious work of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
+But it really starts to shine when your SQL query gets larger and more complex; really shining on `INSERT` and `UPDATE` queries. The larger the query, the greater the benfit; that is what it was designed to do. All the complexity and tedious work of 'escaping', 'quoting' and concatenating strings is eliminated by simply putting `?` where you want the variable, this library takes care of the rest.
 
 So when you find yourself dealing with '[object-relational impedance mismatch](https://en.wikipedia.org/wiki/Object-relational_impedance_mismatch)'; because you have a database of 400+ tables, 6000+ columns/fields, one table with 156 data fields, 10 tables with over 100 fields, 24 tables with over 50 fields, 1000+ varchar/char fields as I have; just remember this library was designed to help reduce some of that complexity! Especially still having (semi-)readable queries when you come back to them in a few months or years makes it a joy to use.
 
+### Limitations of real prepared statements
 
+One of the limitations is that you cannot do this: `WHERE ? = ?` which you can in this class, another limitation is working with NULL values. Also, you cannot use dynamic column/table/field names, such as `SELECT ? FROM ?`, all of which you can with this class.
 
 ## Install
 
@@ -362,11 +364,94 @@ $sql = SQL();
 
 # Addendum
 
+## Setting the connection
+
+The connection only needs to be set ONCE for ALL the sql() objects you create. You do NOT need a new connection, you just give your normal connection object to the class; and it will extract what it needs and build an internal 'driver'. The connection is stored in a static class variable, so ALL instances of the class share the same connection.
+
+The connection type is automatically detected: either a PDO, MySQLi or SQLite3 object, or PostgreSQL/MySQL resource connection.
+
+It will be necessary to set the connection to take full advantage of all the features offered by the class.
+
+```php
+\Twister\Sql::setConnection($conn);
+```
+
+Once the connection is set, the class (and all the sql() instances you will create afterwards) will use the internal 'driver'. This driver will use your connection to 'escape' and 'quote' strings, and execute your queries if you want. Executing queries with the class is entirely optional!
+
+### query(), exec(), fetchAll(), lookup()
+
+This class features a very thin, light-weight and convenient `query` library/wrapper.
+
+There are 4 functions you can call directly from the `sql` object relating to the connection. All connection types have been unified.
+
+#### fetchAll()
+
+```php
+$array = sql('SELECT ...')->fetchAll();
+```
+
+`fetchAll()` will return your data as an associated array. Similar to [PDOStatement::fetchAll](`http://php.net/manual/en/pdostatement.fetchall.php`)
+
+#### lookup()
+
+```php
+$value = sql('SELECT 999')->lookup();
+echo $value;
+```
+```php
+999
+```
+
+```php
+$data = sql('SELECT 1 AS id, "Trevor" AS name')->lookup();
+var_dump($data);
+```
+```php
+array(2) {
+  ["id"]   => string(1) "1"
+  ["name"] => string(6) "Trevor"
+}
+```
+
+`lookup()` will return a single row of data, or a single value depending on how many columns you select. If you select one column, you will get a value directly in $value or a null. If you selected several columns, they will be returned as an associative array, where the keys are the column names. Only the first row is returned, any other results will be discarded.
+
+This function works similar to [SQLite3::querySingle](http://php.net/manual/en/sqlite3.querysingle.php), except the result 'mode' is auto-detected, which corresponds to the `$entire_row` value in `SQLite3::querySingle`
+
+#### query()
+
+```php
+$recset = sql(...)->query();
+```
+
+`query()` will execute the SQL query with the `query()` function of your database connection, returning the same result. This is a very thin wrapper, making it extremely fast and convenient to use; it's much more convenient than getting the connection object from a dependency injection/IoC container like `$container->db()->query($sql);`, it's just `sql(..)->query()`
+
+#### exec()
+
+```php
+$affected_rows = sql('DELETE FROM ...')->exec();
+```
+
+`exec()` executes an SQL query which you do not expect a 'query' result. This is usually an `INSERT`, `UPDATE` or `DELETE` statement. The `affected rows` value is returned on MySQL and SQLite3, and is the same as returned from `PDO::exec()`.
+
+This function calls `PDO::exec()`, `MySQLi->real_query()` and `SQLite3::exec()` internally depending on your connection type.
+
+
+#### fetchAll()
+
+```php
+$array = sql('SELECT ...')->fetchAll();
+```
+
+`fetchAll()` will return your data as an associated array. All drivers have been unified
+
+
+
 ## Literal ? and @
 
 PDO will support `??` as a literal `?` in future editions; as proposed by the PDO standard for PHP 7.2 [here](https://wiki.php.net/rfc/pdo_escape_placeholders)
 
 This class also supports `??` for a literal `?` in your code, as well as `@@` and `%%` for literal `@` and `%`
+
 
 # Features:
 
