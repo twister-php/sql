@@ -390,7 +390,7 @@ There are 4 functions you can call directly from the `sql` object relating to th
 $array = sql('SELECT ...')->fetchAll();
 ```
 
-`fetchAll()` will return your data as an associated array. Similar to [PDOStatement::fetchAll](`http://php.net/manual/en/pdostatement.fetchall.php`)
+`fetchAll()` will return your data as an associated array. Similar to [`PDOStatement::fetchAll`](http://php.net/manual/en/pdostatement.fetchall.php)
 
 #### lookup()
 
