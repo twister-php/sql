@@ -438,16 +438,6 @@ $affected_rows = sql('DELETE FROM ...')->exec();
 This function calls `PDO::exec()`, `MySQLi->real_query()` and `SQLite3::exec()` internally depending on your connection type.
 
 
-#### fetchAll()
-
-```php
-$array = sql('SELECT ...')->fetchAll();
-```
-
-`fetchAll()` will return your data as an associated array. All drivers have been unified
-
-
-
 ## Literal ? and @
 
 PDO will support `??` as a literal `?` in future editions; as proposed by the PDO standard for PHP 7.2 [here](https://wiki.php.net/rfc/pdo_escape_placeholders)
