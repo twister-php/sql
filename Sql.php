@@ -4304,6 +4304,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
 						$result = $recset->fetchAll(\PDO::FETCH_ASSOC);
 						$recset->closeCursor();
 						$result = array_shift($result);
@@ -4313,6 +4316,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
 						$result = $recset->fetchAll(\PDO::FETCH_ASSOC);
 						$recset->closeCursor();
 						return $result;
@@ -4321,6 +4327,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
 						$result = $recset->fetchAll(\PDO::FETCH_NUM);
 						$recset->closeCursor();
 						return $result;
@@ -4361,6 +4370,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
 						if ($recset->field_count == 1)
 						{
 							$result = $recset->fetch_row();
@@ -4375,6 +4387,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
 						$result = $recset->fetch_all(MYSQLI_ASSOC);
 						$recset->free();
 						return $result;
@@ -4383,6 +4398,9 @@ class Sql implements \ArrayAccess
 					function ($sql) use ($conn)
 					{
 						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
 						$result = $recset->fetch_all(MYSQLI_NUM);
 						$recset->free();
 						return $result;
