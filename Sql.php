@@ -35,7 +35,7 @@ namespace Twister;
  *	@link        https://github.com/twister-php/sql
  *	@api
  */
-class Sql implements \ArrayAccess
+class Sql
 {
 	/**
 	 *	The magic is contained within ...
@@ -79,7 +79,7 @@ class Sql implements \ArrayAccess
 	 *
 	 *	@var callable
 	 */
-	protected static $escape	=	'\\Twister\\Sql::default_escape_string';
+	protected static $escape_handler	=	'\\Twister\\Sql::default_escape_string';
 
 
 	/**
@@ -96,7 +96,7 @@ class Sql implements \ArrayAccess
 	 *
 	 *	@var callable
 	 */
-	protected static $quote		=	'\\Twister\\Sql::default_quote_string';
+	protected static $quote_handler		=	'\\Twister\\Sql::default_quote_string';
 
 
 	/**
@@ -465,7 +465,7 @@ class Sql implements \ArrayAccess
 		//	'AND_'			=>	'AND ',
 		//	'_AND'			=>	' AND',
 		//	'_AND_'			=>	' AND ',
-			'OR'			=>	' OR ',		//	had to make changes here!
+			'OR'			=>	' OR ',			//	had to make changes here!
 		//	'OR_'			=>	'OR ',
 		//	'_OR'			=>	' OR',
 		//	'_OR_'			=>	' OR ',
@@ -736,37 +736,6 @@ class Sql implements \ArrayAccess
 	 *	@return	$this
 	 */
 	public function reset($stmt = null, ...$params)
-	{
-		if (empty($params)) {
-			$this->sql = $stmt;
-			return $this;
-		}
-		$this->sql = null;
-		return $this->prepare($stmt, ...$params);
-	}
-
-
-	/**************************************************************************/
-	/**                                new()                                 **/
-	/**************************************************************************/
-
-
-	/**
-	 *	start new statement
-	 *
-	 *	@alias reset()
-	 *
-	 *	See {@see prepare()} for optional syntax rules
-	 *
-	 *	@param  string|null $stmt
-	 *                      (optional) Statement to `prepare()`;
-	 *
-	 *	@param  mixed       ...$params
-	 *                      (optional) Parameters associated with $stmt
-	 *
-	 *	@return	$this
-	 */
-	public function new($stmt = null, ...$params)
 	{
 		if (empty($params)) {
 			$this->sql = $stmt;
@@ -4336,12 +4305,12 @@ class Sql implements \ArrayAccess
 					};
 
 				self::$quot = substr($conn->quote(''), 0, 1);
-				self::$escape =
+				self::$escape_handler =
 					function ($string) use ($conn)
 					{
 						return substr(substr($conn->quote($string), 1), 0, -1);
 					};
-				self::$quote =
+				self::$quote_handler =
 					function ($string) use ($conn)
 					{
 						return $conn->quote($string);
@@ -4406,12 +4375,12 @@ class Sql implements \ArrayAccess
 						return $result;
 					};
 
-				self::$escape =
+				self::$escape_handler =
 					function ($string) use ($conn)
 					{
 						return $conn->real_escape_string($string);
 					};
-				self::$quote =
+				self::$quote_handler =
 					function ($string) use ($conn)
 					{
 						return self::$quot . $conn->real_escape_string($string) . self::$quot;
@@ -4465,12 +4434,12 @@ class Sql implements \ArrayAccess
 						return $result;
 					};
 
-				self::$escape =
+				self::$escape_handler =
 					function ($string) use ($conn)
 					{
 						return $conn->real_escape_string($string);
 					};
-				self::$quote =
+				self::$quote_handler =
 					function ($string) use ($conn)
 					{
 						return self::$quot . $conn->real_escape_string($string) . self::$quot;
@@ -4548,12 +4517,12 @@ class Sql implements \ArrayAccess
 						};
 
 					self::$quot = '\'';
-					self::$escape =
+					self::$escape_handler =
 						function ($string) use ($conn)
 						{
 							return pg_escape_string($conn, $string);
 						};
-					self::$quote =
+					self::$quote_handler =
 						function ($string) use ($conn)
 						{
 							return pg_escape_literal($conn, $string);
@@ -4618,12 +4587,12 @@ class Sql implements \ArrayAccess
 							return $result;
 						};
 
-					self::$escape =
+					self::$escape_handler =
 						function ($string) use ($conn)
 						{
 							return mysql_real_escape_string($string, $conn);
 						};
-					self::$quote =
+					self::$quote_handler =
 						function ($string) use ($conn)
 						{
 							return self::$quot . mysql_real_escape_string($string, $conn) . self::$quot;
@@ -4633,8 +4602,8 @@ class Sql implements \ArrayAccess
 		}
 		if ($conn === null)
 		{
-			self::$escape   =	'\\Twister\\Sql::default_escape_string';
-			self::$quote    =	'\\Twister\\Sql::default_quote_string';
+			self::$escape_handler   =	'\\Twister\\Sql::default_escape_string';
+			self::$quote_handler    =	'\\Twister\\Sql::default_quote_string';
 			self::$exec     =	'\\Twister\\Sql::noConnError';
 			self::$execute  =	'\\Twister\\Sql::noConnError';
 			self::$query    =	'\\Twister\\Sql::noConnError';
@@ -4792,7 +4761,7 @@ class Sql implements \ArrayAccess
 	 */
 	public static function escape($string)
 	{
-		return (self::$escape)($string);
+		return call_user_func(self::$escape_handler, $string);
 	}
 
 
@@ -4824,7 +4793,7 @@ class Sql implements \ArrayAccess
 	 */
 	public static function quote($string)
 	{
-		return (self::$quote)($string);
+		return call_user_func(self::$quote_handler, $string);
 	}
 
 
@@ -4845,61 +4814,73 @@ class Sql implements \ArrayAccess
 
 	public function exec()
 	{
-		return (self::$exec)($this->sql);
+		return call_user_func(self::$exec, $this->sql);
 	}
 
 
 	public function execute()
 	{
-		return (self::$execute)($this->sql);
+		return call_user_func(self::$execute, $this->sql);
 	}
 
 
 	public function query()
 	{
-		return (self::$query)($this->sql);
+		return call_user_func(self::$query, $this->sql);
 	}
 
 
 	public function lookup()
 	{
-		return (self::$lookup)($this->sql);
+		return call_user_func(self::$lookup, $this->sql);
 	}
 
 
 	public function fetchAll()
 	{
-		return (self::$fetchAll)($this->sql);
+		return call_user_func(self::$fetchAll, $this->sql);
 	}
 
 
 	public function fetch_all()
 	{
-		return (self::$fetchAll)($this->sql);
+		return call_user_func(self::$fetchAll, $this->sql);
 	}
 
 
 	public function fetchArray()
 	{
-		return (self::$fetchAll)($this->sql);
+		return call_user_func(self::$fetchAll, $this->sql);
 	}
 
 
 	public function fetch_array()
 	{
-		return (self::$fetchAll)($this->sql);
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetchAssoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetch_assoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
 	}
 
 
 	public function fetchNum()
 	{
-		return (self::$fetchNum)($this->sql);
+		return call_user_func(self::$fetchNum, $this->sql);
 	}
 
 
 	public function fetch_num()
 	{
-		return (self::$fetchNum)($this->sql);
+		return call_user_func(self::$fetchNum, $this->sql);
 	}
 
 
@@ -4997,63 +4978,5 @@ class Sql implements \ArrayAccess
 	public static function lowerCaseStatements()
 	{
 		self::$translations = array_map('strtolower', self::$translations );
-	}
-
-
-	/**************************************************************************/
-	/**                      ArrayAccess Interface                           **/
-	/**************************************************************************/
-
-
-	/**
-	 *	Appends text directly without transformation to the internal $sql string
-	 *
-	 *	This function implements special (non-standard) handling of arrays
-	 *		and is not meant to be called directly!
-	 *
-	 *	This non-standard functionality is purely for syntactic sugar
-	 *
-	 *	By implementing this function, we allow users to 'write'
-	 *		directly to the input string, returning $this for method chaining
-	 *
-	 *	This effectively makes EVERY array lookup/index valid
-	 *		because the return value is $this
-	 *
-	 *	Strings added are NOT encoded or escaped, but simply appended
-	 *
-	 *	Special handling is provided for `null`, which will append `NULL`
-	 *
-	 *	Example:
-	 *
-	 *		`echo sql()['Hello World'];`
-	 *		`// Hello World`
-	 *
-	 *	Implementation of ArrayAccess::offsetGet()
-	 *
-	 *	@link http://php.net/manual/en/arrayaccess.offsetget.php
-	 *
-	 *	@param string|null $sql This SQL text you would like to append
-	 *
-	 *	@return $this
-	 */
-	public function offsetGet($sql)
-	{
-		$this->sql .= $sql;
-		return $this;
-	}
-
-	public function offsetSet($idx, $sql)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
-	}
-
-	public function offsetExists($index)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
-	}
-
-	public function offsetUnset($index)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
 	}
 }
