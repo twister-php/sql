@@ -1315,7 +1315,7 @@ class Sql implements \ArrayAccess
 							$cols[]		=	substr($col, 1);
 							$values[]	=	$value;
 						}
-						else if (is_numeric($value))
+						else if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 							$cols[]		=	$col;
 							$values[]	=	$value;
@@ -1374,7 +1374,7 @@ class Sql implements \ArrayAccess
 					else
 					{
 						$value = $values[$index];
-						if (is_numeric($value))
+						if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 						//	$cols[$index]	=	$col;			//	unchanged
 						//	$values[$index]	=	$value[$index];	//	unchanged
@@ -1418,7 +1418,7 @@ class Sql implements \ArrayAccess
 					else
 					{
 						$value = $values[$index];
-						if (is_numeric($value))
+						if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 						//	$cols[$index]	=	$col;			//	unchanged
 						//	$values[$index]	=	$value[$index];	//	unchanged
@@ -1518,7 +1518,7 @@ class Sql implements \ArrayAccess
 				$comma = null;
 				foreach ($stmt as $col => $value)
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $value;
 					}
@@ -1579,7 +1579,7 @@ class Sql implements \ArrayAccess
 				$comma = null;
 				foreach ($stmt as $col => $value)
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $value;
 					}
@@ -1658,7 +1658,7 @@ class Sql implements \ArrayAccess
 				}
 				else
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $col . ' = ' . $value;
 					}
@@ -1697,7 +1697,7 @@ class Sql implements \ArrayAccess
 				}
 				else
 				{
-					if (is_numeric($arg))
+					if (is_numeric($arg) && (is_int($arg) || is_float($arg) || (string) $arg === (string) (float) $arg))
 					{
 						$values .= $comma . $col . ' = ' . $arg;
 					}
@@ -3147,7 +3147,7 @@ class Sql implements \ArrayAccess
 		}
 		foreach ($args as $arg)
 		{
-			if (is_numeric($arg))
+			if (is_numeric($arg) && (is_int($arg) || is_float($arg) || (string) $arg === (string) (float) $arg))
 			{
 				$this->sql .= $comma . $arg;
 			}
@@ -3692,7 +3692,7 @@ class Sql implements \ArrayAccess
 								next($params);
 								$count++;
 
-								if (is_numeric($value))	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
+								if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value)) 	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
 								if (is_string($value))	return self::quote($value);
 								if (is_null($value))	return 'NULL';
 								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
@@ -3700,7 +3700,7 @@ class Sql implements \ArrayAccess
 									$comma = null;
 									$result = '';
 									foreach ($value as $v) {
-											 if (is_numeric($v)) $result .= $comma . $v;
+											 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 										else if (is_string($v))  $result .= $comma . self::quote($v);
 										else if (is_null($v))    $result .= $comma . 'NULL';
 										else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3739,7 +3739,7 @@ class Sql implements \ArrayAccess
 								$count++;
 
 								if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-								if (is_numeric($value))	return (string) $value;
+								if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))	return (string) $value;
 								if (is_null($value))	return 'NULL';
 								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 								if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
@@ -3791,7 +3791,7 @@ class Sql implements \ArrayAccess
 										$result = '';
 										foreach ($array as $v)
 										{
-												 if (is_numeric($v)) $result .= $comma . $v;
+												 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 											else if (is_string($v))  $result .= $comma . self::quote($v);
 											else if (is_null($v))    $result .= $comma . 'NULL';
 											else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3907,7 +3907,7 @@ class Sql implements \ArrayAccess
 									{
 										$value = $params[$key];
 
-										if (is_numeric($value)) {
+										if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value)) {
 											$command = 'd';
 										} else if (is_string($value)) {
 											$command = 's';
@@ -3920,7 +3920,7 @@ class Sql implements \ArrayAccess
 											$result = '';
 											foreach ($value as $v)
 											{
-													 if (is_numeric($v)) $result .= $comma . $v;
+													 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 												else if (is_string($v))  $result .= $comma . self::quote($v);
 												else if (is_null($v))    $result .= $comma . 'NULL';
 												else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3948,7 +3948,7 @@ class Sql implements \ArrayAccess
 											$value = $params[$key];
 
 											if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-											if (is_numeric($value))	return (string) $value;
+											if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))	return (string) $value;
 											if (is_null($value))	return 'NULL';
 											if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 											if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
