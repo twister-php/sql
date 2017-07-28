@@ -35,7 +35,7 @@ namespace Twister;
  *	@link        https://github.com/twister-php/sql
  *	@api
  */
-class Sql implements \ArrayAccess
+class Sql
 {
 	/**
 	 *	The magic is contained within ...
@@ -52,6 +52,87 @@ class Sql implements \ArrayAccess
 	 *	@var string
 	 */
 	protected static $quot		=	'"';
+
+
+	/**
+	 *	(optional) Database connection
+	 *
+	 *	Used to change the string escaping rules
+	 *	eg. MySQL and PostgreSQL have different escaping rules!
+	 *
+	 *	@var object|null
+	 */
+	protected static $conn		=	null;
+
+
+	/**
+	 *	(optional) String 'escaping' handler
+	 *
+	 *	By default uses a MySQL compatible handler
+	 *
+	 *	To enable a database specific handler, set the database connection with:
+	 *
+	 *		\Twister\Sql::setConnection($db)
+	 *
+	 *	MySQL:       {@link https://dev.mysql.com/doc/refman/5.7/en/string-literals.html}
+	 *	PostgreSQL : {@link https://www.postgresql.org/docs/9.2/static/sql-syntax-lexical.html}
+	 *
+	 *	@var callable
+	 */
+	protected static $escape_handler	=	'\\Twister\\Sql::default_escape_string';
+
+
+	/**
+	 *	(optional) String 'quoteing' handler
+	 *
+	 *	By default uses a MySQL compatible handler
+	 *
+	 *	To enable a database specific handler, set the database connection with:
+	 *
+	 *		\Twister\Sql::setConnection($db)
+	 *
+	 *	MySQL:       {@link https://dev.mysql.com/doc/refman/5.7/en/string-literals.html}
+	 *	PostgreSQL : {@link https://www.postgresql.org/docs/9.2/static/sql-syntax-lexical.html}
+	 *
+	 *	@var callable
+	 */
+	protected static $quote_handler		=	'\\Twister\\Sql::default_quote_string';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $exec		=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $execute	=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $query		=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $lookup	=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $fetchAll	=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
+	protected static $fetchNum	=	'\\Twister\\Sql::noConnError';
 
 
 	/**
@@ -83,7 +164,6 @@ class Sql implements \ArrayAccess
 	 *
 	 *	This list can be modified internally with singleLineStatements() and lowerCaseStatements()
 	 *
-	 *
 	 *	`Twister\Sql::singleLineStatements()`
 	 *		will create single line results (replacing \s+ with ' ') for use with the console / command prompt
 	 *
@@ -92,392 +172,393 @@ class Sql implements \ArrayAccess
 	 *
 	 * 	@var string[] translations
 	 */
-	protected static $translations	=	[	'EXPLAIN'		=>	'EXPLAIN ',
-											'SELECT'		=>	'SELECT ',
-											'DELETE'		=>	'DELETE ',
-											'INSERT'		=>	'INSERT ',
-											'UPDATE'		=>	'UPDATE ',
-											'CALL'			=>	'CALL ',
+	protected static $translations	=	[
+			'EXPLAIN'		=>	'EXPLAIN ',
+			'SELECT'		=>	'SELECT ',
+			'DELETE'		=>	'DELETE ',
+			'INSERT'		=>	'INSERT ',
+			'UPDATE'		=>	'UPDATE ',
+			'CALL'			=>	'CALL ',
 
-											'INSERT_INTO'	=>	'INSERT INTO ',
-											'INSERTINTO'	=>	'INSERT INTO ',
-											'DELETE_FROM'	=>	'DELETE FROM ',
-											'DELETEFROM'	=>	'DELETE FROM ',
+			'INSERT_INTO'	=>	'INSERT INTO ',
+			'INSERTINTO'	=>	'INSERT INTO ',
+			'DELETE_FROM'	=>	'DELETE FROM ',
+			'DELETEFROM'	=>	'DELETE FROM ',
 
-											'SELECT_ALL'	=>	'SELECT *',
-											'SA'			=>	'SELECT *',
-											'SALL'			=>	'SELECT *',
-											'S_ALL'			=>	'SELECT *',
+			'SELECT_ALL'	=>	'SELECT *',
+			'SA'			=>	'SELECT *',
+			'SALL'			=>	'SELECT *',
+			'S_ALL'			=>	'SELECT *',
 
-											'S_CACHE'		=>	'SELECT SQL_CACHE ',
-											'S_NCACHE'		=>	'SELECT SQL_NO_CACHE ',
-											'S_NO_CACHE'	=>	'SELECT SQL_NO_CACHE ',
+			'S_CACHE'		=>	'SELECT SQL_CACHE ',
+			'S_NCACHE'		=>	'SELECT SQL_NO_CACHE ',
+			'S_NO_CACHE'	=>	'SELECT SQL_NO_CACHE ',
 
-											'SELECT_DISTINCT'=>	'SELECT DISTINCT ',
-											'SD'			=>	'SELECT DISTINCT ',				//	(S)ELECT (D)ISTINCT
-											'SDA'			=>	'SELECT DISTINCT * ',			//	(S)ELECT (D)ISTINCT (A)LL
-											'SDCA'			=>	'SELECT DISTINCT COUNT(*) ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL
-											'SDCAS'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)S
-											'SDCAA'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
-											'SDCAAS'		=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
-											'SDAF'			=>	'SELECT DISTINCT COUNT(*) FROM ',//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (F)ROM
+			'SELECT_DISTINCT'=>	'SELECT DISTINCT ',
+			'SD'			=>	'SELECT DISTINCT ',				//	(S)ELECT (D)ISTINCT
+			'SDA'			=>	'SELECT DISTINCT * ',			//	(S)ELECT (D)ISTINCT (A)LL
+			'SDCA'			=>	'SELECT DISTINCT COUNT(*) ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL
+			'SDCAS'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)S
+			'SDCAA'			=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
+			'SDCAAS'		=>	'SELECT DISTINCT COUNT(*) AS ',	//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (A)S
+			'SDAF'			=>	'SELECT DISTINCT COUNT(*) FROM ',//	(S)ELECT (D)ISTINCT (C)OUNT (A)LL (F)ROM
 
-											//	compound statements
-											'SAF'			=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
-											'SELECT_ALL_FROM'=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
-											'SCAF'			=>	'SELECT COUNT(*)' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+			//	compound statements
+			'SAF'			=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+			'SELECT_ALL_FROM'=>	'SELECT *' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
+			'SCAF'			=>	'SELECT COUNT(*)' . PHP_EOL . 'FROM' . PHP_EOL . "\t",
 
-											'SC'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (ALL) is implied here
-											'SC_AS'			=>	'SELECT COUNT(*) AS ',	//	SA = (S)ELECT (C)OUNT (ALL) is implied here
-											'SCA'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (A)LL
-											'SCAA'			=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL (A)S
-											'SCA_AS'		=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL
-											'S_COUNT_ALL'	=>	'SELECT COUNT(*)',
-											'S_COUNT_ALL_AS'=>	'SELECT COUNT(*) AS ',
-											'SELECT_CA'		=>	'SELECT COUNT(*)',		//	CA = (C)OUNT (A)LL = COUNT(*)
-											'SELECT_CA_AS'	=>	'SELECT COUNT(*) AS ',
-											'SELECT_CALL'	=>	'SELECT COUNT(*)',
-											'SELECT_CALL_AS'=>	'SELECT COUNT(*) AS ',
-											'SELECT_COUNT_ALL'=>'SELECT COUNT(*)',
-											'SELECT_COUNT_ALL_AS'=>'SELECT COUNT(*) AS ',
+			'SC'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (ALL) is implied here
+			'SC_AS'			=>	'SELECT COUNT(*) AS ',	//	SA = (S)ELECT (C)OUNT (ALL) is implied here
+			'SCA'			=>	'SELECT COUNT(*)',		//	SA = (S)ELECT (C)OUNT (A)LL
+			'SCAA'			=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL (A)S
+			'SCA_AS'		=>	'SELECT COUNT(*) AS',	//	SA = (S)ELECT (C)OUNT (A)LL
+			'S_COUNT_ALL'	=>	'SELECT COUNT(*)',
+			'S_COUNT_ALL_AS'=>	'SELECT COUNT(*) AS ',
+			'SELECT_CA'		=>	'SELECT COUNT(*)',		//	CA = (C)OUNT (A)LL = COUNT(*)
+			'SELECT_CA_AS'	=>	'SELECT COUNT(*) AS ',
+			'SELECT_CALL'	=>	'SELECT COUNT(*)',
+			'SELECT_CALL_AS'=>	'SELECT COUNT(*) AS ',
+			'SELECT_COUNT_ALL'=>'SELECT COUNT(*)',
+			'SELECT_COUNT_ALL_AS'=>'SELECT COUNT(*) AS ',
 
-											'CREATE'		=>	'CREATE ',
-											'DROP'			=>	'DROP ',
-											'CREATE_TABLE'	=>	'CREATE TABLE ',
-											'ALTER'			=>	'ALTER ',
-											'ALTER_TABLE'	=>	'ALTER TABLE ',
-											'ALTER_DATABASE'=>	'ALTER DATABASE ',
-											'ALTER_SCHEMA'	=>	'ALTER SCHEMA ',
-											'ALTER_EVENT'	=>	'ALTER EVENT ',
-											'ALTER_FUNCTION'=>	'ALTER FUNCTION ',
-											'DATABASE'		=>	'DATABASE ',
-											'SCHEMA'		=>	'SCHEMA ',
-											'EVENT'			=>	'EVENT ',
-											'FUNCTION'		=>	'FUNCTION ',
-											'TABLE'			=>	'TABLE ',
+			'CREATE'		=>	'CREATE ',
+			'DROP'			=>	'DROP ',
+			'CREATE_TABLE'	=>	'CREATE TABLE ',
+			'ALTER'			=>	'ALTER ',
+			'ALTER_TABLE'	=>	'ALTER TABLE ',
+			'ALTER_DATABASE'=>	'ALTER DATABASE ',
+			'ALTER_SCHEMA'	=>	'ALTER SCHEMA ',
+			'ALTER_EVENT'	=>	'ALTER EVENT ',
+			'ALTER_FUNCTION'=>	'ALTER FUNCTION ',
+			'DATABASE'		=>	'DATABASE ',
+			'SCHEMA'		=>	'SCHEMA ',
+			'EVENT'			=>	'EVENT ',
+			'FUNCTION'		=>	'FUNCTION ',
+			'TABLE'			=>	'TABLE ',
 
-											'ALL'			=>	'*',
-											'DISTINCT'		=>	'DISTINCT ',
-											'DISTINCTROW'	=>	'DISTINCTROW ',
-											'HIGH_PRIORITY'	=>	'HIGH_PRIORITY ',
-											'HIGH'			=>	'HIGH_PRIORITY ',
-											'STRAIGHT_JOIN'	=>	'STRAIGHT_JOIN ',
-											'SQL_SMALL_RESULT'=>'SQL_SMALL_RESULT ',
-											'SMALL'			=>	'SQL_SMALL_RESULT ',
-											'SQL_BIG_RESULT'=>	'SQL_BIG_RESULT ',
-											'BIG'			=>	'SQL_BIG_RESULT ',
-											'SQL_BUFFER_RESULT'=>'SQL_BUFFER_RESULT ',
-											'BUFFER'		=>	'SQL_BUFFER_RESULT ',
-											'SQL_CACHE'		=>	'SQL_CACHE ',
-											'CACHE'			=>	'SQL_CACHE ',
-											'SQL_NO_CACHE'	=>	'SQL_NO_CACHE ',
-											'NO_CACHE'		=>	'SQL_NO_CACHE ',
-											'SQL_CALC_FOUND_ROWS'=>	'SQL_CALC_FOUND_ROWS ',
-											'CALC'			=>	'SQL_CALC_FOUND_ROWS ',
+			'ALL'			=>	'*',
+			'DISTINCT'		=>	'DISTINCT ',
+			'DISTINCTROW'	=>	'DISTINCTROW ',
+			'HIGH_PRIORITY'	=>	'HIGH_PRIORITY ',
+			'HIGH'			=>	'HIGH_PRIORITY ',
+			'STRAIGHT_JOIN'	=>	'STRAIGHT_JOIN ',
+			'SQL_SMALL_RESULT'=>'SQL_SMALL_RESULT ',
+			'SMALL'			=>	'SQL_SMALL_RESULT ',
+			'SQL_BIG_RESULT'=>	'SQL_BIG_RESULT ',
+			'BIG'			=>	'SQL_BIG_RESULT ',
+			'SQL_BUFFER_RESULT'=>'SQL_BUFFER_RESULT ',
+			'BUFFER'		=>	'SQL_BUFFER_RESULT ',
+			'SQL_CACHE'		=>	'SQL_CACHE ',
+			'CACHE'			=>	'SQL_CACHE ',
+			'SQL_NO_CACHE'	=>	'SQL_NO_CACHE ',
+			'NO_CACHE'		=>	'SQL_NO_CACHE ',
+			'SQL_CALC_FOUND_ROWS'=>	'SQL_CALC_FOUND_ROWS ',
+			'CALC'			=>	'SQL_CALC_FOUND_ROWS ',
 
-											'DELAYED'		=>	'DELAYED ',
+			'DELAYED'		=>	'DELAYED ',
 
-											'LOW_PRIORITY'	=>	'LOW_PRIORITY ',
-											'LOW'			=>	'LOW_PRIORITY ',
-											'QUICK'			=>	'QUICK ',
-											'IGNORE'		=>	'IGNORE ',
+			'LOW_PRIORITY'	=>	'LOW_PRIORITY ',
+			'LOW'			=>	'LOW_PRIORITY ',
+			'QUICK'			=>	'QUICK ',
+			'IGNORE'		=>	'IGNORE ',
 
-											'TRUNCATE'		=>	'TRUNCATE ',
-											'TRUNCATE_TABLE'=>	'TRUNCATE TABLE ',
-											'TT'			=>	'TRUNCATE TABLE ',
+			'TRUNCATE'		=>	'TRUNCATE ',
+			'TRUNCATE_TABLE'=>	'TRUNCATE TABLE ',
+			'TT'			=>	'TRUNCATE TABLE ',
 
-											'CA'			=>	'COUNT(*)',
-											'CAA'			=>	'COUNT(*) AS ',
-											'CA_AS'			=>	'COUNT(*) AS ',
-											'COUNT_ALL'		=>	'COUNT(*)',
-											'COUNT_ALL_AS'	=>	'COUNT(*) AS ',
-											'COUNT'			=>	'COUNT',
-											'LAST_INSERT_ID'=>	'LAST_INSERT_ID()',
-											'ROW_COUNT'		=>	'ROW_COUNT()',
-											'A'				=>	'*',
-											'STAR'			=>	'*',
+			'CA'			=>	'COUNT(*)',
+			'CAA'			=>	'COUNT(*) AS ',
+			'CA_AS'			=>	'COUNT(*) AS ',
+			'COUNT_ALL'		=>	'COUNT(*)',
+			'COUNT_ALL_AS'	=>	'COUNT(*) AS ',
+			'COUNT'			=>	'COUNT',
+			'LAST_INSERT_ID'=>	'LAST_INSERT_ID()',
+			'ROW_COUNT'		=>	'ROW_COUNT()',
+			'A'				=>	'*',
+			'STAR'			=>	'*',
 
-											'FROM'			=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
-											'JOIN'			=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",
-											'LEFT_JOIN'		=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",
-											'LEFT_OUTER_JOIN'=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",
-											'RIGHT_JOIN'	=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",
-											'RIGHT_OUTER_JOIN'=>PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",
-											'INNER_JOIN'	=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",
-											'OUTER_JOIN'	=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",
-											'CROSS_JOIN'	=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",
-											'STRAIGHT_JOIN'	=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",
-											'NATURAL_JOIN'	=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",
-											'WHERE'			=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
-											'GROUP_BY'		=>	PHP_EOL . 'GROUP BY',
-											'HAVING'		=>	PHP_EOL . 'HAVING ',
-											'ORDER_BY'		=>	PHP_EOL . 'ORDER BY ',
-											'LIMIT'			=>	PHP_EOL . 'LIMIT ',
-											'PROCEDURE'		=>	PHP_EOL . 'PROCEDURE ',
-											'INTO_OUTFILE'	=>	PHP_EOL . 'INTO OUTFILE ',
-											'UNION'			=>	PHP_EOL . 'UNION'          . PHP_EOL,
-											'UNION_ALL'		=>	PHP_EOL . 'UNION ALL'      . PHP_EOL,
-											'UNION_DISTINCT'=>	PHP_EOL . 'UNION DISTINCT' . PHP_EOL,
-											'EXCEPT'		=>	PHP_EOL . 'EXCEPT'         . PHP_EOL,
-											'VALUES'		=>	PHP_EOL . 'VALUES'         . PHP_EOL . "\t",
-											'ADD'			=>	PHP_EOL . 'ADD ',
+			'FROM'			=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
+			'JOIN'			=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",
+			'LEFT_JOIN'		=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",
+			'LEFT_OUTER_JOIN'=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",
+			'RIGHT_JOIN'	=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",
+			'RIGHT_OUTER_JOIN'=>PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",
+			'INNER_JOIN'	=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",
+			'OUTER_JOIN'	=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",
+			'CROSS_JOIN'	=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",
+			'STRAIGHT_JOIN'	=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",
+			'NATURAL_JOIN'	=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",
+			'WHERE'			=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
+			'GROUP_BY'		=>	PHP_EOL . 'GROUP BY',
+			'HAVING'		=>	PHP_EOL . 'HAVING ',
+			'ORDER_BY'		=>	PHP_EOL . 'ORDER BY ',
+			'LIMIT'			=>	PHP_EOL . 'LIMIT ',
+			'PROCEDURE'		=>	PHP_EOL . 'PROCEDURE ',
+			'INTO_OUTFILE'	=>	PHP_EOL . 'INTO OUTFILE ',
+			'UNION'			=>	PHP_EOL . 'UNION'          . PHP_EOL,
+			'UNION_ALL'		=>	PHP_EOL . 'UNION ALL'      . PHP_EOL,
+			'UNION_DISTINCT'=>	PHP_EOL . 'UNION DISTINCT' . PHP_EOL,
+			'EXCEPT'		=>	PHP_EOL . 'EXCEPT'         . PHP_EOL,
+			'VALUES'		=>	PHP_EOL . 'VALUES'         . PHP_EOL . "\t",
+			'ADD'			=>	PHP_EOL . 'ADD ',
 
-											'S'				=>	'SELECT ',
-											'D'				=>	'DELETE ',
-											'DF'			=>	'DELETE FROM ',
-											'I'				=>	'INSERT ',
-											'II'			=>	'INSERT INTO ',
-											'U'				=>	'UPDATE ',
-											'F'				=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
-											'J'				=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",
-											'IJ'			=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",
-											'LJ'			=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",
-											'LOJ'			=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",
-											'RJ'			=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",
-											'ROJ'			=>	PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",
-											'OJ'			=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",
-											'CJ'			=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",
-											'SJ'			=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",
-											'NJ'			=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",
-											'W'				=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
-											'G'				=>	PHP_EOL . 'GROUP BY ',
-											'H'				=>	PHP_EOL . 'HAVING ',
-											'O'				=>	PHP_EOL . 'ORDER BY ',
-											'OB'			=>	PHP_EOL . 'ORDER BY ',
-											'L'				=>	PHP_EOL . 'LIMIT ',
+			'S'				=>	'SELECT ',
+			'D'				=>	'DELETE ',
+			'DF'			=>	'DELETE FROM ',
+			'I'				=>	'INSERT ',
+			'II'			=>	'INSERT INTO ',
+			'U'				=>	'UPDATE ',
+			'F'				=>	PHP_EOL . 'FROM'               . PHP_EOL . "\t",
+			'J'				=>	PHP_EOL . "\tJOIN"             . PHP_EOL . "\t\t",
+			'IJ'			=>	PHP_EOL . "\tINNER JOIN"       . PHP_EOL . "\t\t",
+			'LJ'			=>	PHP_EOL . "\tLEFT JOIN"        . PHP_EOL . "\t\t",
+			'LOJ'			=>	PHP_EOL . "\tLEFT OUTER JOIN"  . PHP_EOL . "\t\t",
+			'RJ'			=>	PHP_EOL . "\tRIGHT JOIN"       . PHP_EOL . "\t\t",
+			'ROJ'			=>	PHP_EOL . "\tRIGHT OUTER JOIN" . PHP_EOL . "\t\t",
+			'OJ'			=>	PHP_EOL . "\tOUTER JOIN"       . PHP_EOL . "\t\t",
+			'CJ'			=>	PHP_EOL . "\tCROSS JOIN"       . PHP_EOL . "\t\t",
+			'SJ'			=>	PHP_EOL . "\tSTRAIGHT_JOIN"    . PHP_EOL . "\t\t",
+			'NJ'			=>	PHP_EOL . "\tNATURAL JOIN"     . PHP_EOL . "\t\t",
+			'W'				=>	PHP_EOL . 'WHERE'              . PHP_EOL . "\t",
+			'G'				=>	PHP_EOL . 'GROUP BY ',
+			'H'				=>	PHP_EOL . 'HAVING ',
+			'O'				=>	PHP_EOL . 'ORDER BY ',
+			'OB'			=>	PHP_EOL . 'ORDER BY ',
+			'L'				=>	PHP_EOL . 'LIMIT ',
 
-											'USING'			=>	' USING ',
-											'USE'			=>	' USE ',
-											'IGNORE'		=>	' IGNORE ',
-											'FORCE'			=>	' FORCE ',
-											'NATURAL'		=>	' NATURAL ',
+			'USING'			=>	' USING ',
+			'USE'			=>	' USE ',
+			'IGNORE'		=>	' IGNORE ',
+			'FORCE'			=>	' FORCE ',
+			'NATURAL'		=>	' NATURAL ',
 
-											'DESC'			=>	' DESC',
-											'ASC'			=>	' ASC',
-											'IN'			=>	'IN',
-											'IN_'			=>	'IN ',
-											'_IN'			=>	' IN',
-											'_IN_'			=>	' IN ',
-											'NOT_IN'		=>	'NOT IN',
-											'NOT_IN_'		=>	'NOT IN ',
-											'_NOT_IN'		=>	' NOT IN',
-											'_NOT_IN_'		=>	' NOT IN ',
-											'NOT'			=>	'NOT',
-											'NOT_'			=>	'NOT ',
-											'_NOT'			=>	' NOT',
-											'_NOT_'			=>	' NOT ',
-											'NULL'			=>	'NULL',				//	Warning: don't add spaces here, used in several places without spaces!
-											'NULL_'			=>	'NULL ',
-											'_NULL'			=>	' NULL',
-											'_NULL_'		=>	' NULL ',
-											'IS'			=>	'IS',
-											'IS_'			=>	'IS ',
-											'_IS'			=>	' IS',
-											'_IS_'			=>	' IS ',
-											'IS_NOT'		=>	'IS NOT',
-											'IS_NOT_'		=>	'IS NOT ',
-											'_IS_NOT'		=>	' IS NOT',
-											'_IS_NOT_'		=>	' IS NOT ',
-											'IS_NULL'		=>	'IS NULL',
-											'IS_NULL_'		=>	'IS NULL ',
-											'_IS_NULL'		=>	' IS NULL',
-											'_IS_NULL_'		=>	' IS NULL ',
-											'LIKE'			=>	'LIKE',
-											'LIKE_'			=>	'LIKE ',
-											'_LIKE'			=>	' LIKE',
-											'_LIKE_'		=>	' LIKE ',
-											'NOT_LIKE'		=>	'NOT LIKE',
-											'NOT_LIKE_'		=>	'NOT LIKE ',
-											'_NOT_LIKE'		=>	' NOT LIKE',
-											'_NOT_LIKE_'	=>	' NOT LIKE ',
-											'CHARACTER_SET'	=>	' CHARACTER SET ',
-											'CHARACTER'		=>	' CHARACTER ',
-											'INTO_DUMPFILE'	=>	' INTO DUMPFILE ',
-											'DUMPFILE'		=>	'DUMPFILE ',
-											'OUTFILE'		=>	'OUTFILE ',
+			'DESC'			=>	' DESC',
+			'ASC'			=>	' ASC',
+			'IN'			=>	'IN',
+			'IN_'			=>	'IN ',
+			'_IN'			=>	' IN',
+			'_IN_'			=>	' IN ',
+			'NOT_IN'		=>	'NOT IN',
+			'NOT_IN_'		=>	'NOT IN ',
+			'_NOT_IN'		=>	' NOT IN',
+			'_NOT_IN_'		=>	' NOT IN ',
+			'NOT'			=>	'NOT',
+			'NOT_'			=>	'NOT ',
+			'_NOT'			=>	' NOT',
+			'_NOT_'			=>	' NOT ',
+			'NULL'			=>	'NULL',				//	Warning: don't add spaces here, used in several places without spaces!
+			'NULL_'			=>	'NULL ',
+			'_NULL'			=>	' NULL',
+			'_NULL_'		=>	' NULL ',
+			'IS'			=>	'IS',
+			'IS_'			=>	'IS ',
+			'_IS'			=>	' IS',
+			'_IS_'			=>	' IS ',
+			'IS_NOT'		=>	'IS NOT',
+			'IS_NOT_'		=>	'IS NOT ',
+			'_IS_NOT'		=>	' IS NOT',
+			'_IS_NOT_'		=>	' IS NOT ',
+			'IS_NULL'		=>	'IS NULL',
+			'IS_NULL_'		=>	'IS NULL ',
+			'_IS_NULL'		=>	' IS NULL',
+			'_IS_NULL_'		=>	' IS NULL ',
+			'LIKE'			=>	' LIKE ',
+		//	'LIKE_'			=>	'LIKE ',
+		//	'_LIKE'			=>	' LIKE',
+		//	'_LIKE_'		=>	' LIKE ',
+			'NOT_LIKE'		=>	' NOT LIKE ',
+		//	'NOT_LIKE_'		=>	'NOT LIKE ',
+		//	'_NOT_LIKE'		=>	' NOT LIKE',
+		//	'_NOT_LIKE_'	=>	' NOT LIKE ',
+			'CHARACTER_SET'	=>	' CHARACTER SET ',
+			'CHARACTER'		=>	' CHARACTER ',
+			'INTO_DUMPFILE'	=>	' INTO DUMPFILE ',
+			'DUMPFILE'		=>	'DUMPFILE ',
+			'OUTFILE'		=>	'OUTFILE ',
 
-											'INTO'			=>	'INTO ',
-											'OFFSET'		=>	' OFFSET ',
+			'INTO'			=>	'INTO ',
+			'OFFSET'		=>	' OFFSET ',
 
-											'FOR_UPDATE'					=>	PHP_EOL . 'FOR UPDATE',
-											'LOCK_IN_SHARE_MODE'			=>	' LOCK IN SHARE MODE',
-											'FOR_UPDATE_LOCK_IN_SHARE_MODE'	=>	PHP_EOL . 'FOR UPDATE LOCK IN SHARE MODE',
+			'FOR_UPDATE'					=>	PHP_EOL . 'FOR UPDATE',
+			'LOCK_IN_SHARE_MODE'			=>	' LOCK IN SHARE MODE',
+			'FOR_UPDATE_LOCK_IN_SHARE_MODE'	=>	PHP_EOL . 'FOR UPDATE LOCK IN SHARE MODE',
 
-											'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE' . PHP_EOL . "\t",
+			'ON_DUPLICATE_KEY_UPDATE'		=>	PHP_EOL . 'ON DUPLICATE KEY UPDATE' . PHP_EOL . "\t",
 
-											'AUTO_INCREMENT'=>	' AUTO_INCREMENT',
-											'INT'			=>	' INT',
-											'PK'			=>	'PRIMARY KEY ',
-											'PRIMARY_KEY'	=>	'PRIMARY KEY ',
-											'UNIQUE_KEY'	=>	'UNIQUE KEY ',
-											'ENGINE'		=>	PHP_EOL . 'ENGINE',
+			'AUTO_INCREMENT'=>	' AUTO_INCREMENT',
+			'INT'			=>	' INT',
+			'PK'			=>	'PRIMARY KEY ',
+			'PRIMARY_KEY'	=>	'PRIMARY KEY ',
+			'UNIQUE_KEY'	=>	'UNIQUE KEY ',
+			'ENGINE'		=>	PHP_EOL . 'ENGINE',
 
-											'IF'			=>	' IF ',
-											'SET'			=>	' SET ',
+			'IF'			=>	' IF ',
+			'SET'			=>	' SET ',
 
-											'COMMA'			=>	', ',
-											'C'				=>	', ',
+			'COMMA'			=>	', ',
+			'C'				=>	', ',
 
-											'_'				=>	' ',
-											'__'			=>	', ',
-											'Q'				=>	'"',
-											'SPACE'			=>	' ',
-											'SP'			=>	' ',
-											'_O'			=>	'(',
-											'C_'			=>	')',
-											'OPEN'			=>	'(',
-											'CLOSE'			=>	')',
-											'TAB'			=>	"\t",
-											'NL'			=>	"\n",
-											'CR'			=>	"\r",
-											'EOL'			=>	PHP_EOL,
-											'BR'			=>	PHP_EOL,
-											'EQ'			=>	'=',
-											'EQ_'			=>	'= ',
-											'_EQ'			=>	' =',
-											'_EQ_'			=>	' = ',
-											'NEQ'			=>	'!=',
-											'NEQ_'			=>	'!= ',
-											'_NEQ'			=>	' !=',
-											'_NEQ_'			=>	' != ',
-											'NOTEQ'			=>	'!=',
-											'NOTEQ_'		=>	'!= ',
-											'_NOTEQ'		=>	' !=',
-											'_NOTEQ_'		=>	' != ',
-											'NOT_EQ'		=>	'!=',
-											'NOT_EQ_'		=>	'!= ',
-											'_NOT_EQ'		=>	' !=',
-											'_NOT_EQ_'		=>	' != ',
-											'GT'			=>	'>',
-											'GT_'			=>	'> ',
-											'_GT'			=>	' >',
-											'_GT_'			=>	' > ',
-											'GE'			=>	'>=',
-											'GE_'			=>	'>= ',
-											'_GE'			=>	' >=',
-											'_GE_'			=>	' >= ',
-											'GTEQ'			=>	'>=',
-											'GTEQ_'			=>	'>= ',
-											'_GTEQ'			=>	' >=',
-											'_GTEQ_'		=>	' >= ',
-											'LT'			=>	'<',
-											'LT_'			=>	'< ',
-											'_LT'			=>	' <',
-											'_LT_'			=>	' < ',
-											'LE'			=>	'<=',
-											'LE_'			=>	'<= ',
-											'_LE'			=>	' <=',
-											'_LE_'			=>	' <= ',
-											'LTEQ'			=>	'<=',
-											'LTEQ_'			=>	'<= ',
-											'_LTEQ'			=>	' <=',
-											'_LTEQ_'		=>	' <= ',
-											'AS'			=>	' AS ',			//	had to make changes here!
-										//	'AS_'			=>	'AS ',
-										//	'_AS'			=>	' AS',
-										//	'_AS_'			=>	' AS ',
-											'ON'			=>	' ON ',			//	had to make changes here!
-										//	'ON_'			=>	'ON ',
-										//	'_ON'			=>	' ON',
-										//	'_ON_'			=>	' ON ',
-											'AND'			=>	' AND ',		//	had to make changes here!
-										//	'AND_'			=>	'AND ',
-										//	'_AND'			=>	' AND',
-										//	'_AND_'			=>	' AND ',
-											'OR'			=>	' OR ',		//	had to make changes here!
-										//	'OR_'			=>	'OR ',
-										//	'_OR'			=>	' OR',
-										//	'_OR_'			=>	' OR ',
-											'XOR'			=>	' XOR ',
-										//	'XOR_'			=>	'XOR ',
-										//	'_XOR'			=>	' XOR',
-										//	'_XOR_'			=>	' XOR ',
-											'ADD'			=>	'+',
-											'ADD_'			=>	'+ ',
-											'_ADD'			=>	' +',
-											'_ADD_'			=>	' + ',
-											'SUB'			=>	'-',
-											'SUB_'			=>	'- ',
-											'_SUB'			=>	' -',
-											'_SUB_'			=>	' - ',
-											'NEG'			=>	'-',
-											'NEG_'			=>	'- ',
-											'_NEG'			=>	' -',
-											'_NEG_'			=>	' - ',
-											'MUL'			=>	'*',
-											'MUL_'			=>	'* ',
-											'_MUL'			=>	' *',
-											'_MUL_'			=>	' * ',
-											'DIV'			=>	'/',
-											'DIV_'			=>	'/ ',
-											'_DIV'			=>	' /',
-											'_DIV_'			=>	' / ',
-											'MOD'			=>	'%',
-											'MOD_'			=>	'% ',
-											'_MOD'			=>	' %',
-											'_MOD_'			=>	' % ',
+			'_'				=>	' ',
+			'__'			=>	', ',
+			'Q'				=>	'"',
+			'SPACE'			=>	' ',
+			'SP'			=>	' ',
+			'_O'			=>	'(',
+			'C_'			=>	')',
+			'OPEN'			=>	'(',
+			'CLOSE'			=>	')',
+			'TAB'			=>	"\t",
+			'NL'			=>	"\n",
+			'CR'			=>	"\r",
+			'EOL'			=>	PHP_EOL,
+			'BR'			=>	PHP_EOL,
+			'EQ'			=>	'=',
+			'EQ_'			=>	'= ',
+			'_EQ'			=>	' =',
+			'_EQ_'			=>	' = ',
+			'NEQ'			=>	'!=',
+			'NEQ_'			=>	'!= ',
+			'_NEQ'			=>	' !=',
+			'_NEQ_'			=>	' != ',
+			'NOTEQ'			=>	'!=',
+			'NOTEQ_'		=>	'!= ',
+			'_NOTEQ'		=>	' !=',
+			'_NOTEQ_'		=>	' != ',
+			'NOT_EQ'		=>	'!=',
+			'NOT_EQ_'		=>	'!= ',
+			'_NOT_EQ'		=>	' !=',
+			'_NOT_EQ_'		=>	' != ',
+			'GT'			=>	'>',
+			'GT_'			=>	'> ',
+			'_GT'			=>	' >',
+			'_GT_'			=>	' > ',
+			'GE'			=>	'>=',
+			'GE_'			=>	'>= ',
+			'_GE'			=>	' >=',
+			'_GE_'			=>	' >= ',
+			'GTEQ'			=>	'>=',
+			'GTEQ_'			=>	'>= ',
+			'_GTEQ'			=>	' >=',
+			'_GTEQ_'		=>	' >= ',
+			'LT'			=>	'<',
+			'LT_'			=>	'< ',
+			'_LT'			=>	' <',
+			'_LT_'			=>	' < ',
+			'LE'			=>	'<=',
+			'LE_'			=>	'<= ',
+			'_LE'			=>	' <=',
+			'_LE_'			=>	' <= ',
+			'LTEQ'			=>	'<=',
+			'LTEQ_'			=>	'<= ',
+			'_LTEQ'			=>	' <=',
+			'_LTEQ_'		=>	' <= ',
+			'AS'			=>	' AS ',			//	had to make changes here!
+		//	'AS_'			=>	'AS ',
+		//	'_AS'			=>	' AS',
+		//	'_AS_'			=>	' AS ',
+			'ON'			=>	' ON ',			//	had to make changes here!
+		//	'ON_'			=>	'ON ',
+		//	'_ON'			=>	' ON',
+		//	'_ON_'			=>	' ON ',
+			'AND'			=>	' AND ',		//	had to make changes here!
+		//	'AND_'			=>	'AND ',
+		//	'_AND'			=>	' AND',
+		//	'_AND_'			=>	' AND ',
+			'OR'			=>	' OR ',			//	had to make changes here!
+		//	'OR_'			=>	'OR ',
+		//	'_OR'			=>	' OR',
+		//	'_OR_'			=>	' OR ',
+			'XOR'			=>	' XOR ',
+		//	'XOR_'			=>	'XOR ',
+		//	'_XOR'			=>	' XOR',
+		//	'_XOR_'			=>	' XOR ',
+			'ADD'			=>	'+',
+			'ADD_'			=>	'+ ',
+			'_ADD'			=>	' +',
+			'_ADD_'			=>	' + ',
+			'SUB'			=>	'-',
+			'SUB_'			=>	'- ',
+			'_SUB'			=>	' -',
+			'_SUB_'			=>	' - ',
+			'NEG'			=>	'-',
+			'NEG_'			=>	'- ',
+			'_NEG'			=>	' -',
+			'_NEG_'			=>	' - ',
+			'MUL'			=>	'*',
+			'MUL_'			=>	'* ',
+			'_MUL'			=>	' *',
+			'_MUL_'			=>	' * ',
+			'DIV'			=>	'/',
+			'DIV_'			=>	'/ ',
+			'_DIV'			=>	' /',
+			'_DIV_'			=>	' / ',
+			'MOD'			=>	'%',
+			'MOD_'			=>	'% ',
+			'_MOD'			=>	' %',
+			'_MOD_'			=>	' % ',
 
-											'MATCH'			=>	'MATCH',
-											'MATCH_'		=>	'MATCH ',
-											'_MATCH'		=>	' MATCH',
-											'_MATCH_'		=>	' MATCH ',
+			'MATCH'			=>	'MATCH',
+			'MATCH_'		=>	'MATCH ',
+			'_MATCH'		=>	' MATCH',
+			'_MATCH_'		=>	' MATCH ',
 
-											'AFTER'			=>	'AFTER',
-											'AFTER_'		=>	'AFTER ',
-											'_AFTER'		=>	' AFTER',
-											'_AFTER_'		=>	' AFTER ',
+			'AFTER'			=>	'AFTER',
+			'AFTER_'		=>	'AFTER ',
+			'_AFTER'		=>	' AFTER',
+			'_AFTER_'		=>	' AFTER ',
 
-											'_0_'			=>	'0',	'_0'			=>	'0',
-											'_1_'			=>	'1',	'_1'			=>	'1',
-											'_2_'			=>	'2',	'_2'			=>	'2',
-											'_3_'			=>	'3',	'_3'			=>	'3',
-											'_4_'			=>	'4',	'_4'			=>	'4',
-											'_5_'			=>	'5',	'_5'			=>	'5',
-											'_6_'			=>	'6',	'_6'			=>	'6',
-											'_7_'			=>	'7',	'_7'			=>	'7',
-											'_8_'			=>	'8',	'_8'			=>	'8',
-											'_9_'			=>	'9',	'_9'			=>	'9',
-											'_10_'			=>	'10',	'_10'			=>	'10',
-											'_11_'			=>	'11',	'_11'			=>	'11',
-											'_12_'			=>	'12',	'_12'			=>	'12',
-											'_13_'			=>	'13',	'_13'			=>	'13',
-											'_14_'			=>	'14',	'_14'			=>	'14',
-											'_15_'			=>	'15',	'_15'			=>	'15',
-											'_16_'			=>	'16',	'_16'			=>	'16',
-											'_17_'			=>	'17',	'_17'			=>	'17',
-											'_18_'			=>	'18',	'_18'			=>	'18',
-											'_19_'			=>	'19',	'_19'			=>	'19',
-											'_20_'			=>	'20',	'_20'			=>	'20',
-											'_21_'			=>	'21',	'_21'			=>	'21',
-											'_22_'			=>	'22',	'_22'			=>	'22',
-											'_23_'			=>	'23',	'_23'			=>	'23',
-											'_24_'			=>	'24',	'_24'			=>	'24',
-											'_25_'			=>	'25',	'_25'			=>	'25',
-											'_26_'			=>	'26',	'_26'			=>	'26',
-											'_27_'			=>	'27',	'_27'			=>	'27',
-											'_28_'			=>	'28',	'_28'			=>	'28',
-											'_29_'			=>	'29',	'_29'			=>	'29',
+			'_0_'			=>	'0',	'_0'			=>	'0',
+			'_1_'			=>	'1',	'_1'			=>	'1',
+			'_2_'			=>	'2',	'_2'			=>	'2',
+			'_3_'			=>	'3',	'_3'			=>	'3',
+			'_4_'			=>	'4',	'_4'			=>	'4',
+			'_5_'			=>	'5',	'_5'			=>	'5',
+			'_6_'			=>	'6',	'_6'			=>	'6',
+			'_7_'			=>	'7',	'_7'			=>	'7',
+			'_8_'			=>	'8',	'_8'			=>	'8',
+			'_9_'			=>	'9',	'_9'			=>	'9',
+			'_10_'			=>	'10',	'_10'			=>	'10',
+			'_11_'			=>	'11',	'_11'			=>	'11',
+			'_12_'			=>	'12',	'_12'			=>	'12',
+			'_13_'			=>	'13',	'_13'			=>	'13',
+			'_14_'			=>	'14',	'_14'			=>	'14',
+			'_15_'			=>	'15',	'_15'			=>	'15',
+			'_16_'			=>	'16',	'_16'			=>	'16',
+			'_17_'			=>	'17',	'_17'			=>	'17',
+			'_18_'			=>	'18',	'_18'			=>	'18',
+			'_19_'			=>	'19',	'_19'			=>	'19',
+			'_20_'			=>	'20',	'_20'			=>	'20',
+			'_21_'			=>	'21',	'_21'			=>	'21',
+			'_22_'			=>	'22',	'_22'			=>	'22',
+			'_23_'			=>	'23',	'_23'			=>	'23',
+			'_24_'			=>	'24',	'_24'			=>	'24',
+			'_25_'			=>	'25',	'_25'			=>	'25',
+			'_26_'			=>	'26',	'_26'			=>	'26',
+			'_27_'			=>	'27',	'_27'			=>	'27',
+			'_28_'			=>	'28',	'_28'			=>	'28',
+			'_29_'			=>	'29',	'_29'			=>	'29',
 
-											'_30_'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
-											'_55_'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
-											'_80_'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
+			'_30_'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
+			'_55_'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
+			'_80_'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
 
-											'_30'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
-											'_55'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
-											'_80'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
+			'_30'			=>	'30', '_35_' => '35', '_40_' => '40', '_45_' => '45', '_50_' => '50',
+			'_55'			=>	'55', '_60_' => '60', '_65_' => '65', '_70_' => '70', '_75_' => '75',
+			'_80'			=>	'80', '_85_' => '85', '_90_' => '90', '_95_' => '95', '_100_' => '100',
 
-											'BETWEEN'		=>	' BETWEEN ',
-											'_BETWEEN_'		=>	' BETWEEN ',
+			'BETWEEN'		=>	' BETWEEN ',
+			'_BETWEEN_'		=>	' BETWEEN ',
 
-											'OUT'			=>	'OUT ',
-											'_OUT_'			=>	' OUT ',
-											'INOUT'			=>	'INOUT ',
-											'_INOUT_'		=>	' INOUT ',
+			'OUT'			=>	'OUT ',
+			'_OUT_'			=>	' OUT ',
+			'INOUT'			=>	'INOUT ',
+			'_INOUT_'		=>	' INOUT ',
 
-											'PARTITION'		=>	PHP_EOL . 'PARTITION ',
-											'WITH_ROLLUP'	=>	' WITH ROLLUP ',
-											'DEFAULT'		=>	' DEFAULT ',
-										];
+			'PARTITION'		=>	PHP_EOL . 'PARTITION ',
+			'WITH_ROLLUP'	=>	' WITH ROLLUP ',
+			'DEFAULT'		=>	' DEFAULT ',
+		];
 
 
 	/**************************************************************************/
@@ -578,8 +659,7 @@ class Sql implements \ArrayAccess
 	{
 		if (empty($params)) {
 			$this->sql = $stmt;
-		}
-		else {
+		} else {
 			$this->prepare($stmt, ...$params);
 		}
 	}
@@ -631,6 +711,37 @@ class Sql implements \ArrayAccess
 			$this->sql .= is_null($stmt) ? self::$translations['NULL'] : $stmt;
 			return $this;
 		}
+		return $this->prepare($stmt, ...$params);
+	}
+
+
+	/**************************************************************************/
+	/**                               reset()                                **/
+	/**************************************************************************/
+
+
+	/**
+	 *	start new statement
+	 *
+	 *	@alias new()
+	 *
+	 *	See {@see prepare()} for optional syntax rules
+	 *
+	 *	@param  string|null $stmt
+	 *                      (optional) Statement to `prepare()`;
+	 *
+	 *	@param  mixed       ...$params
+	 *                      (optional) Parameters associated with $stmt
+	 *
+	 *	@return	$this
+	 */
+	public function reset($stmt = null, ...$params)
+	{
+		if (empty($params)) {
+			$this->sql = $stmt;
+			return $this;
+		}
+		$this->sql = null;
 		return $this->prepare($stmt, ...$params);
 	}
 
@@ -715,7 +826,7 @@ class Sql implements \ArrayAccess
 
 
 	/**
-	 *	CALL Stored `
+	 *	CALL Stored Procedure
 	 *
 	 *	@alias call()
 	 *
@@ -1173,7 +1284,7 @@ class Sql implements \ArrayAccess
 							$cols[]		=	substr($col, 1);
 							$values[]	=	$value;
 						}
-						else if (is_numeric($value))
+						else if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 							$cols[]		=	$col;
 							$values[]	=	$value;
@@ -1232,7 +1343,7 @@ class Sql implements \ArrayAccess
 					else
 					{
 						$value = $values[$index];
-						if (is_numeric($value))
+						if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 						//	$cols[$index]	=	$col;			//	unchanged
 						//	$values[$index]	=	$value[$index];	//	unchanged
@@ -1276,7 +1387,7 @@ class Sql implements \ArrayAccess
 					else
 					{
 						$value = $values[$index];
-						if (is_numeric($value))
+						if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 						{
 						//	$cols[$index]	=	$col;			//	unchanged
 						//	$values[$index]	=	$value[$index];	//	unchanged
@@ -1376,7 +1487,7 @@ class Sql implements \ArrayAccess
 				$comma = null;
 				foreach ($stmt as $col => $value)
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $value;
 					}
@@ -1437,7 +1548,7 @@ class Sql implements \ArrayAccess
 				$comma = null;
 				foreach ($stmt as $col => $value)
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $value;
 					}
@@ -1516,7 +1627,7 @@ class Sql implements \ArrayAccess
 				}
 				else
 				{
-					if (is_numeric($value))
+					if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))
 					{
 						$values .= $comma . $col . ' = ' . $value;
 					}
@@ -1555,7 +1666,7 @@ class Sql implements \ArrayAccess
 				}
 				else
 				{
-					if (is_numeric($arg))
+					if (is_numeric($arg) && (is_int($arg) || is_float($arg) || (string) $arg === (string) (float) $arg))
 					{
 						$values .= $comma . $col . ' = ' . $arg;
 					}
@@ -3005,7 +3116,7 @@ class Sql implements \ArrayAccess
 		}
 		foreach ($args as $arg)
 		{
-			if (is_numeric($arg))
+			if (is_numeric($arg) && (is_int($arg) || is_float($arg) || (string) $arg === (string) (float) $arg))
 			{
 				$this->sql .= $comma . $arg;
 			}
@@ -3550,7 +3661,7 @@ class Sql implements \ArrayAccess
 								next($params);
 								$count++;
 
-								if (is_numeric($value))	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
+								if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value)) 	return (string) $value;		//	first testing numeric here, so we can skip the quotes and escaping for '1'
 								if (is_string($value))	return self::quote($value);
 								if (is_null($value))	return 'NULL';
 								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
@@ -3558,7 +3669,7 @@ class Sql implements \ArrayAccess
 									$comma = null;
 									$result = '';
 									foreach ($value as $v) {
-											 if (is_numeric($v)) $result .= $comma . $v;
+											 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 										else if (is_string($v))  $result .= $comma . self::quote($v);
 										else if (is_null($v))    $result .= $comma . 'NULL';
 										else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3597,7 +3708,7 @@ class Sql implements \ArrayAccess
 								$count++;
 
 								if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-								if (is_numeric($value))	return (string) $value;
+								if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))	return (string) $value;
 								if (is_null($value))	return 'NULL';
 								if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 								if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
@@ -3649,7 +3760,7 @@ class Sql implements \ArrayAccess
 										$result = '';
 										foreach ($array as $v)
 										{
-												 if (is_numeric($v)) $result .= $comma . $v;
+												 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 											else if (is_string($v))  $result .= $comma . self::quote($v);
 											else if (is_null($v))    $result .= $comma . 'NULL';
 											else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3765,7 +3876,7 @@ class Sql implements \ArrayAccess
 									{
 										$value = $params[$key];
 
-										if (is_numeric($value)) {
+										if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value)) {
 											$command = 'd';
 										} else if (is_string($value)) {
 											$command = 's';
@@ -3778,7 +3889,7 @@ class Sql implements \ArrayAccess
 											$result = '';
 											foreach ($value as $v)
 											{
-													 if (is_numeric($v)) $result .= $comma . $v;
+													 if (is_numeric($v) && (is_int($v) || is_float($v) || (string) $v === (string) (float) $v)) $result .= $comma . $v;
 												else if (is_string($v))  $result .= $comma . self::quote($v);
 												else if (is_null($v))    $result .= $comma . 'NULL';
 												else if (is_bool($v))    $result .= $comma . $v ? '1' : '0';
@@ -3806,7 +3917,7 @@ class Sql implements \ArrayAccess
 											$value = $params[$key];
 
 											if (is_string($value))	return $value;	//	first test for a string because it's the most common case for @
-											if (is_numeric($value))	return (string) $value;
+											if (is_numeric($value) && (is_int($value) || is_float($value) || (string) $value === (string) (float) $value))	return (string) $value;
 											if (is_null($value))	return 'NULL';
 											if (is_bool($value))	return $value ? '1' : '0';	//	bool values return '' when false
 											if (is_array($value))	return implode(', ', $value);	//	WARNING: This isn't testing NULL and bool!
@@ -4115,12 +4226,514 @@ class Sql implements \ArrayAccess
 
 
 	/**
+	 *	Set the database connection
+	 *
+	 *	The escape handlers will be automatically derived from your connection object or resource
+	 *
+	 *	Examples:
+	 *
+	 *		\Twister\Sql::setConnection($conn);
+	 *		\Twister\Sql::setConnection($dbconn);
+	 *		\Twister\Sql::setConnection($pdo);
+	 *		\Twister\Sql::setConnection($mysqli);
+	 *		\Twister\Sql::setConnection($mysql);
+	 *		\Twister\Sql::setConnection($link);
+	 *		\Twister\Sql::setConnection($sqlite);
+	 *		\Twister\Sql::setConnection($odbc);
+	 *
+	 *	Oracle:
+	 *	https://docs.oracle.com/cd/B28359_01/text.111/b28304/cqspcl.htm#CCREF2091
+	 *
+	 *	@param  string $conn Database connection object, resource or null
+	 *
+	 *	@return void
+	 */
+	public static function setConnection($conn = null)
+	{
+		if (is_object($conn))
+		{
+			if ($conn instanceof \PDO)
+			{
+				self::$exec =
+					function ($sql) use ($conn)
+					{
+						return $conn->exec($sql);
+					};
+				self::$execute =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$query =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$lookup =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
+						$result = $recset->fetchAll(\PDO::FETCH_ASSOC);
+						$recset->closeCursor();
+						$result = array_shift($result);
+						return count($result) === 1 ? array_shift($result) : $result;
+					};
+				self::$fetchAll =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
+						$result = $recset->fetchAll(\PDO::FETCH_ASSOC);
+						$recset->closeCursor();
+						return $result;
+					};
+				self::$fetchNum =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
+						$result = $recset->fetchAll(\PDO::FETCH_NUM);
+						$recset->closeCursor();
+						return $result;
+					};
+
+				self::$quot = substr($conn->quote(''), 0, 1);
+				self::$escape_handler =
+					function ($string) use ($conn)
+					{
+						return substr(substr($conn->quote($string), 1), 0, -1);
+					};
+				self::$quote_handler =
+					function ($string) use ($conn)
+					{
+						return $conn->quote($string);
+					};
+				return;
+			}
+			else if ($conn instanceof \MySQLi)
+			{
+				self::$exec =
+					function ($sql) use ($conn)
+					{
+						$conn->real_query($sql);
+						return $conn->affected_rows;
+					};
+				self::$execute =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$query =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$lookup =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
+						if ($recset->field_count == 1)
+						{
+							$result = $recset->fetch_row();
+							$recset->free_result();
+							return $result[0];
+						}
+						$result = $recset->fetch_assoc();
+						$recset->free();
+						return $result;
+					};
+				self::$fetchAll =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
+						$result = $recset->fetch_all(MYSQLI_ASSOC);
+						$recset->free();
+						return $result;
+					};
+				self::$fetchNum =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
+						$result = $recset->fetch_all(MYSQLI_NUM);
+						$recset->free();
+						return $result;
+					};
+
+				self::$escape_handler =
+					function ($string) use ($conn)
+					{
+						return $conn->real_escape_string($string);
+					};
+				self::$quote_handler =
+					function ($string) use ($conn)
+					{
+						return self::$quot . $conn->real_escape_string($string) . self::$quot;
+					};
+				return;
+			}
+			else if ($conn instanceof \SQLite3)
+			{
+				self::$exec =
+					function ($sql) use ($conn)
+					{
+						$conn->exec($sql);
+						return $conn->affected_rows;
+					};
+				self::$execute =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$query =
+					function ($sql) use ($conn)
+					{
+						return $conn->query($sql);
+					};
+				self::$lookup =
+					function ($sql) use ($conn)
+					{
+						$result = $conn->querySingle($sql, true);
+						return count($result) === 1 ? array_shift($result) : $result;
+					};
+				self::$fetchAll =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						$result = [];
+						while ($row = $recset->fetchArray($mode, SQLITE3_ASSOC)) {
+							$result[] = $row;
+						}
+						$recset->finalize();
+						return $result;
+					};
+				self::$fetchNum =
+					function ($sql) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						$result = [];
+						while ($row = $recset->fetchArray($mode, SQLITE3_NUM)) {
+							$result[] = $row;
+						}
+						$recset->finalize();
+						return $result;
+					};
+
+				self::$escape_handler =
+					function ($string) use ($conn)
+					{
+						return $conn->real_escape_string($string);
+					};
+				self::$quote_handler =
+					function ($string) use ($conn)
+					{
+						return self::$quot . $conn->real_escape_string($string) . self::$quot;
+					};
+				return;
+			}
+		}
+		/**
+		 *	{@link http://php.net/resource}
+		 */
+		if (is_resource($conn))
+		{
+			switch (get_resource_type())
+			{
+				case 'pgsql link':
+				case 'pgsql link persistent':
+					trigger_error('experimental driver', E_USER_NOTICE);
+					self::$exec =
+						function ($sql) use ($conn)
+						{
+							$recset = pg_query($conn, $sql);
+							if ( ! $recset) {
+								throw new \Exception('pg_query() error: ' . pg_last_error($conn));
+							}
+							pg_free_result($recset);
+							return pg_affected_rows($conn);
+						};
+					self::$execute =
+						function ($sql) use ($conn)
+						{
+							return pg_query($conn, $sql);
+						};
+					self::$query =
+						function ($sql) use ($conn)
+						{
+							return pg_query($conn, $sql);
+						};
+					self::$lookup =
+						function ($sql) use ($conn)
+						{
+							$recset = pg_query($conn, $sql);
+							if ( ! $recset) {
+								throw new \Exception('pg_query() error: ' . pg_last_error($conn));
+							}
+							$result = pg_fetch_all($recset);
+							pg_free_result($recset);
+							$result = array_shift($result);
+							return count($result) === 1 ? array_shift($result) : $result;
+						};
+					self::$fetchAll =
+						function ($sql) use ($conn)
+						{
+							$recset = pg_query($conn, $sql);
+							if ( ! $recset) {
+								throw new \Exception('pg_query() error: ' . pg_last_error($conn));
+							}
+							$result = pg_fetch_all($recset);
+							pg_free_result($recset);
+							return $result;
+						};
+					self::$fetchNum =
+						function ($sql) use ($conn)
+						{
+							$recset = pg_query($conn, $sql);
+							if ( ! $recset) {
+								throw new \Exception('pg_query() error: ' . pg_last_error($conn));
+							}
+							$tmp = pg_fetch_all($recset);
+							pg_free_result($recset);
+							$result = [];
+							foreach ($tmp as $row) {
+								$result[] = array_values($row);
+							}
+							return $result;
+						};
+
+					self::$quot = '\'';
+					self::$escape_handler =
+						function ($string) use ($conn)
+						{
+							return pg_escape_string($conn, $string);
+						};
+					self::$quote_handler =
+						function ($string) use ($conn)
+						{
+							return pg_escape_literal($conn, $string);
+						};
+					return;
+				case 'mysql link':
+				case 'mysql link persistent':
+					trigger_error('experimental driver', E_USER_NOTICE);
+					self::$exec =
+						function ($sql) use ($conn)
+						{
+							mysql_query($sql, $conn);
+							return mysql_affected_rows($conn);
+						};
+					self::$execute =
+						function ($sql) use ($conn)
+						{
+							return mysql_query($sql, $conn);
+						};
+					self::$query =
+						function ($sql) use ($conn)
+						{
+							return mysql_query($sql, $conn);
+						};
+					self::$lookup =
+						function ($sql) use ($conn)
+						{
+							$recset = mysql_query($sql, $conn);
+							if ( ! $recset) {
+								throw new \Exception('mysql_query() error: ' . mysql_error($conn));
+							}
+							$result = mysql_fetch_assoc($recset);
+							mysql_free_result($recset);
+							return count($result) === 1 ? array_shift($result) : $result;
+						};
+					self::$fetchAll =
+						function ($sql) use ($conn)
+						{
+							$recset = mysql_query($sql, $conn);
+							if ( ! $recset) {
+								throw new \Exception('mysql_query() error: ' . mysql_error($conn));
+							}
+							$result = [];
+							while ($row = mysql_fetch_assoc($recset)) {
+								$result[] = $row;
+							}
+							mysql_free_result($recset);
+							return $result;
+						};
+					self::$fetchNum =
+						function ($sql) use ($conn)
+						{
+							$recset = mysql_query($sql, $conn);
+							if ( ! $recset) {
+								throw new \Exception('mysql_query() error: ' . mysql_error($conn));
+							}
+							$result = [];
+							while ($row = mysql_fetch_row($recset)) {
+								$result[] = $row;
+							}
+							mysql_free_result($recset);
+							return $result;
+						};
+
+					self::$escape_handler =
+						function ($string) use ($conn)
+						{
+							return mysql_real_escape_string($string, $conn);
+						};
+					self::$quote_handler =
+						function ($string) use ($conn)
+						{
+							return self::$quot . mysql_real_escape_string($string, $conn) . self::$quot;
+						};
+					return;
+			}
+		}
+		if ($conn === null)
+		{
+			self::$escape_handler   =	'\\Twister\\Sql::default_escape_string';
+			self::$quote_handler    =	'\\Twister\\Sql::default_quote_string';
+			self::$exec     =	'\\Twister\\Sql::noConnError';
+			self::$execute  =	'\\Twister\\Sql::noConnError';
+			self::$query    =	'\\Twister\\Sql::noConnError';
+			self::$lookup   =	'\\Twister\\Sql::noConnError';
+			self::$fetchAll =	'\\Twister\\Sql::noConnError';
+			self::$fetchNum =	'\\Twister\\Sql::noConnError';
+		}
+		throw new \Exception('Invalid database type, object, resource or string. No compatible driver detected!');
+	}
+
+
+	/**
+	 *	Escape a string for use with a LIKE clause
+	 *
+	 *	When using user input in a LIKE clause, both MySQL and PostgreSQL require
+	 *	the `%` and `_` characters in $string to be escaped with `\`,
+	 *	because they have special meaning in a LIKE clause
+	 *
+	 *	In LIKE statements; `_` matches 'any single character', similar to `.` in regular expressions,
+	 *	and the `_` character can be placed anywhere; eg. `LIKE 'Jas_n'`.
+	 *	So `_` should be properly escaped when used with strings provided from user input in LIKE statements!
+	 *
+	 *	$pattern should contain a `?` in the place of $string
+	 *	eg.
+	 *		 ->like('?%', $string)
+	 *		 ->like('%?', $string)
+	 *		 ->like('%?%', $string)
+	 *	or
+	 *		 ->LIKE('?%', $string)
+	 *		 ->LIKE('%?', $string)
+	 *		 ->LIKE('%?%', $string)
+	 *
+	 *	ODBC:
+	 *	@link https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/like-predicate-escape-character
+	 *
+	 *	@param  string $pattern The pattern to use, use `?` in the place of your string
+	 *	@param  string $string	The string that needs special 'LIKE' escaping
+	 *
+	 *	@return $this
+	 */
+	public function like($pattern, $string)
+	{
+		$pattern = trim($pattern, self::$quot); // remove self::$quot (" or ') from $pattern
+		$this->sql .= self::$translations['LIKE'] . self::$quot . str_replace('?', mb_ereg_replace('[%_]', '\\\0', self::escape($string)), $pattern) . self::$quot;
+		return $this;
+	}
+
+
+	/**
+	 *	Escape a string for use with a NOT LIKE clause
+	 *
+	 *	When using user input in a NOT LIKE clause, both MySQL and PostgreSQL require
+	 *	the `%` and `_` characters in $string to be escaped with `\`,
+	 *	because they have special meaning in a NOT LIKE clause
+	 *
+	 *	In NOT LIKE statements; `_` matches 'any single character', similar to `.` in regular expressions,
+	 *	and the `_` character can be placed anywhere; eg. `NOT LIKE 'Jas_n'`.
+	 *	So `_` should be properly escaped when used with strings provided from user input in NOT LIKE statements!
+	 *
+	 *	$pattern should contain a `?` in the place of $string
+	 *	eg.
+	 *		 ->notLike('?%', $string)
+	 *		 ->notLike('%?', $string)
+	 *		 ->notLike('%?%', $string)
+	 *
+	 *	@param  string $pattern The pattern to use, use `?` in the place of your string
+	 *	@param  string $string	The string that needs special 'NOT LIKE' escaping
+	 *
+	 *	@return $this
+	 */
+	public function notLike($pattern, $string)
+	{
+		$pattern = trim($pattern, self::$quot); // remove self::$quot (" or ') from $pattern
+		$this->sql .= self::$translations['NOT_LIKE'] . self::$quot . str_replace('?', self::escape(mb_ereg_replace('[%_]', '\\\0', $string)), $pattern) . self::$quot;
+		return $this;
+	}
+
+
+	/**
+	 *	Escape a string for use with a NOT LIKE clause
+	 *
+	 *	When using user input in a NOT LIKE clause, both MySQL and PostgreSQL require
+	 *	the `%` and `_` characters in $string to be escaped with `\`,
+	 *	because they have special meaning in a NOT LIKE clause
+	 *
+	 *	In NOT LIKE statements; `_` matches 'any single character', similar to `.` in regular expressions,
+	 *	and the `_` character can be placed anywhere; eg. `NOT LIKE 'Jas_n'`.
+	 *	So `_` should be properly escaped when used with strings provided from user input in NOT LIKE statements!
+	 *
+	 *	$pattern should contain a `?` in the place of $string
+	 *	eg.
+	 *		 ->not_like('?%', $string)
+	 *		 ->not_like('%?', $string)
+	 *		 ->not_like('%?%', $string)
+	 *	or
+	 *		 ->NOT_LIKE('%?%', $string)
+	 *		 ->NOT_LIKE('%?%', $string)
+	 *		 ->NOT_LIKE('%?%', $string)
+	 *
+	 *	@param  string $pattern The pattern to use, use `?` in the place of your string
+	 *	@param  string $string	The string that needs special 'NOT LIKE' escaping
+	 *
+	 *	@return $this
+	 */
+	public function not_like($pattern, $string)
+	{
+		$pattern = trim($pattern, self::$quot); // remove self::$quot (" or ') from $pattern
+		$this->sql .= self::$translations['NOT_LIKE'] . self::$quot . str_replace('?', self::escape(mb_ereg_replace('[%_]', '\\\0', $string)), $pattern) . self::$quot;
+		return $this;
+	}
+
+
+	/**
 	 *	Escape a string for use in a query
 	 *
 	 *	This function will 'escape' an ASCII or Multibyte string
-	 *	Internally the function uses mb_ereg_replace('[\'\"\n\r\0]', '\\\0', $string)
 	 *
-	 *	This function escapes exactly the same characters as `mysqli::real_escape_string`
+	 *	By default, the function uses MySQL rules.
+	 *	To change the internal escaper, set the connection with
+	 *
+	 *		`Twister\Sql::setConnection($dbconn);`
+	 *
+	 *	The `setConnection()` function automatically detects the connection/object type
+	 *	and sets the internal escape handler.
+	 *
+	 *	Or you can manually set the string escaper by calling:
+	 *
+	 *		`Twister\Sql::setEscaper('mysql' | 'postgresql' | 'pdo' | 'sqlite');`
+	 *
+	 *	By default, this function escapes exactly the same characters as `mysqli::real_escape_string`
 	 *	`Characters encoded are NUL (ASCII 0), \n, \r, \, ', ", and Control-Z.`	ctl-Z = dec:26 hex:1A
 	 *
 	 *	Note: This function is Multibyte-aware; typically UTF-8 but depends on your `mb_internal_encoding()`
@@ -4129,12 +4742,18 @@ class Sql implements \ArrayAccess
 	 *	@link	http://php.net/manual/en/mysqli.real-escape-string.php#46339
 	 *		`Note that this function will NOT escape _ (underscore) and % (percent) signs, which have special meanings in LIKE clauses.`
 	 *
-	 *	Note: This function is independent of your database connection!
-	 *	So make sure your database connection and mb_* (Multibyte) extention are using the same encoding
-	 *	Setting both the connection and `mb_internal_encoding()` to UTF-8 is recommended!
+	 *	MySQL:       {@link https://dev.mysql.com/doc/refman/5.7/en/string-literals.html}
+	 *	PostgreSQL:  {@link https://www.postgresql.org/docs/9.2/static/sql-syntax-lexical.html}
+	 *	Oracle:      {@link https://docs.oracle.com/cd/B28359_01/text.111/b28304/cqspcl.htm#CCREF2091}
 	 *
-	 *	WARNING: This is NOT the same as `PDO::quote`! This is more like mysqli::real_escape_string + quotes!
-	 *	`PDO` adds the weird `''` syntax to strings
+	 *	PostgreSQL:
+	 *		PostgreSQL supports almost the same escape sequences.
+	 *		However, it doesn't require \0 (NUL) or ctrl-Z (\Z) to be escaped.
+	 *		From version 9.1, PostgreSQL requires changes to standard_conforming_strings to handle these strings, or the use of `E'...'`
+	 *		{@link https://www.postgresql.org/docs/9.2/static/runtime-config-compatible.html#GUC-STANDARD-CONFORMING-STRINGS}
+	 *		'Applications that wish to use backslash as escape should be modified to use escape string syntax (E'...'),
+	 *			because the default behavior of ordinary strings is now to treat backslash as an ordinary character,
+	 *			per SQL standard. This variable can be enabled to help locate code that needs to be changed.'
 	 *
 	 *	@param  string $string The string you want to escape and quote
 	 *
@@ -4142,8 +4761,9 @@ class Sql implements \ArrayAccess
 	 */
 	public static function escape($string)
 	{
-		return mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string);	//	27 = ' 22 = " 5C = \ 1A = ctl-Z 00 = \0 (NUL) 0A = \n 0D = \r
+		return call_user_func(self::$escape_handler, $string);
 	}
+
 
 	/**
 	 *	Quote a string for use in a query
@@ -4173,8 +4793,116 @@ class Sql implements \ArrayAccess
 	 */
 	public static function quote($string)
 	{
-		return self::$quot . mb_ereg_replace('[\x00\x0A\x0D\x1A\x22\x27\x5C]', '\\\0', $string) . self::$quot;
+		return call_user_func(self::$quote_handler, $string);
 	}
+
+
+	private static function default_escape_string($string)
+	{
+		static $patterns     =	['/[\x27\x22\x5C]/u', '/\x0A/u', '/\x0D/u', '/\x00/u', '/\x1A/u'];
+		static $replacements =	['\\\$0', '\n', '\r', '\0', '\Z'];
+
+		return preg_replace($patterns, $replacements, $string);	//	27 = ' 22 = " 5C = \ 1A = ctl-Z 00 = \0 (NUL) 0A = \n 0D = \r
+	}
+
+
+	private static function default_quote_string($string)
+	{
+		return self::$quot . self::escape($string) . self::$quot;
+	}
+
+
+	public function exec()
+	{
+		return call_user_func(self::$exec, $this->sql);
+	}
+
+
+	public function execute()
+	{
+		return call_user_func(self::$execute, $this->sql);
+	}
+
+
+	public function query()
+	{
+		return call_user_func(self::$query, $this->sql);
+	}
+
+
+	public function lookup()
+	{
+		return call_user_func(self::$lookup, $this->sql);
+	}
+
+
+	public function fetchAll()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetch_all()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetchArray()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetch_array()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetchAssoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetch_assoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetchNum()
+	{
+		return call_user_func(self::$fetchNum, $this->sql);
+	}
+
+
+	public function fetch_num()
+	{
+		return call_user_func(self::$fetchNum, $this->sql);
+	}
+
+
+	public static function noConnError()
+	{
+		throw new \Exception('No connection has been set, please use \\Twister\\Sql::setConnection($conn) (passing your `connection` variable) before calling this function!');
+	}
+
+
+	/**
+	 *	@todo Possible future addition ~ create a 'true' prepared statement wrapper
+	public function realPrepare($stmt, ...$params)
+	{
+		return self::$prepare($this->sql);
+	}
+
+
+	public function real_prepare($stmt, ...$params)
+	{
+		return self::$prepare($this->sql);
+	}
+	*/
 
 
 	/**
@@ -4250,64 +4978,6 @@ class Sql implements \ArrayAccess
 	public static function lowerCaseStatements()
 	{
 		self::$translations = array_map('strtolower', self::$translations );
-	}
-
-
-	/**************************************************************************/
-	/**                      ArrayAccess Interface                           **/
-	/**************************************************************************/
-
-
-	/**
-	 *	Appends text directly without transformation to the internal $sql string
-	 *
-	 *	This function implements special (non-standard) handling of arrays
-	 *		and is not meant to be called directly!
-	 *
-	 *	This non-standard functionality is purely for syntactic sugar
-	 *
-	 *	By implementing this function, we allow users to 'write'
-	 *		directly to the input string, returning $this for method chaining
-	 *
-	 *	This effectively makes EVERY array lookup/index valid
-	 *		because the return value is $this
-	 *
-	 *	Strings added are NOT encoded or escaped, but simply appended
-	 *
-	 *	Special handling is provided for `null`, which will append `NULL`
-	 *
-	 *	Example:
-	 *
-	 *		`echo sql()['Hello World'];`
-	 *		`// Hello World`
-	 *
-	 *	Implementation of ArrayAccess::offsetGet()
-	 *
-	 *	@link http://php.net/manual/en/arrayaccess.offsetget.php
-	 *
-	 *	@param string|null $sql This SQL text you would like to append
-	 *
-	 *	@return $this
-	 */
-	public function offsetGet($sql)
-	{
-		$this->sql .= $sql;
-		return $this;
-	}
-
-	public function offsetSet($idx, $sql)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
-	}
-
-	public function offsetExists($index)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
-	}
-
-	public function offsetUnset($index)
-	{
-        throw new BadMethodCallException('Sql objects cannot be modified like this.');
 	}
 }
 
