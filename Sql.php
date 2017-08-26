@@ -132,6 +132,12 @@ class Sql
 	/**
 	 *	@var callable
 	 */
+	protected static $fetchAllIndexed	=	'\\Twister\\Sql::noConnError';
+
+
+	/**
+	 *	@var callable
+	 */
 	protected static $fetchNum	=	'\\Twister\\Sql::noConnError';
 
 
@@ -4292,6 +4298,21 @@ class Sql
 						$recset->closeCursor();
 						return $result;
 					};
+				self::$fetchAllIndexed =
+					function ($sql, $index) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('PDO::query() error: ' . $conn->errorInfo()[2]);
+						}
+						$tmp = $recset->fetchAll(\PDO::FETCH_ASSOC);
+						$recset->closeCursor();
+						$result = [];
+						foreach ($tmp as $row) {
+							$result[$row[$index]] = $row;
+						}
+						return $result;
+					};
 				self::$fetchNum =
 					function ($sql) use ($conn)
 					{
@@ -4363,6 +4384,21 @@ class Sql
 						$recset->free();
 						return $result;
 					};
+				self::$fetchAllIndexed =
+					function ($sql, $index) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						if ( ! $recset) {
+							throw new \Exception('MySQLi::query() error: ' . $conn->error);
+						}
+						$tmp = $recset->fetch_all(MYSQLI_ASSOC);
+						$recset->free();
+						$result = [];
+						foreach ($tmp as $row) {
+							$result[$row[$index]] = $row;
+						}
+						return $result;
+					};
 				self::$fetchNum =
 					function ($sql) use ($conn)
 					{
@@ -4418,6 +4454,17 @@ class Sql
 						$result = [];
 						while ($row = $recset->fetchArray($mode, SQLITE3_ASSOC)) {
 							$result[] = $row;
+						}
+						$recset->finalize();
+						return $result;
+					};
+				self::$fetchAllIndexed =
+					function ($sql, $index) use ($conn)
+					{
+						$recset = $conn->query($sql);
+						$result = [];
+						while ($row = $recset->fetchArray($mode, SQLITE3_ASSOC)) {
+							$result[$row[$index]] = $row;
 						}
 						$recset->finalize();
 						return $result;
@@ -4500,6 +4547,21 @@ class Sql
 							pg_free_result($recset);
 							return $result;
 						};
+					self::$fetchAllIndexed =
+						function ($sql, $index) use ($conn)
+						{
+							$recset = pg_query($conn, $sql);
+							if ( ! $recset) {
+								throw new \Exception('pg_query() error: ' . pg_last_error($conn));
+							}
+							$tmp = pg_fetch_all($recset);
+							pg_free_result($recset);
+							$result = [];
+							foreach ($tmp as $row) {
+								$result[$row[$index]] = $row;
+							}
+							return $result;
+						};
 					self::$fetchNum =
 						function ($sql) use ($conn)
 						{
@@ -4572,6 +4634,20 @@ class Sql
 							mysql_free_result($recset);
 							return $result;
 						};
+					self::$fetchAllIndexed =
+						function ($sql, $index) use ($conn)
+						{
+							$recset = mysql_query($sql, $conn);
+							if ( ! $recset) {
+								throw new \Exception('mysql_query() error: ' . mysql_error($conn));
+							}
+							$result = [];
+							while ($row = mysql_fetch_assoc($recset)) {
+								$result[$row[$index]] = $row;
+							}
+							mysql_free_result($recset);
+							return $result;
+						};
 					self::$fetchNum =
 						function ($sql) use ($conn)
 						{
@@ -4604,12 +4680,13 @@ class Sql
 		{
 			self::$escape_handler   =	'\\Twister\\Sql::default_escape_string';
 			self::$quote_handler    =	'\\Twister\\Sql::default_quote_string';
-			self::$exec     =	'\\Twister\\Sql::noConnError';
-			self::$execute  =	'\\Twister\\Sql::noConnError';
-			self::$query    =	'\\Twister\\Sql::noConnError';
-			self::$lookup   =	'\\Twister\\Sql::noConnError';
-			self::$fetchAll =	'\\Twister\\Sql::noConnError';
-			self::$fetchNum =	'\\Twister\\Sql::noConnError';
+			self::$exec				=	'\\Twister\\Sql::noConnError';
+			self::$execute			=	'\\Twister\\Sql::noConnError';
+			self::$query			=	'\\Twister\\Sql::noConnError';
+			self::$lookup			=	'\\Twister\\Sql::noConnError';
+			self::$fetchAll			=	'\\Twister\\Sql::noConnError';
+			self::$fetchAllIndexed	=	'\\Twister\\Sql::noConnError';
+			self::$fetchNum			=	'\\Twister\\Sql::noConnError';
 		}
 		throw new \Exception('Invalid database type, object, resource or string. No compatible driver detected!');
 	}
@@ -4841,10 +4918,41 @@ class Sql
 		return call_user_func(self::$fetchAll, $this->sql);
 	}
 
-
 	public function fetch_all()
 	{
 		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+
+	public function fetchAllAssoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+	public function fetch_all_assoc()
+	{
+		return call_user_func(self::$fetchAll, $this->sql);
+	}
+
+	public function fetchAllNum()
+	{
+		return call_user_func(self::$fetchNum, $this->sql);
+	}
+
+	public function fetch_all_num()
+	{
+		return call_user_func(self::$fetchNum, $this->sql);
+	}
+
+
+	public function fetchAllIndexed($index = 'id')
+	{
+		return call_user_func(self::$fetchAllIndexed, $this->sql, $index);
+	}
+
+	public function fetch_all_indexed($index = 'id')
+	{
+		return call_user_func(self::$fetchAllIndexed, $this->sql, $index);
 	}
 
 
